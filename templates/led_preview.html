@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LED Preview — Pixbo Rink</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#000; color:#ccc;
+  font-family:'Courier New',monospace;
+  overflow:hidden; height:100vh;
+}
+#topbar {
+  position:fixed; top:0; left:0; right:0; height:36px;
+  background:rgba(0,0,0,0.95); border-bottom:1px solid #111;
+  display:flex; align-items:center; padding:0 16px; gap:14px; z-index:100;
+  font-size:10px; letter-spacing:1px;
+}
+#topbar .logo { color:#CC1020; font-weight:bold; letter-spacing:3px; font-size:11px; }
+#topbar .sep  { color:#1e1e1e; }
+#topbar .stat { color:#333; }
+#topbar .stat span { color:#666; }
+#topbar .controls { margin-left:auto; display:flex; gap:6px; }
+#topbar button {
+  background:#0a0a0a; border:1px solid #1e1e1e; color:#555;
+  padding:3px 10px; border-radius:3px; font-size:9px;
+  cursor:pointer; font-family:inherit; letter-spacing:1px; transition:all .15s;
+}
+#topbar button:hover { border-color:#CC1020; color:#fff; }
+#topbar button.on { border-color:#CC1020; color:#CC1020; background:rgba(204,16,32,0.08); }
+#stage {
+  position:fixed;
+  top:44px; left:20px;
+  display:flex; flex-direction:column; gap:14px;
+  transform-origin:top left;
+}
+.row-wrap { display:flex; flex-direction:column; gap:3px; }
+.row-label { font-size:8px; color:#181818; letter-spacing:2px; text-transform:uppercase; padding-left:2px; }
+.row { display:flex; gap:5px; align-items:flex-start; }
+.unit { display:flex; flex-direction:column; gap:2px; }
+.unit-name { font-size:8px; color:#1a1a1a; letter-spacing:1px; text-transform:uppercase; padding:0 2px; }
+.panel {
+  background:#040404; border:1px solid #0e0e0e; border-radius:2px;
+  position:relative; overflow:hidden;
+  box-shadow:inset 0 0 10px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);
+}
+.panel canvas { display:block; }
+.glow-cv {
+  position:absolute; top:0; left:0; pointer-events:none;
+  mix-blend-mode:screen; opacity:0; filter:blur(2.5px); transition:opacity .3s;
+}
+.glow-cv.on { opacity:0.35; }
+#videos { display:none; }
+#loading {
+  position:fixed; inset:0; background:#000;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:10px; z-index:200; transition:opacity .5s;
+}
+#loading.fade { opacity:0; pointer-events:none; }
+.spinner {
+  width:20px; height:20px; border:2px solid #111;
+  border-top-color:#CC1020; border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+#loading p { font-size:10px; color:#333; letter-spacing:3px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+#corner {
+  position:fixed; bottom:10px; right:12px;
+  font-size:8px; color:#141414; letter-spacing:1px;
+  line-height:1.9; text-align:right; text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="logo">PIXBO LED</span>
+  <span class="sep">|</span>
+  <span class="stat">PITCH <span id="sPitch">—</span></span>
+  <span class="sep">|</span>
+  <span class="stat">SCALE <span id="sScale">—</span></span>
+  <span class="sep">|</span>
+  <span class="stat">FPS <span id="sFps">—</span></span>
+  <div class="controls">
+    <button id="bGlow" onclick="toggleGlow()" class="on">GLOW</button>
+    <button id="bGrid" onclick="toggleGrid()">GRID</button>
+    <button onclick="syncAll()">SYNC</button>
+    <button onclick="zoom(0.1)">+ ZOOM</button>
+    <button onclick="zoom(-0.1)">− ZOOM</button>
+    <button onclick="toggleFullscreen()">FULLSCREEN</button>
+  </div>
+</div>
+
+<div id="videos"></div>
+<div id="stage"></div>
+<div id="loading"><div class="spinner"></div><p>LOADING DISPLAYS</p></div>
+<div id="corner">Pixbo Wallenstam<br>LED Rink Simulator</div>
+
+<script>
+// ── Read display info from URL query params ────────────────────────────────
+const QP = new URLSearchParams(location.search);
+const DISPLAYS = [0,1,2,3,4].map(id => ({
+  id,
+  path: QP.get('d' + id) || '',
+  width: parseInt(QP.get('w' + id)) || 576,
+  height: 64,
+  name: QP.get('n' + id) || ('Display ' + id),
+})).filter(d => d.path);
+
+// Layout rows
+const ROWS = [
+  { label:'ROW 1 — 1920px', ids:[0,1] },
+  { label:'ROW 2 — 1920px', ids:[2,4] },
+  { label:'ROW 3 — LONGSIDE RIGHT', ids:[3] },
+];
+
+// SMD pixel config — square pixels with tiny gap
+const PS   = 3;   // pixel size (px)
+const GAP  = 1;   // gap between pixels
+const CELL = PS + GAP;
+
+let scale   = 1;
+let glow    = true;
+let grid    = false;
+let fpsCnt  = 0;
+let fpsTime = performance.now();
+
+const vids   = {};
+const ledCv  = {};
+const glowCv = {};
+const srcCv  = {};
+
+function disp(id) { return DISPLAYS.find(d => d.id === id); }
+
+function computeScale() {
+  // Stage natural width = widest row in CSS pixels (each LED = CELL px)
+  // Widest row = 1920 LEDs wide (row 1: 1334+576=1920)
+  // But we only have 1920 LEDs, each CELL=4px → 7680px natural
+  // We want to fit that into the window width
+  const naturalW = 1920 * CELL;
+  const naturalH = (64 * 3 + 60) * CELL; // 3 rows of 64px LEDs
+  const aw = window.innerWidth  - 60;
+  const ah = window.innerHeight - 80;
+  return Math.min(aw / naturalW, ah / naturalH, 1.0);
+}
+
+const IMAGE_EXTS = ['png','jpg','jpeg','gif','webp'];
+
+function isImage(path) {
+  const ext = path.split('.').pop().toLowerCase();
+  return IMAGE_EXTS.includes(ext);
+}
+
+function buildVideos() {
+  const c = document.getElementById('videos');
+  DISPLAYS.forEach(d => {
+    const url = '/api/stream?path=' + encodeURIComponent(d.path);
+    if (isImage(d.path)) {
+      // Static image — use <img> element, draw to canvas each frame
+      const img = document.createElement('img');
+      img.src = url;
+      img.crossOrigin = 'anonymous';
+      img.style.display = 'none';
+      c.appendChild(img);
+      vids[d.id] = img;
+      vids[d.id]._isImage = true;
+    } else {
+      const v = document.createElement('video');
+      v.src = url;
+      v.muted = true; v.loop = true; v.playsInline = true;
+      v.crossOrigin = 'anonymous';
+      v.preload = 'auto';
+      c.appendChild(v);
+      vids[d.id] = v;
+      vids[d.id]._isImage = false;
+    }
+
+    const sc = document.createElement('canvas');
+    sc.width = d.width; sc.height = d.height;
+    srcCv[d.id] = sc;
+  });
+}
+
+function buildStage() {
+  scale = computeScale();
+  document.getElementById('sPitch').textContent = 'P' + CELL;
+  document.getElementById('sScale').textContent = scale.toFixed(2) + 'x';
+
+  const stage = document.getElementById('stage');
+  stage.innerHTML = '';
+  stage.style.transform = 'scale(' + scale + ')';
+
+  ROWS.forEach(row => {
+    const rowDisps = row.ids.map(id => disp(id)).filter(Boolean);
+    if (!rowDisps.length) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'row-wrap';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'row-label';
+    lbl.textContent = row.label;
+    wrap.appendChild(lbl);
+
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'row';
+
+    rowDisps.forEach(d => {
+      const pw = d.width  * CELL;
+      const ph = d.height * CELL;
+
+      const unit = document.createElement('div');
+      unit.className = 'unit';
+
+      const nm = document.createElement('div');
+      nm.className = 'unit-name';
+      nm.textContent = d.name + ' ' + d.width + 'px';
+      unit.appendChild(nm);
+
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.style.width  = pw + 'px';
+      panel.style.height = ph + 'px';
+
+      const cv = document.createElement('canvas');
+      cv.width = pw; cv.height = ph;
+      ledCv[d.id] = cv;
+      panel.appendChild(cv);
+
+      const gc = document.createElement('canvas');
+      gc.className = 'glow-cv' + (glow ? ' on' : '');
+      gc.width = pw; gc.height = ph;
+      glowCv[d.id] = gc;
+      panel.appendChild(gc);
+
+      unit.appendChild(panel);
+      rowDiv.appendChild(unit);
+    });
+
+    wrap.appendChild(rowDiv);
+    stage.appendChild(wrap);
+  });
+}
+
+function renderPanel(id) {
+  const v  = vids[id];
+  const sc = srcCv[id];
+  const lc = ledCv[id];
+  const gc = glowCv[id];
+  const d  = disp(id);
+  if (!v || !sc || !lc || !d) return;
+  // For video: check readyState; for image: check naturalWidth
+  if (v._isImage) {
+    if (!v.complete || !v.naturalWidth) return;
+  } else {
+    if (v.readyState < 2) return;
+  }
+
+  const W = d.width, H = d.height;
+
+  const sCtx = sc.getContext('2d', {willReadFrequently: true});
+  sCtx.drawImage(v, 0, 0, W, H);
+  const px = sCtx.getImageData(0, 0, W, H).data;
+
+  const lCtx = lc.getContext('2d');
+  lCtx.fillStyle = '#040404';
+  lCtx.fillRect(0, 0, lc.width, lc.height);
+
+  if (grid) {
+    lCtx.strokeStyle = 'rgba(255,255,255,0.025)';
+    lCtx.lineWidth = 0.5;
+    for (let x = 0; x <= lc.width; x += CELL) {
+      lCtx.beginPath(); lCtx.moveTo(x+0.5,0); lCtx.lineTo(x+0.5,lc.height); lCtx.stroke();
+    }
+    for (let y = 0; y <= lc.height; y += CELL) {
+      lCtx.beginPath(); lCtx.moveTo(0,y+0.5); lCtx.lineTo(lc.width,y+0.5); lCtx.stroke();
+    }
+  }
+
+  for (let py = 0; py < H; py++) {
+    for (let px2 = 0; px2 < W; px2++) {
+      const i = (py * W + px2) * 4;
+      let r = px[i], g = px[i+1], b = px[i+2];
+      const cx = px2 * CELL;
+      const cy = py  * CELL;
+
+      if (r < 8 && g < 8 && b < 8) {
+        lCtx.fillStyle = '#0a0a0a';
+        lCtx.fillRect(cx, cy, PS, PS);
+        continue;
+      }
+
+      r = Math.min(255, r + 15);
+      g = Math.min(255, g + 15);
+      b = Math.min(255, b + 15);
+
+      lCtx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+      lCtx.fillRect(cx, cy, PS, PS);
+    }
+  }
+
+  if (glow) {
+    const gCtx = gc.getContext('2d');
+    gCtx.clearRect(0, 0, gc.width, gc.height);
+    gCtx.drawImage(lc, 0, 0);
+  }
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  fpsCnt++;
+  const now = performance.now();
+  if (now - fpsTime >= 1000) {
+    document.getElementById('sFps').textContent = fpsCnt;
+    fpsCnt = 0; fpsTime = now;
+  }
+  DISPLAYS.forEach(d => renderPanel(d.id));
+}
+
+function toggleGlow() {
+  glow = !glow;
+  document.getElementById('bGlow').classList.toggle('on', glow);
+  Object.values(glowCv).forEach(gc => gc.classList.toggle('on', glow));
+}
+function toggleGrid() {
+  grid = !grid;
+  document.getElementById('bGrid').classList.toggle('on', grid);
+}
+function syncAll() {
+  Object.values(vids).forEach(v => { try { v.currentTime = 0; } catch(e){} });
+  setTimeout(() => Object.values(vids).forEach(v => v.play().catch(()=>{})), 60);
+}
+function zoom(delta) {
+  scale = Math.max(0.15, Math.min(2.5, scale + delta));
+  document.getElementById('stage').style.transform = 'scale(' + scale + ')';
+  document.getElementById('sScale').textContent = scale.toFixed(2) + 'x';
+}
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+window.addEventListener('resize', () => { scale = computeScale(); zoom(0); });
+document.addEventListener('keydown', e => {
+  if (e.key === '+' || e.key === '=') zoom(0.1);
+  if (e.key === '-') zoom(-0.1);
+  if (e.key === 'g' || e.key === 'G') toggleGlow();
+  if (e.key === 's' || e.key === 'S') syncAll();
+  if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+});
+
+async function init() {
+  buildVideos();
+  buildStage();
+  loop();
+
+  await Promise.all(DISPLAYS.map(d => new Promise(res => {
+    const v = vids[d.id];
+    if (!v) { res(); return; }
+    if (v._isImage) {
+      if (v.complete && v.naturalWidth) { res(); return; }
+      v.addEventListener('load', res, {once:true});
+      v.addEventListener('error', res, {once:true});
+    } else {
+      if (v.readyState >= 3) { res(); return; }
+      v.addEventListener('canplaythrough', res, {once:true});
+      v.addEventListener('error', res, {once:true});
+    }
+    setTimeout(res, 5000);
+  })));
+
+  // Play videos (skip images)
+  await Promise.all(DISPLAYS.map(d => {
+    const v = vids[d.id];
+    if (!v || v._isImage) return Promise.resolve();
+    return v.play().catch(()=>{});
+  }));
+
+  const ld = document.getElementById('loading');
+  ld.classList.add('fade');
+  setTimeout(() => ld.style.display = 'none', 600);
+}
+
+init();
+</script>
+</body>
+</html>

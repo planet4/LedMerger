@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixbo LED Merger</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        px: { red:'#CC1020', dark:'#8B0000', black:'#0C0C0C', card:'#161616', border:'#2C2C2C', muted:'#3C3C3C', light:'#888888' },
+        neon: '#00ff88',
+      },
+      fontFamily: {
+        display: ['"Barlow Condensed"','sans-serif'],
+        mono:    ['"IBM Plex Mono"','monospace'],
+      },
+    }
+  }
+}
+</script>
+<style>
+  body { font-family:'Barlow Condensed',sans-serif; background:#0C0C0C; }
+  body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:repeating-linear-gradient(-55deg,transparent 0,transparent 60px,rgba(204,16,32,0.03) 60px,rgba(204,16,32,0.03) 61px); }
+  .red-glow  { text-shadow:0 0 40px rgba(204,16,32,0.7),0 0 80px rgba(204,16,32,0.3); }
+  .red-box   { box-shadow:0 0 0 1px rgba(204,16,32,0.4),0 4px 24px rgba(204,16,32,0.2); }
+  .prog-bar  { animation:slide 1.2s ease-in-out infinite alternate; }
+  @keyframes slide { from{margin-left:0} to{margin-left:70%} }
+  .tthumb    { transition:transform .18s; }
+  .tile-check:checked + .ttrack { background:#CC1020; }
+  .tile-check:checked ~ .tthumb { transform:translateX(16px); }
+  .drop-active { border-color:#CC1020 !important; background:rgba(204,16,32,0.06) !important; }
+  .diag-block  { position:relative; overflow:hidden; }
+  .diag-thumb  { position:absolute; inset:0; object-fit:cover; width:100%; height:100%; opacity:0.85; }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:#161616; }
+  ::-webkit-scrollbar-thumb { background:#CC1020; border-radius:3px; }
+  select option { background:#161616; }
+  .modal-bg { backdrop-filter:blur(4px); background:rgba(0,0,0,0.85); }
+
+  /* Tile slot upload zones */
+  .tile-slot { transition:all .15s; }
+  .tile-slot.uploaded { border-color:#00ff88; }
+  .tile-slot-thumb { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; border-radius:6px; }
+</style>
+</head>
+<body class="text-gray-200 min-h-screen">
+<!-- Force Barlow Condensed to load immediately -->
+<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Barlow Condensed';font-weight:900;font-size:1px;" id="fontPrimer">.</span>
+<div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
+
+  <!-- HEADER -->
+  <header class="flex items-center gap-4 pb-6 mb-8 border-b border-px-border">
+    <div class="w-14 h-14 flex-shrink-0 bg-px-card rounded-xl red-box flex items-center justify-center p-1.5">
+      <img src="https://sportality.cdn.s8y.se/team-logos/pix1_pix.svg" alt="Pixbo" class="w-full h-full object-contain"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none" class="w-full h-full items-center justify-center font-display font-black text-2xl text-px-red">P</div>
+    </div>
+    <div class="flex-1">
+      <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow font-display leading-none">LED MERGER</h1>
+      <p class="font-mono text-xs text-px-light mt-1">Pixbo LED Rink Content Creator</p>
+    </div>
+    <div class="text-right">
+      <div class="font-mono text-xs text-px-muted uppercase tracking-widest">Fixed Output</div>
+      <div class="font-display font-bold text-xl text-px-red">50 FPS</div>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="flex gap-1 mb-0">
+    <button onclick="switchTab('merge')" id="tab-merge"
+      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-px-red bg-px-card text-px-red font-display font-bold tracking-widest uppercase text-sm transition-all">FILE MERGER</button>
+    <button onclick="switchTab('lineup')" id="tab-lineup"
+      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-px-border bg-px-black text-px-light font-display font-bold tracking-widest uppercase text-sm transition-all hover:text-gray-200">PLAYERS</button>
+  </div>
+
+  <!-- ══════════════ FILE MERGER ══════════════ -->
+  <div id="tab-merge-content" class="pt-5 space-y-4">
+
+    <!-- 01 Upload -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3 flex items-center justify-between">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">01 — Upload Display Files</span>
+        <button onclick="openLayoutModal()" class="font-mono text-xs text-px-light hover:text-px-red transition-colors underline underline-offset-2">📐 View arena layout</button>
+      </div>
+
+      {% for d in displays %}
+      <div class="border-b border-px-border last:border-b-0">
+        <!-- Main upload row -->
+        <div class="grid items-center gap-3 px-5 py-3 hover:bg-white/[0.015]" style="grid-template-columns:185px 1fr 100px">
+          <div>
+            <div class="font-display font-semibold text-sm text-gray-100 uppercase tracking-wide">{{ d.name }}</div>
+            <div class="font-mono text-xs text-px-red mt-0.5">{{ d.width }} × {{ d.height }} px</div>
+          </div>
+          <div class="relative border-2 border-dashed border-px-muted rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-px-red/60 hover:bg-px-red/5 transition-all"
+               id="drop-{{ d.id }}"
+               ondragover="event.preventDefault();this.classList.add('drop-active')"
+               ondragleave="this.classList.remove('drop-active')"
+               ondrop="onDropDisplay(event,{{ d.id }})">
+            <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                   accept=".mp4,.mov,.avi,.gif,.png,.jpg,.jpeg"
+                   onchange="uploadDisplayFile({{ d.id }},this.files[0])">
+            <span class="font-mono text-xs text-px-light truncate pointer-events-none select-none" id="label-{{ d.id }}">Click or drag file…</span>
+          </div>
+          <div class="font-mono text-xs text-right text-px-light" id="ustatus-{{ d.id }}">—</div>
+        </div>
+
+        {% if d.id != 4 %}
+        <!-- Tile toggle row -->
+        <div class="px-5 pb-3 flex items-center gap-4 flex-wrap">
+          <label class="flex items-center gap-2.5 cursor-pointer select-none group">
+            <div class="relative w-9 h-5">
+              <input type="checkbox" class="tile-check sr-only" id="tile-toggle-{{ d.id }}"
+                     onchange="toggleTile({{ d.id }}, this.checked, {{ d.width }})">
+              <div class="ttrack w-9 h-5 bg-px-muted rounded-full transition-colors duration-200"></div>
+              <div class="tthumb absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow"></div>
+            </div>
+            <span class="font-mono text-xs text-px-light group-hover:text-gray-300 transition-colors">Tile mode</span>
+          </label>
+          <div id="tile-opts-{{ d.id }}" class="hidden flex items-center gap-3 flex-wrap">
+            <span class="font-mono text-xs text-px-light">Repeat</span>
+            <select id="tile-count-{{ d.id }}" onchange="onTileCountChange({{ d.id }}, {{ d.width }})"
+                    class="bg-px-black border border-px-border rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-px-red cursor-pointer">
+              <option value="2">2×</option><option value="3">3×</option><option value="4">4×</option>
+            </select>
+            <span class="font-mono text-xs text-px-light">Duration</span>
+            <input type="number" id="tile-dur-{{ d.id }}" value="6" min="1" max="60" step="0.5"
+                   class="w-16 bg-px-black border border-px-border rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-px-red">
+            <span class="font-mono text-xs text-px-light">sec</span>
+            <span class="font-mono text-xs text-px-red bg-px-red/10 px-2 py-0.5 rounded-md" id="tile-hint-{{ d.id }}"></span>
+          </div>
+        </div>
+        <!-- Tile slot upload areas (shown when tile mode on) -->
+        <div id="tile-slots-{{ d.id }}" class="hidden px-5 pb-4">
+          <div class="font-mono text-xs text-px-muted mb-2">Upload one file per tile slot (or leave empty to repeat slot 1):</div>
+          <div class="flex gap-2 flex-wrap" id="tile-slots-inner-{{ d.id }}"></div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- 02 Visual Layout -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">02 — Visual Layout</span>
+      </div>
+      <div class="p-5 space-y-2">
+        <div>
+          <div class="font-mono text-xs text-px-muted mb-1">Row 1 — 1920px</div>
+          <div class="flex gap-0.5 h-12 rounded-lg overflow-hidden">
+            <!-- Shortside 1334/1920 = 69.5% -->
+            <div class="diag-block rounded-l-lg flex items-center justify-center font-mono text-xs font-bold text-white/80 transition-all"
+                 id="diag-0" style="width:69.5%;background:#7B1520;">
+              <span class="diag-label z-10 relative drop-shadow">Shortside 1334px</span>
+            </div>
+            <!-- Longside Left 576/1920 = 30% -->
+            <div class="diag-block flex items-center justify-center font-mono text-xs font-bold text-white/80 transition-all"
+                 id="diag-1" style="width:30%;background:#1E3A5F;">
+              <span class="diag-label z-10 relative drop-shadow">L-Left 576px</span>
+            </div>
+            <!-- small 10px gap for visual separation -->
+            <div class="diag-block rounded-r-lg flex items-center justify-center font-mono text-[9px] font-bold text-white/60 transition-all"
+                 id="diag-tile-right-hint" style="width:0.5%;background:#111;"></div>
+          </div>
+        </div>
+        <div>
+          <div class="font-mono text-xs text-px-muted mb-1">Row 2 — 1920px</div>
+          <div class="flex gap-0.5 h-12 rounded-lg overflow-hidden">
+            <!-- Longside Center 1728/1920 = 90% -->
+            <div class="diag-block rounded-l-lg flex items-center justify-center font-mono text-xs font-bold text-white/80 transition-all"
+                 id="diag-2" style="width:90%;background:#1A4731;">
+              <span class="diag-label z-10 relative drop-shadow">Longside Center 1728px</span>
+            </div>
+            <!-- Longside Right 576 shown as thin slice? No — wait: 1728+192=1920, not 1728+576 -->
+            <!-- Row 2 is: LongsideCenter(1728) + Media(192) -->
+            <div class="diag-block rounded-r-lg flex items-center justify-center font-mono text-[9px] font-bold text-white/80 transition-all"
+                 id="diag-4" style="width:10%;background:#4A2060;">
+              <span class="diag-label z-10 relative drop-shadow">Media 192px</span>
+            </div>
+          </div>
+        </div>
+        <!-- Longside Right is same content as Longside Left - note -->
+        <div class="bg-px-black rounded-lg px-3 py-2 flex items-center gap-2 border border-px-border">
+          <span class="text-px-red text-xs font-mono">ℹ</span>
+          <span class="font-mono text-xs text-px-light">Longside Right (576px) uses same file as Longside Left in the stacked export</span>
+        </div>
+        <p class="font-mono text-xs text-px-muted">Export canvas: <span class="text-gray-400">1920 × 128px @ 50fps</span></p>
+      </div>
+    </div>
+
+    <!-- 03 Generate -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">03 — Generate Output</span>
+      </div>
+      <div class="px-5 py-4 flex items-center gap-4 flex-wrap">
+        <button id="mergeBtn" onclick="startMerge()" disabled
+          class="bg-px-red hover:bg-px-dark text-white font-display font-bold tracking-widest uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
+          ▶ MERGE FILES
+        </button>
+        <button id="previewBtn" onclick="openLedPreview()" disabled
+          class="bg-px-black border border-px-border hover:border-px-red text-px-light hover:text-white font-display font-bold tracking-widest uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
+          ◉ LED PREVIEW
+        </button>
+        <div class="flex-1 h-1.5 bg-px-black rounded-full overflow-hidden hidden min-w-[60px]" id="mergeProgress">
+          <div class="prog-bar h-full w-[30%] bg-px-red rounded-full"></div>
+        </div>
+        <div class="font-mono text-sm text-px-light" id="mergeStatus">Upload all 5 files to begin.</div>
+      </div>
+      <div class="hidden mx-5 mb-5 items-center gap-4 bg-neon/5 border border-neon/30 rounded-xl px-5 py-4" id="mergeDownload">
+        <span class="text-3xl">📥</span>
+        <div>
+          <div class="font-display font-bold text-neon text-lg uppercase">Output ready!</div>
+          <div class="font-mono text-xs text-px-light mt-0.5" id="mergeDlName"></div>
+        </div>
+        <button id="mergeDlBtn" class="ml-auto bg-neon text-black font-display font-bold px-5 py-2.5 rounded-xl hover:opacity-80 transition-opacity uppercase tracking-wide">Download MP4</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-merge -->
+
+
+  <!-- ══════════════ PLAYER CARDS ══════════════ -->
+  <div id="tab-lineup-content" class="pt-5 space-y-4 hidden">
+
+    <!-- 01 Background + Font -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">01 — Background &amp; Font</span>
+      </div>
+
+      <!-- Background upload + preview side by side -->
+      <div class="p-5 border-b border-px-border">
+        <div>
+          <!-- Controls -->
+          <div class="flex-1 space-y-3">
+            <!-- Upload -->
+            <div class="relative border-2 border-dashed border-px-muted rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-px-red/60 hover:bg-px-red/5 transition-all"
+                 id="drop-bg"
+                 ondragover="event.preventDefault();this.classList.add('drop-active')"
+                 ondragleave="this.classList.remove('drop-active')"
+                 ondrop="onDropBg(event)">
+              <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" accept=".mp4,.mov,.avi" onchange="uploadBg(this.files[0])">
+              <span class="font-mono text-xs text-px-light truncate pointer-events-none select-none" id="label-bg">Upload background MP4…</span>
+              <span class="ml-auto font-mono text-xs text-px-light" id="ustatus-bg"></span>
+            </div>
+            <!-- Library -->
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs text-px-light whitespace-nowrap">Library:</span>
+              <select id="bgLibrary" onchange="selectBgFromLibrary(this.value)"
+                class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+                <option value="">— select a background —</option>
+              </select>
+              <button onclick="loadBgLibrary()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Font -->
+      <div class="px-5 py-3 border-b border-px-border flex items-center gap-3 flex-wrap">
+        <span class="font-mono text-xs text-px-light whitespace-nowrap">Font:</span>
+        <select id="fontSelect" onchange="selectFont(this.value)"
+          class="flex-1 min-w-[180px] bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+          <option value="">— loading… —</option>
+        </select>
+        <button onclick="loadFonts()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
+        <span class="font-mono text-xs" id="fontStatus"></span>
+      </div>
+
+      <!-- 576 variant for the Longside Left/Right panels -->
+      <div class="px-5 py-3 flex items-center gap-3 flex-wrap">
+        <span class="font-mono text-xs text-px-light whitespace-nowrap">Longside L/R (576px):</span>
+        <select id="variant576Select" onchange="select576Variant(this.value)"
+          class="flex-1 min-w-[180px] bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+          <option value="">— black (no content) —</option>
+        </select>
+        <button onclick="load576Variants()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
+        <span class="font-mono text-[10px] text-px-muted">Drop files in <code class="text-gray-400">data/backgrounds/576_variants/</code></span>
+      </div>
+    </div>
+
+    <!-- 02 Player Info -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">02 — Player Info</span>
+      </div>
+      <div class="p-5 grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Player Number</label>
+          <input type="text" id="playerNumber" value="99" maxlength="3"
+            oninput="updateTimeline();checkLineupReady()"
+            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Player Name</label>
+          <input type="text" id="playerName" value="TED BORG"
+            oninput="updateTimeline();checkLineupReady()"
+            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Number shown (sec)</label>
+          <input type="number" id="numDur" value="2" min="0.5" max="10" step="0.5"
+            oninput="updateTimeline()"
+            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+        </div>
+        <div class="space-y-1.5">
+          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Total duration (sec)</label>
+          <input type="number" id="totalDur" value="6" min="2" max="30" step="0.5"
+            oninput="updateTimeline()"
+            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 Visual Layout Preview -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">03 — Visual Layout Preview</span>
+      </div>
+      <div class="p-5 space-y-2">
+        <!-- Row 1: Shortside(1334) + LongsideLeft(576) -->
+        <div>
+          <div class="font-mono text-xs text-px-muted mb-1">Row 1 — 1920px</div>
+          <div class="flex gap-0.5 rounded-lg overflow-hidden" style="height:48px;">
+            <div class="relative rounded-l-lg overflow-hidden flex-shrink-0" style="width:69.5%;background:#7B1520;">
+              <canvas id="lu-canvas-0" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/50 pointer-events-none" id="lu-lbl-0">Shortside 1334px</span>
+            </div>
+            <div class="relative rounded-r-lg overflow-hidden flex-shrink-0" style="width:30.5%;background:#1E3A5F;">
+              <canvas id="lu-canvas-1" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/50 pointer-events-none" id="lu-lbl-1">L-Left 576px</span>
+            </div>
+          </div>
+        </div>
+        <!-- Row 2: LongsideCenter(1728) + Media(192) -->
+        <div>
+          <div class="font-mono text-xs text-px-muted mb-1">Row 2 — 1920px</div>
+          <div class="flex gap-0.5 rounded-lg overflow-hidden" style="height:48px;">
+            <div class="relative rounded-l-lg overflow-hidden flex-shrink-0" style="width:90%;background:#1A4731;">
+              <canvas id="lu-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/50 pointer-events-none" id="lu-lbl-2">Longside Center 1728px</span>
+            </div>
+            <div class="relative rounded-r-lg overflow-hidden flex-shrink-0" style="width:10%;background:#4A2060;">
+              <canvas id="lu-canvas-3" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/50 pointer-events-none" id="lu-lbl-3">Media 192</span>
+            </div>
+          </div>
+        </div>
+        <!-- 576 variant -->
+        <div>
+          <div class="font-mono text-xs text-px-muted mb-1">Longside Left / Right — 576px variant</div>
+          <div class="flex gap-0.5 rounded-lg overflow-hidden" style="height:48px;">
+            <div class="relative rounded-lg overflow-hidden w-full" style="background:#2A3A6A;">
+              <canvas id="lu-canvas-4" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/50 pointer-events-none" id="lu-576-label">576px — no file selected (black)</span>
+            </div>
+          </div>
+        </div>
+        <p class="font-mono text-xs text-px-muted">Live preview — updates as you type name/number.</p>
+      </div>
+    </div>
+
+    <!-- 04 Timing -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">04 — Timing Preview</span>
+      </div>
+      <div class="p-5">
+        <div class="flex h-10 rounded-xl overflow-hidden border border-px-border">
+          <div id="tlNum" style="width:33%" class="flex items-center justify-center font-mono text-xs text-white bg-px-red/70 border-r-2 border-px-red overflow-hidden whitespace-nowrap transition-all duration-300 px-2"># 99 · 2.0s</div>
+          <div id="tlName" class="flex-1 flex items-center justify-center font-mono text-xs text-neon bg-neon/10 overflow-hidden whitespace-nowrap px-2">TED BORG · 4.0s</div>
+        </div>
+        <div class="flex justify-between mt-2 font-mono text-xs text-px-muted">
+          <span>0s</span><span id="tlMid" class="text-px-red/70">2s ↔ fade</span><span id="tlEnd">6s</span>
+        </div>
+        <p class="font-mono text-xs text-px-muted mt-2">↳ 0.3s fade transition</p>
+      </div>
+    </div>
+
+    <!-- 04 Generate -->
+    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
+      <div class="bg-px-black border-b border-px-border px-5 py-3">
+        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">05 — Generate</span>
+      </div>
+      <div class="px-5 py-4 flex items-center gap-4 flex-wrap">
+        <button id="lineupBtn" onclick="startLineup()" disabled
+          class="bg-px-red hover:bg-px-dark text-white font-display font-bold tracking-widest uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
+          ▶ GENERATE CARDS
+        </button>
+        <button id="lineupPreviewBtn" onclick="openLineupLedPreview()" disabled
+          class="bg-px-black border border-px-border hover:border-px-red text-px-light hover:text-white font-display font-bold tracking-widest uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
+          ◉ LED PREVIEW
+        </button>
+        <div class="flex-1 h-1.5 bg-px-black rounded-full overflow-hidden hidden min-w-[60px]" id="lineupProgress">
+          <div class="prog-bar h-full w-[30%] bg-px-red rounded-full"></div>
+        </div>
+        <div class="font-mono text-sm text-px-light" id="lineupStatus">Select background and enter player info.</div>
+      </div>
+      <div class="hidden mx-5 mb-5 items-center gap-4 bg-neon/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="lineupDownload">
+        <span class="text-3xl">🎬</span>
+        <div>
+          <div class="font-display font-bold text-neon text-lg uppercase">Cards ready!</div>
+          <div class="font-mono text-xs text-px-light mt-0.5">Stacked export + 3 individual files</div>
+        </div>
+        <div class="ml-auto flex gap-2 flex-wrap" id="lineupDlButtons"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-lineup -->
+</div>
+
+<!-- Footer credit -->
+<div class="relative z-10 max-w-4xl mx-auto px-5 py-4 flex justify-end">
+  <span class="font-mono text-xs" style="color:#1e1e1e;">Created by <a href="mailto:fredrik@planet4.se" style="color:#2a2a2a;text-decoration:none;" onmouseover="this.style.color='#CC1020'" onmouseout="this.style.color='#2a2a2a'">Fredrik@planet4.se</a></span>
+</div>
+
+<!-- ARENA LAYOUT MODAL -->
+<div id="layoutModal" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4" onclick="closeLayoutModal()">
+  <div class="bg-px-card border border-px-border rounded-2xl max-w-3xl w-full overflow-hidden" onclick="event.stopPropagation()">
+    <div class="bg-px-black border-b border-px-border px-5 py-3 flex items-center justify-between">
+      <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">Arena LED Layout</span>
+      <button onclick="closeLayoutModal()" class="font-mono text-px-light hover:text-white text-lg leading-none">✕</button>
+    </div>
+    <div class="p-4">
+      <img src="/api/layout-image" alt="Arena layout" class="w-full rounded-xl"
+           onerror="this.parentElement.querySelector('.layout-fallback').style.display='block';this.style.display='none'">
+      <div class="layout-fallback hidden bg-px-black rounded-xl p-6 text-center font-mono text-xs text-px-light">
+        Drop <code class="text-gray-300">layout.png</code> in <code class="text-gray-300">data/backgrounds/</code> to show arena photo here
+      </div>
+      <div class="mt-4 grid grid-cols-1 gap-2 font-mono text-xs">
+        <div class="bg-px-black rounded-lg p-3 border border-px-border">
+          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Row 1 — 1920px wide</div>
+          <div class="flex gap-4 flex-wrap">
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#7B1520"></span>Shortside — 1334px</div>
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#1E3A5F"></span>Longside Left — 576px</div>
+          </div>
+        </div>
+        <div class="bg-px-black rounded-lg p-3 border border-px-border">
+          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Row 2 — 1920px wide</div>
+          <div class="flex gap-4 flex-wrap">
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#1A4731"></span>Longside Center — 1728px</div>
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#4A2060"></span>Media — 192px</div>
+          </div>
+        </div>
+        <div class="bg-px-black rounded-lg p-3 border border-px-border">
+          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Separate display</div>
+          <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#2A4A1A"></span>Longside Right — 576px (mirrors Longside Left in stacked export)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FPS = 50;
+const DISPLAYS = {{ displays | tojson }};
+const VARIANTS_DIR_PREFIX = '/app/backgrounds/576_variants/';
+
+// ══ TABS ══
+function switchTab(name) {
+  ['merge','lineup'].forEach(t => {
+    const a = t === name;
+    document.getElementById(`tab-${t}`).className = a
+      ? 'px-7 py-2.5 rounded-t-xl border border-b-0 border-px-red bg-px-card text-px-red font-display font-bold tracking-widest uppercase text-sm transition-all'
+      : 'px-7 py-2.5 rounded-t-xl border border-b-0 border-px-border bg-px-black text-px-light font-display font-bold tracking-widest uppercase text-sm transition-all hover:text-gray-200';
+    document.getElementById(`tab-${t}-content`).classList.toggle('hidden', !a);
+  });
+  if (name === 'lineup') setTimeout(renderAllLuCanvases, 50);
+}
+
+// ══ MODAL ══
+function openLayoutModal()  { document.getElementById('layoutModal').classList.remove('hidden'); }
+function closeLayoutModal() { document.getElementById('layoutModal').classList.add('hidden'); }
+
+// ══ MERGER STATE ══
+const uploadedPaths = {};  // display_id -> server path
+const tileEnabled   = {};
+// Tile per-slot paths: tileSlotPaths[display_id] = [path0, path1, ...]
+const tileSlotPaths = {};
+
+// ══ TILE MODE ══
+function toggleTile(id, on, totalW) {
+  tileEnabled[id] = on;
+  document.getElementById(`tile-opts-${id}`).classList.toggle('hidden', !on);
+  document.getElementById(`tile-slots-${id}`).classList.toggle('hidden', !on);
+  const cb = document.getElementById(`tile-toggle-${id}`);
+  cb.parentElement.querySelector('.ttrack').style.background = on ? '#CC1020' : '';
+  cb.parentElement.querySelector('.tthumb').style.transform  = on ? 'translateX(16px)' : '';
+  if (on) buildTileSlots(id, totalW, 2);
+  else { document.getElementById(`tile-hint-${id}`).textContent = ''; tileSlotPaths[id] = []; updateDiagramPreview(id); }
+}
+
+function onTileCountChange(id, totalW) {
+  const n = parseInt(document.getElementById(`tile-count-${id}`).value) || 2;
+  updateTileHint(id, totalW, n);
+  buildTileSlots(id, totalW, n);
+}
+
+function updateTileHint(id, totalW, tiles) {
+  document.getElementById(`tile-hint-${id}`).textContent = `each tile ${Math.floor(totalW/tiles)}px`;
+}
+
+function buildTileSlots(id, totalW, tiles) {
+  updateTileHint(id, totalW, tiles);
+  const container = document.getElementById(`tile-slots-inner-${id}`);
+  container.innerHTML = '';
+  if (!tileSlotPaths[id]) tileSlotPaths[id] = [];
+  // Resize array
+  while (tileSlotPaths[id].length < tiles) tileSlotPaths[id].push(null);
+  tileSlotPaths[id] = tileSlotPaths[id].slice(0, tiles);
+
+  for (let slot = 0; slot < tiles; slot++) {
+    const tileW = Math.floor(totalW / tiles);
+    const div = document.createElement('div');
+    div.className = 'relative tile-slot border-2 border-dashed border-px-muted rounded-xl cursor-pointer hover:border-px-red/60 transition-all flex flex-col items-center justify-center gap-1';
+    div.style.cssText = `width:80px;height:48px;`;
+    div.id = `tile-slot-${id}-${slot}`;
+    if (tileSlotPaths[id][slot]) div.classList.add('uploaded');
+
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.mp4,.mov,.avi,.gif,.png,.jpg,.jpeg';
+    inp.className = 'absolute inset-0 opacity-0 cursor-pointer w-full h-full';
+    inp.onchange = (e) => uploadTileSlot(id, slot, e.target.files[0], totalW);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'font-mono text-[9px] text-px-light pointer-events-none';
+    lbl.id = `tile-slot-lbl-${id}-${slot}`;
+    lbl.textContent = tileSlotPaths[id][slot] ? '✓' : `Tile ${slot+1}`;
+
+    const size = document.createElement('span');
+    size.className = 'font-mono text-[8px] text-px-muted pointer-events-none';
+    size.textContent = `${tileW}px`;
+
+    // Preview thumb if already uploaded
+    if (tileSlotPaths[id][slot]) {
+      const img = document.createElement('img');
+      img.className = 'tile-slot-thumb rounded-lg';
+      img.src = `/api/preview/${id}?slot=${slot}&t=${Date.now()}`;
+      img.onerror = () => img.remove();
+      div.appendChild(img);
+    }
+
+    div.appendChild(inp); div.appendChild(lbl); div.appendChild(size);
+    container.appendChild(div);
+  }
+}
+
+async function uploadTileSlot(id, slot, file, totalW) {
+  if (!file) return;
+  const lbl = document.getElementById(`tile-slot-lbl-${id}-${slot}`);
+  const div = document.getElementById(`tile-slot-${id}-${slot}`);
+  lbl.textContent = '…';
+  const fd = new FormData(); fd.append('file', file);
+  // Upload with slot info
+  try {
+    const r    = await fetch(`/api/upload/${id}?slot=${slot}`, {method:'POST', body:fd});
+    const data = await r.json();
+    if (data.ok) {
+      if (!tileSlotPaths[id]) tileSlotPaths[id] = [];
+      tileSlotPaths[id][slot] = data.path;
+      lbl.textContent = '✓';
+      div.classList.add('uploaded');
+      div.style.borderColor = '#00ff88';
+      // Show thumb
+      const old = div.querySelector('.tile-slot-thumb');
+      if (old) old.remove();
+      const img = document.createElement('img');
+      img.className = 'tile-slot-thumb rounded-lg';
+      img.src = `/api/preview/${id}?slot=${slot}&t=${Date.now()}`;
+      img.onerror = () => img.remove();
+      div.insertBefore(img, div.firstChild);
+      // Update main diagram
+      updateDiagramTiledPreview(id, totalW);
+    }
+  } catch(e) { lbl.textContent = '✗'; }
+}
+
+function updateDiagramTiledPreview(id, totalW) {
+  // For tiled mode show the first slot's preview tiled visually
+  const block = document.getElementById(`diag-${id}`);
+  if (!block) return;
+  block.querySelectorAll('.diag-thumb').forEach(e=>e.remove());
+  const slots = tileSlotPaths[id] || [];
+  const validSlots = slots.filter(Boolean);
+  if (validSlots.length === 0) return;
+  const tiles = parseInt(document.getElementById(`tile-count-${id}`)?.value || 2);
+  const tileW = Math.floor(totalW / tiles);
+  const pct   = (tileW / totalW * 100).toFixed(1);
+  // Create a flex container inside the block showing repeated images
+  const flex = document.createElement('div');
+  flex.className = 'diag-thumb flex';
+  flex.style.cssText = 'display:flex;align-items:stretch;';
+  for (let i = 0; i < tiles; i++) {
+    const src = tileSlotPaths[id] && tileSlotPaths[id][i] 
+      ? `/api/preview/${id}?slot=${i}&t=${Date.now()}`
+      : (validSlots[0] ? `/api/preview/${id}?slot=0&t=${Date.now()}` : '');
+    if (!src) continue;
+    const img = document.createElement('img');
+    img.style.cssText = `width:${pct}%;height:100%;object-fit:cover;`;
+    img.src = src; img.onerror = ()=>img.remove();
+    flex.appendChild(img);
+  }
+  block.appendChild(flex);
+  const lbl = block.querySelector('.diag-label');
+  if (lbl) lbl.style.opacity = '0';
+}
+
+// ══ DISPLAY UPLOAD ══
+function onDropDisplay(e, id) {
+  e.preventDefault();
+  document.getElementById(`drop-${id}`).classList.remove('drop-active');
+  if (e.dataTransfer.files[0]) uploadDisplayFile(id, e.dataTransfer.files[0]);
+}
+
+async function uploadDisplayFile(id, file) {
+  if (!file) return;
+  const drop   = document.getElementById(`drop-${id}`);
+  const label  = document.getElementById(`label-${id}`);
+  const status = document.getElementById(`ustatus-${id}`);
+  label.textContent  = file.name;
+  status.textContent = 'Uploading…'; status.className = 'font-mono text-xs text-right text-yellow-400';
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const r    = await fetch(`/api/upload/${id}`, {method:'POST', body:fd});
+    const data = await r.json();
+    if (data.ok) {
+      uploadedPaths[id] = data.path;
+      drop.style.borderColor = '#00ff88';
+      label.className = 'font-mono text-xs text-neon truncate pointer-events-none select-none';
+      status.textContent = '✓'; status.className = 'font-mono text-xs text-right text-neon';
+      updateDiagramPreview(id);
+    } else throw new Error(data.error);
+  } catch(e) {
+    status.textContent = '✗ Error'; status.className = 'font-mono text-xs text-right text-red-400';
+  }
+  checkMergeReady();
+}
+
+function updateDiagramPreview(id) {
+  const block = document.getElementById(`diag-${id}`);
+  if (!block) return;
+  if (tileEnabled[id]) return; // handled by tile preview
+  block.querySelectorAll('.diag-thumb,.diag-thumb-flex').forEach(e=>e.remove());
+  if (!uploadedPaths[id]) return;
+  const img = document.createElement('img');
+  img.className = 'diag-thumb';
+  img.src = `/api/preview/${id}?t=${Date.now()}`;
+  img.onerror = () => img.remove();
+  block.appendChild(img);
+  const lbl = block.querySelector('.diag-label');
+  if (lbl) lbl.style.opacity = '0';
+}
+
+function openLineupLedPreview() {
+  // Build params using bgPath for all text displays, variant576 for 576 panels
+  // Mirrors the stacked export layout: row1=shortside+longsideleft, row2=center+media
+  const params = new URLSearchParams();
+  const lineupDisplays = [
+    { id:0, path: bgPath, width:1334, name:'Shortside' },
+    { id:1, path: selected576 ? (VARIANTS_DIR_PREFIX + selected576) : '', width:576, name:'Longside Left' },
+    { id:2, path: bgPath, width:1728, name:'Longside Center' },
+    { id:3, path: selected576 ? (VARIANTS_DIR_PREFIX + selected576) : '', width:576, name:'Longside Right' },
+    { id:4, path: bgPath, width:192,  name:'Media' },
+  ];
+  lineupDisplays.forEach(d => {
+    if (d.path) params.set('d' + d.id, d.path);
+    params.set('w' + d.id, d.width);
+    params.set('n' + d.id, d.name);
+  });
+  const url = '/led-preview?' + params.toString();
+  window.open(url, 'ledpreview_lineup', 'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+}
+
+function checkMergeReady() {
+  const ready = DISPLAYS.every(d => uploadedPaths[d.id] || (tileEnabled[d.id] && tileSlotPaths[d.id]?.[0]));
+  document.getElementById('mergeBtn').disabled = !ready;
+  document.getElementById('previewBtn').disabled = !ready;
+  const n = DISPLAYS.filter(d => uploadedPaths[d.id] || (tileEnabled[d.id] && tileSlotPaths[d.id]?.[0])).length;
+  document.getElementById('mergeStatus').textContent = ready ? 'All files ready — click Merge or Preview!' : `${n}/5 files uploaded.`;
+}
+
+function openLedPreview() {
+  const params = new URLSearchParams();
+  DISPLAYS.forEach(d => {
+    const path = uploadedPaths[d.id] || (tileSlotPaths[d.id]?.[0]) || '';
+    if (path) params.set(`d${d.id}`, path);
+    params.set(`w${d.id}`, d.width);
+    params.set(`n${d.id}`, d.name);
+  });
+  const url = `/led-preview?${params.toString()}`;
+  window.open(url, 'ledpreview',
+    'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+}
+
+async function startMerge() {
+  // Build file list — for tiled displays use first slot path
+  const files = DISPLAYS.map(d => {
+    if (tileEnabled[d.id] && tileSlotPaths[d.id]?.[0]) return tileSlotPaths[d.id][0];
+    return uploadedPaths[d.id];
+  });
+  const tileConfigs = DISPLAYS.map(d => {
+    if (tileEnabled[d.id]) {
+      const tiles    = parseInt(document.getElementById(`tile-count-${d.id}`)?.value||2);
+      const duration = parseFloat(document.getElementById(`tile-dur-${d.id}`)?.value||6);
+      // Pass all slot paths so backend can use different images per tile
+      const slotPaths = (tileSlotPaths[d.id] || []).slice(0, tiles);
+      return { tiled:true, tiles, duration, slot_paths:slotPaths };
+    }
+    return { tiled:false };
+  });
+  document.getElementById('mergeBtn').disabled = true;
+  document.getElementById('mergeDownload').classList.add('hidden');
+  document.getElementById('mergeProgress').classList.remove('hidden');
+  document.getElementById('mergeStatus').textContent = 'Starting…';
+  const r = await fetch('/api/merge', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({files, tile_configs:tileConfigs, mode:'stacked', fps:FPS}),
+  });
+  const {job_id} = await r.json();
+  pollJob(job_id, 'mergeStatus', 'mergeProgress', 'mergeBtn', job => {
+    document.getElementById('mergeDlName').textContent = job.output;
+    document.getElementById('mergeDlBtn').onclick = () => window.location.href = `/api/download/${job.output}`;
+    const c = document.getElementById('mergeDownload');
+    c.classList.remove('hidden'); c.classList.add('flex');
+  });
+}
+
+// ══ PLAYER CARDS ══
+let bgPath = null, selectedFont = null, selected576 = null;
+
+async function loadFonts() {
+  try {
+    const fonts = await (await fetch('/api/assets/fonts')).json();
+    const sel = document.getElementById('fontSelect');
+    sel.innerHTML = fonts.length
+      ? fonts.map(f=>`<option value="${f}">${f}</option>`).join('')
+      : '<option value="">— no fonts in /data/fonts —</option>';
+    // Auto-select Road Rage if present, otherwise first font
+    const rr = fonts.find(f=>f.toLowerCase().includes('road')||f.toLowerCase().includes('rage'));
+    const pick = rr || fonts[0];
+    if (pick) { sel.value = pick; await selectFont(pick); }
+  } catch(e) {}
+}
+
+async function selectFont(f) {
+  selectedFont = f || null;
+  const s = document.getElementById('fontStatus');
+  s.textContent = f ? `Loading…` : '';
+  s.className = 'font-mono text-xs text-px-light';
+  if (f) {
+    try {
+      // Derive a clean CSS font-family name from the filename (strip extension)
+      const familyName = f.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+      const fontFace = new FontFace(familyName, `url(/api/assets/font-file/${encodeURIComponent(f)})`);
+      const loaded = await fontFace.load();
+      document.fonts.add(loaded);
+      luActiveFontFamily = `"${familyName}"`;
+      s.textContent = `✓ ${f}`; s.className = 'font-mono text-xs text-neon';
+    } catch(e) {
+      console.warn('Font load failed:', e);
+      luActiveFontFamily = '"Barlow Condensed"';
+      s.textContent = `⚠ ${f}`; s.className = 'font-mono text-xs text-yellow-400';
+    }
+  } else {
+    luActiveFontFamily = '"Barlow Condensed"';
+    s.textContent = ''; s.className = '';
+  }
+  renderAllLuCanvases();
+}
+
+async function loadBgLibrary() {
+  try {
+    const bgs = await (await fetch('/api/assets/backgrounds')).json();
+    const sel = document.getElementById('bgLibrary');
+    sel.innerHTML = '<option value="">— select a background —</option>' +
+      bgs.map(f=>`<option value="${f}">${f}</option>`).join('');
+  } catch(e) {}
+}
+
+async function load576Variants() {
+  try {
+    const files = await (await fetch('/api/assets/576variants')).json();
+    const sel = document.getElementById('variant576Select');
+    sel.innerHTML = '<option value="">— black (no content) —</option>' +
+      files.map(f=>`<option value="${f}">${f}</option>`).join('');
+  } catch(e) {}
+}
+
+function select576Variant(f) {
+  selected576 = f || null;
+  updateLineupDiagram576(f || null);
+}
+
+function selectBgFromLibrary(filename) {
+  if (!filename) return;
+  fetch('/api/lineup/select-bg', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename})})
+    .then(r=>r.json()).then(data => {
+      if (data.ok) {
+        bgPath = data.path;
+        showBgPreview(null, filename);
+        updateLineupDiagram();
+        document.getElementById('label-bg').textContent = filename;
+        document.getElementById('label-bg').className = 'font-mono text-xs text-neon truncate pointer-events-none select-none';
+        document.getElementById('ustatus-bg').textContent = '✓';
+        checkLineupReady();
+      }
+    });
+}
+
+function showBgPreview(objectUrl, filename, serverPath) {
+  // Preview box was removed from section 01 — just update the diagram
+  // (updateLineupDiagram is called separately after bgPath is set)
+}
+
+function onDropBg(e) { e.preventDefault(); if (e.dataTransfer.files[0]) uploadBg(e.dataTransfer.files[0]); }
+async function uploadBg(file) {
+  if (!file) return;
+  document.getElementById('label-bg').textContent = file.name;
+  document.getElementById('ustatus-bg').textContent = 'Uploading…';
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const data = await (await fetch('/api/lineup/upload-bg',{method:'POST',body:fd})).json();
+    if (data.ok) {
+      bgPath = data.path;
+      document.getElementById('drop-bg').style.borderColor = '#00ff88';
+      document.getElementById('label-bg').className = 'font-mono text-xs text-neon truncate pointer-events-none select-none';
+      document.getElementById('ustatus-bg').textContent = '✓';
+      // Use server thumbnail (seeks to 20%) rather than raw object URL (frame 1)
+      showBgPreview(null, data.filename || file.name, data.path);
+      updateLineupDiagram();
+    }
+  } catch(e) { document.getElementById('ustatus-bg').textContent = '✗'; }
+  checkLineupReady();
+}
+
+function updateTimeline() {
+  const num      = document.getElementById('playerNumber').value || '99';
+  const name     = (document.getElementById('playerName').value || 'TED BORG').toUpperCase();
+  renderAllLuCanvases();
+  const numDur   = parseFloat(document.getElementById('numDur').value) || 2;
+  const totalDur = parseFloat(document.getElementById('totalDur').value) || 6;
+  const pct      = Math.min(85, Math.max(15, numDur/totalDur*100)).toFixed(1);
+  document.getElementById('tlNum').style.width = pct+'%';
+  document.getElementById('tlNum').textContent = `# ${num} · ${numDur}s`;
+  document.getElementById('tlName').textContent = `${name} · ${(totalDur-numDur).toFixed(1)}s`;
+  document.getElementById('tlMid').textContent  = `${numDur}s ↔ fade`;
+  document.getElementById('tlEnd').textContent  = `${totalDur}s`;
+}
+
+function checkLineupReady() {
+  const num  = document.getElementById('playerNumber').value.trim();
+  const name = document.getElementById('playerName').value.trim();
+  const ok   = !!(bgPath && num && name);
+  document.getElementById('lineupBtn').disabled = !ok;
+  const prevBtn = document.getElementById('lineupPreviewBtn');
+  if (prevBtn) prevBtn.disabled = !bgPath;
+  const s = document.getElementById('lineupStatus');
+  if (!bgPath)         s.textContent = 'Select or upload a background video.';
+  else if (!num||!name) s.textContent = 'Enter player number and name.';
+  else                  s.textContent = 'Ready — click Generate Cards!';
+}
+
+// ── Lineup canvas preview ──────────────────────────────────────────────────
+// bgImg: loaded Image object for background, variant576Img: for the 576 panels
+let luBgImg = null, lu576Img = null;
+let luActiveFontFamily = '"Barlow Condensed"'; // updated when user picks a font
+
+// Canvas slots: [canvasId, showPlayerText, widthPx]
+const LU_CANVASES = [
+  { id:'lu-canvas-0', text:true,  w:1334, lbl:'lu-lbl-0' },
+  { id:'lu-canvas-1', text:false, w:576,  lbl:'lu-lbl-1', use576:true },
+  { id:'lu-canvas-2', text:true,  w:1728, lbl:'lu-lbl-2' },
+  { id:'lu-canvas-3', text:true,  w:192,  lbl:'lu-lbl-3' },
+  { id:'lu-canvas-4', text:false, w:576,  lbl:'lu-576-label', use576:true },
+];
+
+function renderLuCanvas(cfg) {
+  const canvas = document.getElementById(cfg.id);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  const rect = parent.getBoundingClientRect();
+  const W = Math.round(rect.width)  || parent.offsetWidth  || 300;
+  const H = Math.round(rect.height) || parent.offsetHeight || 48;
+  if (W === 0 || H === 0) return;
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const img = cfg.use576 ? lu576Img : luBgImg;
+  const lbl = document.getElementById(cfg.lbl);
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const sw = W / scale, sh = H / scale;
+    const sx = (img.naturalWidth  - sw) / 2;
+    const sy = (img.naturalHeight - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(0, 0, W, H);
+    if (lbl) lbl.style.opacity = '0';
+  } else {
+    if (lbl) lbl.style.opacity = '1';
+  }
+
+  if (!cfg.text) return;
+
+  const number   = document.getElementById('playerNumber')?.value?.trim() || '';
+  const name     = (document.getElementById('playerName')?.value?.trim() || '').toUpperCase();
+  if (!number && !name) return;
+
+  const fontSize = Math.max(10, Math.round(H * 0.5));
+  const activeFontName = luActiveFontFamily || '"Barlow Condensed"';
+  const fontStr  = `900 ${fontSize}px ${activeFontName}, sans-serif`;
+
+  ctx.textBaseline = 'middle';
+
+  if (W < 250) {
+    // Narrow — just centred number
+    ctx.font      = fontStr;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.textAlign = 'center';
+    ctx.fillText(`#${number}`, W / 2, H / 2);
+  } else {
+    // Wide — show  "# NUM  |  NAME"
+    const numText  = `#${number}`;
+    const sep      = '  ·  ';
+    const nameText = name;
+    ctx.font = fontStr;
+    const nw  = ctx.measureText(numText).width;
+    const sw2 = ctx.measureText(sep).width;
+    const mw  = ctx.measureText(nameText).width;
+    const totalW = nw + sw2 + mw;
+    const x0 = Math.max(8, (W - totalW) / 2);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#FF4455';
+    ctx.fillText(numText, x0, H / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillText(sep, x0 + nw, H / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillText(nameText, x0 + nw + sw2, H / 2);
+  }
+}
+
+function renderAllLuCanvases() {
+  const tab = document.getElementById('tab-lineup-content');
+  if (!tab || tab.classList.contains('hidden')) return;
+  LU_CANVASES.forEach(cfg => renderLuCanvas(cfg));
+}
+
+function updateLineupDiagram() {
+  if (!bgPath) { renderAllLuCanvases(); return; }
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload  = () => { luBgImg = img; renderAllLuCanvases(); };
+  img.onerror = () => { luBgImg = null; renderAllLuCanvases(); };
+  img.src = `/api/bg-preview-path?path=${encodeURIComponent(bgPath)}&t=${Date.now()}`;
+}
+
+function updateLineupDiagram576(filename) {
+  const lbl576 = document.getElementById('lu-576-label');
+  if (!filename) {
+    lu576Img = null;
+    if (lbl576) lbl576.textContent = '576px — no file selected (black)';
+    renderAllLuCanvases();
+    return;
+  }
+  if (lbl576) lbl576.textContent = filename;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload  = () => { lu576Img = img; renderAllLuCanvases(); };
+  img.onerror = () => { lu576Img = null; renderAllLuCanvases(); };
+  img.src = `/api/bg-preview-path?path=${encodeURIComponent(VARIANTS_DIR_PREFIX + filename)}&t=${Date.now()}`;
+}
+
+async function startLineup() {
+  const number   = document.getElementById('playerNumber').value.trim();
+  const name     = document.getElementById('playerName').value.trim();
+  const numDur   = parseFloat(document.getElementById('numDur').value) || 2;
+  const totalDur = parseFloat(document.getElementById('totalDur').value) || 6;
+  document.getElementById('lineupBtn').disabled = true;
+  document.getElementById('lineupDownload').classList.add('hidden');
+  document.getElementById('lineupProgress').classList.remove('hidden');
+  document.getElementById('lineupStatus').textContent = 'Starting…';
+  const r = await fetch('/api/lineup/generate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ bg_path:bgPath, number, name, fps:FPS, num_dur:numDur, total_dur:totalDur,
+                           font_name:selectedFont, variant_576:selected576||'' }),
+  });
+  const res = await r.json();
+  if (res.error) {
+    document.getElementById('lineupStatus').textContent = '✗ '+res.error;
+    document.getElementById('lineupBtn').disabled = false;
+    document.getElementById('lineupProgress').classList.add('hidden');
+    return;
+  }
+  pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', job => {
+    const btns = document.getElementById('lineupDlButtons'); btns.innerHTML = '';
+    const labels = ['↓ Stacked 1920×128','↓ Longside 1728','↓ Shortside 1334','↓ Media 192'];
+    (job.outputs||[]).forEach((fname,i) => {
+      const b = document.createElement('button');
+      b.className = 'bg-neon text-black font-display font-bold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
+      b.textContent = labels[i]||`↓ ${fname}`;
+      b.onclick = () => window.location.href = `/api/download/${fname}`;
+      btns.appendChild(b);
+    });
+    const c = document.getElementById('lineupDownload');
+    c.classList.remove('hidden'); c.classList.add('flex');
+  });
+}
+
+// ══ POLLING ══
+function pollJob(job_id, statusId, progressId, btnId, onDone) {
+  const t = setInterval(async () => {
+    try {
+      const data = await (await fetch(`/api/status/${job_id}`)).json();
+      document.getElementById(statusId).textContent = data.progress;
+      if (data.status === 'done') {
+        clearInterval(t);
+        document.getElementById(progressId).classList.add('hidden');
+        document.getElementById(btnId).disabled = false;
+        onDone(data);
+      } else if (data.status === 'error') {
+        clearInterval(t);
+        document.getElementById(progressId).classList.add('hidden');
+        document.getElementById(btnId).disabled = false;
+      }
+    } catch(e){}
+  }, 1200);
+}
+
+// Init
+updateTimeline();
+loadFonts();
+loadBgLibrary();
+load576Variants();
+</script>
+</body>
+</html>

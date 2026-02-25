@@ -1,0 +1,14 @@
+services:
+  sedna-merger:
+    build: .
+    container_name: sedna-merger
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./data/outputs:/app/outputs
+      - ./data/fonts:/app/fonts
+      - ./data/backgrounds:/app/backgrounds
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
