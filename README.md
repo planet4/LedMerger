@@ -1,17 +1,24 @@
-# Sedna LED Merger — Docker Web App
+# LED Merger — Docker Web App
 
 Web interface for merging 5 LED rink display files into one Sedna-compatible MP4.
 
 ## Folder structure
 
 ```
-sedna_web/
+LedMerger/
 ├── app.py
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
-└── templates/
-    └── index.html
+├── templates/
+│   └── index.html
+└── data/
+    ├── uploads/
+    ├── outputs/
+    ├── backgrounds/
+    │   ├── media_192/
+    │   └── 576_variants/
+    └── fonts/
 ```
 
 ## Running with Docker Compose
