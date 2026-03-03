@@ -1,6 +1,6 @@
 # LED Merger — Docker Web App
 
-Web interface for merging 5 LED rink display files into one Sedna-compatible MP4.
+Web interface for merging 5 LED rink display files into one Sedna-compatible MP4. Very Nice!
 
 ## Folder structure
 
