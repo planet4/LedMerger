@@ -149,46 +149,53 @@ tailwind.config = {
         <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">02 — Visual Layout</span>
       </div>
       <div class="p-5 space-y-2">
+
+        <!-- Longside Center 1728px — reference width (100%) -->
         <div>
-          <div class="font-mono text-xs text-px-muted mb-1">Row 1 — 1920px</div>
-          <div class="flex gap-0.5 h-12 rounded-lg overflow-hidden">
-            <!-- Shortside 1334/1920 = 69.5% -->
-            <div class="diag-block rounded-l-lg flex items-center justify-center font-mono text-xs font-bold text-white/80 transition-all"
-                 id="diag-0" style="width:69.5%;background:#7B1520;">
-              <span class="diag-label z-10 relative drop-shadow">Shortside 1334px</span>
-            </div>
-            <!-- Longside Left 576/1920 = 30% -->
-            <div class="diag-block flex items-center justify-center font-mono text-xs font-bold text-white/80 transition-all"
-                 id="diag-1" style="width:30%;background:#1E3A5F;">
-              <span class="diag-label z-10 relative drop-shadow">L-Left 576px</span>
-            </div>
-            <!-- small 10px gap for visual separation -->
-            <div class="diag-block rounded-r-lg flex items-center justify-center font-mono text-[9px] font-bold text-white/60 transition-all"
-                 id="diag-tile-right-hint" style="width:0.5%;background:#111;"></div>
+          <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE CENTER — 1728px</div>
+          <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1A4731;">
+            <canvas id="mg-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
+            <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="mg-lbl-2">no file</span>
           </div>
         </div>
+
+        <!-- Shortside 1344px — 77.2% of 1728 -->
         <div>
-          <div class="font-mono text-xs text-px-muted mb-1">Row 2 — 1920px</div>
-          <div class="flex gap-0.5 h-12 rounded-lg overflow-hidden">
-            <!-- Longside Center 1728/1920 = 90% -->
-            <div class="diag-block rounded-l-lg flex items-center justify-center font-mono text-xs font-bold text-white/80 transition-all"
-                 id="diag-2" style="width:90%;background:#1A4731;">
-              <span class="diag-label z-10 relative drop-shadow">Longside Center 1728px</span>
-            </div>
-            <!-- Longside Right 576 shown as thin slice? No — wait: 1728+192=1920, not 1728+576 -->
-            <!-- Row 2 is: LongsideCenter(1728) + Media(192) -->
-            <div class="diag-block rounded-r-lg flex items-center justify-center font-mono text-[9px] font-bold text-white/80 transition-all"
-                 id="diag-4" style="width:10%;background:#4A2060;">
-              <span class="diag-label z-10 relative drop-shadow">Media 192px</span>
+          <div class="font-mono text-[10px] text-px-muted mb-1">SHORTSIDE — 1344px</div>
+          <div style="width:77.2%;">
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7B1520;">
+              <canvas id="mg-canvas-0" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="mg-lbl-0">no file</span>
             </div>
           </div>
         </div>
-        <!-- Longside Right is same content as Longside Left - note -->
-        <div class="bg-px-black rounded-lg px-3 py-2 flex items-center gap-2 border border-px-border">
-          <span class="text-px-red text-xs font-mono">ℹ</span>
-          <span class="font-mono text-xs text-px-light">Longside Right (576px) uses same file as Longside Left in the stacked export</span>
+
+        <!-- Longside Left + Right + Media side by side -->
+        <div class="flex gap-3 items-start">
+          <div class="flex-1">
+            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE LEFT — 576px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1E3A5F;">
+              <canvas id="mg-canvas-1" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="mg-lbl-1">no file</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE RIGHT — 576px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7A5C00;">
+              <canvas id="mg-canvas-3" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="mg-lbl-3">no file</span>
+            </div>
+          </div>
+          <div style="width:10%">
+            <div class="font-mono text-[10px] text-px-muted mb-1">MEDIA — 192px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#4A2060;">
+              <canvas id="mg-canvas-4" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/30 pointer-events-none" id="mg-lbl-4">no file</span>
+            </div>
+          </div>
         </div>
-        <p class="font-mono text-xs text-px-muted">Export canvas: <span class="text-gray-400">1920 × 128px @ 50fps</span></p>
+
+        <p class="font-mono text-xs text-px-muted">Live preview — updates as files are uploaded.</p>
       </div>
     </div>
 
@@ -233,54 +240,68 @@ tailwind.config = {
         <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">01 — Background &amp; Font</span>
       </div>
 
-      <!-- Background upload + preview side by side -->
-      <div class="p-5 border-b border-px-border">
-        <div>
-          <!-- Controls -->
-          <div class="flex-1 space-y-3">
-            <!-- Upload -->
-            <div class="relative border-2 border-dashed border-px-muted rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-px-red/60 hover:bg-px-red/5 transition-all"
-                 id="drop-bg"
-                 ondragover="event.preventDefault();this.classList.add('drop-active')"
-                 ondragleave="this.classList.remove('drop-active')"
-                 ondrop="onDropBg(event)">
-              <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" accept=".mp4,.mov,.avi" onchange="uploadBg(this.files[0])">
-              <span class="font-mono text-xs text-px-light truncate pointer-events-none select-none" id="label-bg">Upload background MP4…</span>
-              <span class="ml-auto font-mono text-xs text-px-light" id="ustatus-bg"></span>
-            </div>
-            <!-- Library -->
-            <div class="flex items-center gap-2">
-              <span class="font-mono text-xs text-px-light whitespace-nowrap">Library:</span>
-              <select id="bgLibrary" onchange="selectBgFromLibrary(this.value)"
-                class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-                <option value="">— select a background —</option>
-              </select>
-              <button onclick="loadBgLibrary()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
-            </div>
-          </div>
+      <!-- Upload -->
+      <div class="px-5 pt-4 pb-2">
+        <div class="relative border-2 border-dashed border-px-muted rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-px-red/60 hover:bg-px-red/5 transition-all"
+             id="drop-bg"
+             ondragover="event.preventDefault();this.classList.add('drop-active')"
+             ondragleave="this.classList.remove('drop-active')"
+             ondrop="onDropBg(event)">
+          <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" accept=".mp4,.mov,.avi" onchange="uploadBg(this.files[0])">
+          <span class="font-mono text-xs text-px-light truncate pointer-events-none select-none" id="label-bg">Upload background MP4…</span>
+          <span class="ml-auto font-mono text-xs text-px-light" id="ustatus-bg"></span>
+        </div>
+      </div>
+
+      <!-- Select Background section -->
+      <div class="px-5 py-3 space-y-2 border-b border-px-border">
+        <div class="font-mono text-[10px] text-px-muted uppercase tracking-widest mb-2">Select Background</div>
+        <!-- Shortside + Longside Center (main bg) -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Shortside &amp; Longside Center:</span>
+          <select id="bgLibrary" onchange="selectBgFromLibrary(this.value)"
+            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+            <option value="">— select a background —</option>
+          </select>
+          <button onclick="loadBgLibrary()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
+        </div>
+        <!-- Longside Left 576 -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Longside Left (576px):</span>
+          <select id="variant576LeftSelect" onchange="select576Left(this.value)"
+            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+            <option value="">— black —</option>
+          </select>
+          <button onclick="load576Variants()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
+        </div>
+        <!-- Longside Right 576 -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Longside Right (576px):</span>
+          <select id="variant576RightSelect" onchange="select576Right(this.value)"
+            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+            <option value="">— black —</option>
+          </select>
+        </div>
+        <!-- Media 192 -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Media (192px):</span>
+          <select id="media192Select" onchange="selectMedia192(this.value)"
+            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
+            <option value="">— use main background —</option>
+          </select>
+          <button onclick="loadMedia192()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
         </div>
       </div>
 
       <!-- Font -->
-      <div class="px-5 py-3 border-b border-px-border flex items-center gap-3 flex-wrap">
-        <span class="font-mono text-xs text-px-light whitespace-nowrap">Font:</span>
+      <div class="px-5 py-3 flex items-center gap-3 flex-wrap">
+        <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Font:</span>
         <select id="fontSelect" onchange="selectFont(this.value)"
           class="flex-1 min-w-[180px] bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
           <option value="">— loading… —</option>
         </select>
         <button onclick="loadFonts()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
         <span class="font-mono text-xs" id="fontStatus"></span>
-      </div>
-
-      <!-- 576 variant for the Longside Left/Right panels -->
-      <div class="px-5 py-3 flex items-center gap-3 flex-wrap">
-        <span class="font-mono text-xs text-px-light whitespace-nowrap">Longside L/R (576px):</span>
-        <select id="variant576Select" onchange="select576Variant(this.value)"
-          class="flex-1 min-w-[180px] bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-          <option value="">— black (no content) —</option>
-        </select>
-        <button onclick="load576Variants()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
-        <span class="font-mono text-[10px] text-px-muted">Drop files in <code class="text-gray-400">data/backgrounds/576_variants/</code></span>
       </div>
     </div>
 
@@ -323,45 +344,56 @@ tailwind.config = {
         <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">03 — Visual Layout Preview</span>
       </div>
       <div class="p-5 space-y-2">
-        <!-- Row 1: Shortside(1334) + LongsideLeft(576) -->
+
+        <!-- Longside Center 1728px — reference width (100%) -->
         <div>
-          <div class="font-mono text-xs text-px-muted mb-1">Row 1 — 1920px</div>
-          <div class="flex gap-0.5 rounded-lg overflow-hidden" style="height:48px;">
-            <div class="relative rounded-l-lg overflow-hidden flex-shrink-0" style="width:69.5%;background:#7B1520;">
+          <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE CENTER — 1728px</div>
+          <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1A4731;">
+            <canvas id="lu-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
+            <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="lu-lbl-2"></span>
+          </div>
+        </div>
+
+        <!-- Shortside 1344px — 77.2% of 1728 width -->
+        <div>
+          <div class="font-mono text-[10px] text-px-muted mb-1">SHORTSIDE — 1344px</div>
+          <div style="width:77.2%;">
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7B1520;">
               <canvas id="lu-canvas-0" class="absolute inset-0 w-full h-full"></canvas>
-              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/50 pointer-events-none" id="lu-lbl-0">Shortside 1334px</span>
-            </div>
-            <div class="relative rounded-r-lg overflow-hidden flex-shrink-0" style="width:30.5%;background:#1E3A5F;">
-              <canvas id="lu-canvas-1" class="absolute inset-0 w-full h-full"></canvas>
-              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/50 pointer-events-none" id="lu-lbl-1">L-Left 576px</span>
+              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="lu-lbl-0"></span>
             </div>
           </div>
         </div>
-        <!-- Row 2: LongsideCenter(1728) + Media(192) -->
-        <div>
-          <div class="font-mono text-xs text-px-muted mb-1">Row 2 — 1920px</div>
-          <div class="flex gap-0.5 rounded-lg overflow-hidden" style="height:48px;">
-            <div class="relative rounded-l-lg overflow-hidden flex-shrink-0" style="width:90%;background:#1A4731;">
-              <canvas id="lu-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
-              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/50 pointer-events-none" id="lu-lbl-2">Longside Center 1728px</span>
-            </div>
-            <div class="relative rounded-r-lg overflow-hidden flex-shrink-0" style="width:10%;background:#4A2060;">
-              <canvas id="lu-canvas-3" class="absolute inset-0 w-full h-full"></canvas>
-              <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/50 pointer-events-none" id="lu-lbl-3">Media 192</span>
-            </div>
-          </div>
-        </div>
-        <!-- 576 variant -->
-        <div>
-          <div class="font-mono text-xs text-px-muted mb-1">Longside Left / Right — 576px variant</div>
-          <div class="flex gap-0.5 rounded-lg overflow-hidden" style="height:48px;">
-            <div class="relative rounded-lg overflow-hidden w-full" style="background:#2A3A6A;">
+
+        <!-- Longside Left 576px — shown at true proportional width (30% of 1920) -->
+        <div class="flex gap-3 items-start">
+          <div class="flex-1">
+            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE LEFT — 576px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1E3A5F;">
               <canvas id="lu-canvas-4" class="absolute inset-0 w-full h-full"></canvas>
-              <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/50 pointer-events-none" id="lu-576-label">576px — no file selected (black)</span>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="lu-576-left-label">no file</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE RIGHT — 576px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7A5C00;">
+              <canvas id="lu-canvas-5" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="lu-576-right-label">no file</span>
+            </div>
+          </div>
+          <div style="width:10%">
+            <div class="font-mono text-[10px] text-px-muted mb-1">MEDIA — 192px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#4A2060;">
+              <canvas id="lu-canvas-3" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/30 pointer-events-none" id="lu-lbl-3"></span>
             </div>
           </div>
         </div>
-        <p class="font-mono text-xs text-px-muted">Live preview — updates as you type name/number.</p>
+
+        <!-- Hidden canvas-1 kept for JS compatibility (lu-canvas-1 used in Row1 previously) -->
+        <canvas id="lu-canvas-1" style="display:none"></canvas>
+
+        <p class="font-mono text-xs text-px-muted">Live preview — updates as you type. LED Preview shows background only — player text is rendered on Generate.</p>
       </div>
     </div>
 
@@ -390,7 +422,7 @@ tailwind.config = {
       <div class="px-5 py-4 flex items-center gap-4 flex-wrap">
         <button id="lineupBtn" onclick="startLineup()" disabled
           class="bg-px-red hover:bg-px-dark text-white font-display font-bold tracking-widest uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
-          ▶ GENERATE CARDS
+          ▶ GENERATE PLAYER
         </button>
         <button id="lineupPreviewBtn" onclick="openLineupLedPreview()" disabled
           class="bg-px-black border border-px-border hover:border-px-red text-px-light hover:text-white font-display font-bold tracking-widest uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
@@ -404,7 +436,7 @@ tailwind.config = {
       <div class="hidden mx-5 mb-5 items-center gap-4 bg-neon/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="lineupDownload">
         <span class="text-3xl">🎬</span>
         <div>
-          <div class="font-display font-bold text-neon text-lg uppercase">Cards ready!</div>
+          <div class="font-display font-bold text-neon text-lg uppercase">Player video ready!</div>
           <div class="font-mono text-xs text-px-light mt-0.5">Stacked export + 3 individual files</div>
         </div>
         <div class="ml-auto flex gap-2 flex-wrap" id="lineupDlButtons"></div>
@@ -434,22 +466,14 @@ tailwind.config = {
       </div>
       <div class="mt-4 grid grid-cols-1 gap-2 font-mono text-xs">
         <div class="bg-px-black rounded-lg p-3 border border-px-border">
-          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Row 1 — 1920px wide</div>
-          <div class="flex gap-4 flex-wrap">
-            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#7B1520"></span>Shortside — 1334px</div>
-            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#1E3A5F"></span>Longside Left — 576px</div>
-          </div>
-        </div>
-        <div class="bg-px-black rounded-lg p-3 border border-px-border">
-          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Row 2 — 1920px wide</div>
+          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Arena LED Layout — 1600×1200px</div>
           <div class="flex gap-4 flex-wrap">
             <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#1A4731"></span>Longside Center — 1728px</div>
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#7B1520"></span>Shortside — 1344px</div>
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#1E3A5F"></span>Longside Left — 576px</div>
+            <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#7A5C00"></span>Longside Right — 576px</div>
             <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#4A2060"></span>Media — 192px</div>
           </div>
-        </div>
-        <div class="bg-px-black rounded-lg p-3 border border-px-border">
-          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Separate display</div>
-          <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#2A4A1A"></span>Longside Right — 576px (mirrors Longside Left in stacked export)</div>
         </div>
       </div>
     </div>
@@ -581,33 +605,47 @@ async function uploadTileSlot(id, slot, file, totalW) {
 }
 
 function updateDiagramTiledPreview(id, totalW) {
-  // For tiled mode show the first slot's preview tiled visually
-  const block = document.getElementById(`diag-${id}`);
-  if (!block) return;
-  block.querySelectorAll('.diag-thumb').forEach(e=>e.remove());
+  const canvas = document.getElementById(`mg-canvas-${id}`);
+  if (!canvas) return;
   const slots = tileSlotPaths[id] || [];
   const validSlots = slots.filter(Boolean);
-  if (validSlots.length === 0) return;
-  const tiles = parseInt(document.getElementById(`tile-count-${id}`)?.value || 2);
-  const tileW = Math.floor(totalW / tiles);
-  const pct   = (tileW / totalW * 100).toFixed(1);
-  // Create a flex container inside the block showing repeated images
-  const flex = document.createElement('div');
-  flex.className = 'diag-thumb flex';
-  flex.style.cssText = 'display:flex;align-items:stretch;';
-  for (let i = 0; i < tiles; i++) {
-    const src = tileSlotPaths[id] && tileSlotPaths[id][i] 
-      ? `/api/preview/${id}?slot=${i}&t=${Date.now()}`
-      : (validSlots[0] ? `/api/preview/${id}?slot=0&t=${Date.now()}` : '');
-    if (!src) continue;
-    const img = document.createElement('img');
-    img.style.cssText = `width:${pct}%;height:100%;object-fit:cover;`;
-    img.src = src; img.onerror = ()=>img.remove();
-    flex.appendChild(img);
+  const lbl = document.getElementById(`mg-lbl-${id}`);
+  if (validSlots.length === 0) {
+    // Clear canvas, show label
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (lbl) lbl.style.opacity = '1';
+    return;
   }
-  block.appendChild(flex);
-  const lbl = block.querySelector('.diag-label');
+  const tiles = parseInt(document.getElementById(`tile-count-${id}`)?.value || 2);
+  const parent = canvas.parentElement;
+  const W = parent.offsetWidth || 300;
+  const H = parent.offsetHeight || 48;
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
   if (lbl) lbl.style.opacity = '0';
+  // Load each tile image and draw it
+  let loaded = 0;
+  for (let i = 0; i < tiles; i++) {
+    const src = (tileSlotPaths[id] && tileSlotPaths[id][i])
+      ? `/api/preview/${id}?slot=${i}&t=${Date.now()}`
+      : `/api/preview/${id}?slot=0&t=${Date.now()}`;
+    const tileCanvasW = Math.floor(W / tiles);
+    const x = i * tileCanvasW;
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.max(tileCanvasW / img.naturalWidth, H / img.naturalHeight);
+      const sw = tileCanvasW / scale, sh = H / scale;
+      const sx = (img.naturalWidth  - sw) / 2;
+      const sy = (img.naturalHeight - sh) / 2;
+      ctx.drawImage(img, sx, sy, sw, sh, x, 0, tileCanvasW, H);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(x, 0, tileCanvasW, H);
+    };
+    img.src = src;
+  }
 }
 
 // ══ DISPLAY UPLOAD ══
@@ -641,31 +679,73 @@ async function uploadDisplayFile(id, file) {
   checkMergeReady();
 }
 
-function updateDiagramPreview(id) {
-  const block = document.getElementById(`diag-${id}`);
-  if (!block) return;
-  if (tileEnabled[id]) return; // handled by tile preview
-  block.querySelectorAll('.diag-thumb,.diag-thumb-flex').forEach(e=>e.remove());
-  if (!uploadedPaths[id]) return;
-  const img = document.createElement('img');
-  img.className = 'diag-thumb';
-  img.src = `/api/preview/${id}?t=${Date.now()}`;
-  img.onerror = () => img.remove();
-  block.appendChild(img);
-  const lbl = block.querySelector('.diag-label');
-  if (lbl) lbl.style.opacity = '0';
+// Merger canvas preview images — one per display slot
+const mgImgs = [null, null, null, null, null];
+
+// Canvas config: display id → canvas element id, label id, display width
+const MG_CANVASES = [
+  { id:0, canvasId:'mg-canvas-0', lbl:'mg-lbl-0', w:1344 },
+  { id:1, canvasId:'mg-canvas-1', lbl:'mg-lbl-1', w:576  },
+  { id:2, canvasId:'mg-canvas-2', lbl:'mg-lbl-2', w:1728 },
+  { id:3, canvasId:'mg-canvas-3', lbl:'mg-lbl-3', w:576  },
+  { id:4, canvasId:'mg-canvas-4', lbl:'mg-lbl-4', w:192  },
+];
+
+function renderMgCanvas(cfg) {
+  const canvas = document.getElementById(cfg.canvasId);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  const W = parent.offsetWidth || 300;
+  const H = parent.offsetHeight || 48;
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  const img = mgImgs[cfg.id];
+  const lbl = document.getElementById(cfg.lbl);
+  if (img && img.complete && img.naturalWidth > 0) {
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const sw = W / scale, sh = H / scale;
+    const sx = (img.naturalWidth  - sw) / 2;
+    const sy = (img.naturalHeight - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, 0, W, H);
+    if (lbl) lbl.style.opacity = '0';
+  } else {
+    if (lbl) lbl.style.opacity = '1';
+  }
 }
+
+function renderAllMgCanvases() {
+  MG_CANVASES.forEach(cfg => renderMgCanvas(cfg));
+}
+
+function updateDiagramPreview(id) {
+  if (!uploadedPaths[id]) {
+    mgImgs[id] = null;
+    const cfg = MG_CANVASES.find(c => c.id === id);
+    if (cfg) renderMgCanvas(cfg);
+    return;
+  }
+  const img = new Image();
+  img.onload  = () => { mgImgs[id] = img; const cfg = MG_CANVASES.find(c=>c.id===id); if(cfg) renderMgCanvas(cfg); };
+  img.onerror = () => { mgImgs[id] = null; };
+  img.src = `/api/preview/${id}?t=${Date.now()}`;
+}
+
+window.addEventListener('resize', renderAllMgCanvases);
 
 function openLineupLedPreview() {
   // Build params using bgPath for all text displays, variant576 for 576 panels
   // Mirrors the stacked export layout: row1=shortside+longsideleft, row2=center+media
   const params = new URLSearchParams();
   const lineupDisplays = [
-    { id:0, path: bgPath, width:1334, name:'Shortside' },
-    { id:1, path: selected576 ? (VARIANTS_DIR_PREFIX + selected576) : '', width:576, name:'Longside Left' },
+    { id:0, path: bgPath, width:1344, name:'Shortside' },
+    { id:1, path: selected576Left  ? (VARIANTS_DIR_PREFIX + selected576Left)  : '', width:576, name:'Longside Left' },
     { id:2, path: bgPath, width:1728, name:'Longside Center' },
-    { id:3, path: selected576 ? (VARIANTS_DIR_PREFIX + selected576) : '', width:576, name:'Longside Right' },
-    { id:4, path: bgPath, width:192,  name:'Media' },
+    { id:3, path: selected576Right ? (VARIANTS_DIR_PREFIX + selected576Right) : '', width:576, name:'Longside Right' },
+    { id:4, path: selectedMedia192 ? ('/app/backgrounds/media_192/' + selectedMedia192) : bgPath, width:192, name:'Media' },
   ];
   lineupDisplays.forEach(d => {
     if (d.path) params.set('d' + d.id, d.path);
@@ -731,7 +811,7 @@ async function startMerge() {
 }
 
 // ══ PLAYER CARDS ══
-let bgPath = null, selectedFont = null, selected576 = null;
+let bgPath = null, selectedFont = null, selected576Left = null, selected576Right = null, selectedMedia192 = null;
 
 async function loadFonts() {
   try {
@@ -744,6 +824,21 @@ async function loadFonts() {
     const rr = fonts.find(f=>f.toLowerCase().includes('road')||f.toLowerCase().includes('rage'));
     const pick = rr || fonts[0];
     if (pick) { sel.value = pick; await selectFont(pick); }
+  } catch(e) {}
+}
+
+function selectMedia192(f) {
+  selectedMedia192 = f || null;
+  updateLineupDiagramMedia192(f || null);
+  checkLineupReady();
+}
+
+async function loadMedia192() {
+  try {
+    const data = await (await fetch('/api/assets/media192')).json();
+    const opts = '<option value="">— use main background —</option>' +
+      data.map(f=>`<option value="${f}">${f}</option>`).join('');
+    document.getElementById('media192Select').innerHTML = opts;
   } catch(e) {}
 }
 
@@ -785,15 +880,20 @@ async function loadBgLibrary() {
 async function load576Variants() {
   try {
     const files = await (await fetch('/api/assets/576variants')).json();
-    const sel = document.getElementById('variant576Select');
-    sel.innerHTML = '<option value="">— black (no content) —</option>' +
+    const opts = '<option value="">— black (no content) —</option>' +
       files.map(f=>`<option value="${f}">${f}</option>`).join('');
+    document.getElementById('variant576LeftSelect').innerHTML = opts;
+    document.getElementById('variant576RightSelect').innerHTML = opts;
   } catch(e) {}
 }
 
-function select576Variant(f) {
-  selected576 = f || null;
-  updateLineupDiagram576(f || null);
+function select576Left(f) {
+  selected576Left = f || null;
+  updateLineupDiagram576Left(f || null);
+}
+function select576Right(f) {
+  selected576Right = f || null;
+  updateLineupDiagram576Right(f || null);
 }
 
 function selectBgFromLibrary(filename) {
@@ -862,21 +962,21 @@ function checkLineupReady() {
   const s = document.getElementById('lineupStatus');
   if (!bgPath)         s.textContent = 'Select or upload a background video.';
   else if (!num||!name) s.textContent = 'Enter player number and name.';
-  else                  s.textContent = 'Ready — click Generate Cards!';
+  else                  s.textContent = 'Ready — click Generate Player!';
 }
 
 // ── Lineup canvas preview ──────────────────────────────────────────────────
 // bgImg: loaded Image object for background, variant576Img: for the 576 panels
-let luBgImg = null, lu576Img = null;
+let luBgImg = null, lu576LeftImg = null, lu576RightImg = null, luMedia192Img = null;
 let luActiveFontFamily = '"Barlow Condensed"'; // updated when user picks a font
 
 // Canvas slots: [canvasId, showPlayerText, widthPx]
 const LU_CANVASES = [
-  { id:'lu-canvas-0', text:true,  w:1334, lbl:'lu-lbl-0' },
-  { id:'lu-canvas-1', text:false, w:576,  lbl:'lu-lbl-1', use576:true },
+  { id:'lu-canvas-0', text:true,  w:1344, lbl:'lu-lbl-0' },
   { id:'lu-canvas-2', text:true,  w:1728, lbl:'lu-lbl-2' },
   { id:'lu-canvas-3', text:true,  w:192,  lbl:'lu-lbl-3' },
-  { id:'lu-canvas-4', text:false, w:576,  lbl:'lu-576-label', use576:true },
+  { id:'lu-canvas-4', text:false, w:576,  lbl:'lu-576-left-label',  use576:'left' },
+  { id:'lu-canvas-5', text:false, w:576,  lbl:'lu-576-right-label', use576:'right' },
 ];
 
 function renderLuCanvas(cfg) {
@@ -892,7 +992,7 @@ function renderLuCanvas(cfg) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
 
-  const img = cfg.use576 ? lu576Img : luBgImg;
+  const img = cfg.use576 === 'left' ? lu576LeftImg : cfg.use576 === 'right' ? lu576RightImg : (cfg.id === 'lu-canvas-3' && luMedia192Img) ? luMedia192Img : luBgImg;
   const lbl = document.getElementById(cfg.lbl);
 
   if (img && img.complete && img.naturalWidth > 0) {
@@ -963,20 +1063,31 @@ function updateLineupDiagram() {
   img.src = `/api/bg-preview-path?path=${encodeURIComponent(bgPath)}&t=${Date.now()}`;
 }
 
-function updateLineupDiagram576(filename) {
-  const lbl576 = document.getElementById('lu-576-label');
-  if (!filename) {
-    lu576Img = null;
-    if (lbl576) lbl576.textContent = '576px — no file selected (black)';
-    renderAllLuCanvases();
-    return;
-  }
-  if (lbl576) lbl576.textContent = filename;
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload  = () => { lu576Img = img; renderAllLuCanvases(); };
-  img.onerror = () => { lu576Img = null; renderAllLuCanvases(); };
-  img.src = `/api/bg-preview-path?path=${encodeURIComponent(VARIANTS_DIR_PREFIX + filename)}&t=${Date.now()}`;
+function updateLineupDiagram576Left(filename) {
+  const lbl = document.getElementById('lu-576-left-label');
+  if (!filename) { lu576LeftImg = null; if(lbl) lbl.textContent='576px — no file selected (black)'; renderAllLuCanvases(); return; }
+  if(lbl) lbl.textContent = filename;
+  const img = new Image(); img.crossOrigin='anonymous';
+  img.onload  = () => { lu576LeftImg = img;  renderAllLuCanvases(); };
+  img.onerror = () => { lu576LeftImg = null; renderAllLuCanvases(); };
+  img.src = `/api/bg-preview-path?path=${encodeURIComponent(VARIANTS_DIR_PREFIX+filename)}&t=${Date.now()}`;
+}
+function updateLineupDiagramMedia192(filename) {
+  if (!filename) { renderAllLuCanvases(); return; }
+  const img = new Image(); img.crossOrigin='anonymous';
+  img.onload  = () => { luMedia192Img = img;  renderAllLuCanvases(); };
+  img.onerror = () => { luMedia192Img = null; renderAllLuCanvases(); };
+  img.src = `/api/bg-preview-path?path=${encodeURIComponent('/app/backgrounds/media_192/'+filename)}&t=${Date.now()}`;
+}
+
+function updateLineupDiagram576Right(filename) {
+  const lbl = document.getElementById('lu-576-right-label');
+  if (!filename) { lu576RightImg = null; if(lbl) lbl.textContent='576px — no file selected (black)'; renderAllLuCanvases(); return; }
+  if(lbl) lbl.textContent = filename;
+  const img = new Image(); img.crossOrigin='anonymous';
+  img.onload  = () => { lu576RightImg = img;  renderAllLuCanvases(); };
+  img.onerror = () => { lu576RightImg = null; renderAllLuCanvases(); };
+  img.src = `/api/bg-preview-path?path=${encodeURIComponent(VARIANTS_DIR_PREFIX+filename)}&t=${Date.now()}`;
 }
 
 async function startLineup() {
@@ -991,7 +1102,7 @@ async function startLineup() {
   const r = await fetch('/api/lineup/generate', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ bg_path:bgPath, number, name, fps:FPS, num_dur:numDur, total_dur:totalDur,
-                           font_name:selectedFont, variant_576:selected576||'' }),
+                           font_name:selectedFont, variant_576_left:selected576Left||'', variant_576_right:selected576Right||'', media_192:selectedMedia192||'' }),
   });
   const res = await r.json();
   if (res.error) {
@@ -1002,7 +1113,7 @@ async function startLineup() {
   }
   pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', job => {
     const btns = document.getElementById('lineupDlButtons'); btns.innerHTML = '';
-    const labels = ['↓ Stacked 1920×128','↓ Longside 1728','↓ Shortside 1334','↓ Media 192'];
+    const labels = ['↓ Stacked 1600×1200','↓ Longside 1728','↓ Shortside 1344','↓ Media 192'];
     (job.outputs||[]).forEach((fname,i) => {
       const b = document.createElement('button');
       b.className = 'bg-neon text-black font-display font-bold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
@@ -1040,6 +1151,7 @@ updateTimeline();
 loadFonts();
 loadBgLibrary();
 load576Variants();
+  loadMedia192();
 </script>
 </body>
 </html>

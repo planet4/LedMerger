@@ -17,12 +17,13 @@ app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB
 UPLOAD_DIR  = Path("/app/uploads")
 OUTPUT_DIR  = Path("/app/outputs")
 FONT_DIR    = Path("/app/fonts")
-BG_DIR      = Path("/app/backgrounds")
-for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR]:
+BG_DIR        = Path("/app/backgrounds")
+MEDIA192_DIR  = Path("/app/backgrounds/media_192")
+for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, MEDIA192_DIR]:
     _d.mkdir(exist_ok=True)
 
 DISPLAYS = [
-    {"id": 0, "name": "Shortside",        "width": 1334, "height": 64},
+    {"id": 0, "name": "Shortside",        "width": 1344, "height": 64},
     {"id": 1, "name": "Longside Left",    "width":  576, "height": 64},
     {"id": 2, "name": "Longside Center",  "width": 1728, "height": 64},
     {"id": 3, "name": "Longside Right",   "width":  576, "height": 64},
@@ -119,6 +120,66 @@ def tile_clip(src: Path, dst: Path, tile_w: int, tile_h: int,
         p.unlink(missing_ok=True)
 
 
+
+def build_stacked_export(shortside, longsideleft, longsidecenter, longsideright, media, output_path, fps, tmp):
+    """Build 1600x1200 stacked export matching the AE ledventure layout.
+    
+    Layout (5 rows x 64px, 1600px wide, rest black to 1200px):
+    Row 1 (y=0):   Shortside      pixels 0→1344      x=0
+    Row 2 (y=64):  Shortside      pixels 960→1344     x=0   (last 384px)
+                   LongsideLeft   pixels 0→576        x=384
+    Row 3 (y=128): LongsideCenter pixels 0→1600       x=0   (first 1600 of 1728)
+    Row 4 (y=192): LongsideCenter pixels 960→1728     x=0   (last 768px)
+                   LongsideRight  pixels 0→576        x=768
+    Row 5 (y=256): LongsideLeft   pixels 192→576      x=0   (last 384px, same src as left)
+                   Media          pixels 0→192        x=384
+    """
+    fc = (
+        # Split reused inputs first
+        "[0]split=2[s0a][s0b];"
+        "[1]split=2[s1a][s1b];"
+        "[2]split=2[s2a][s2b];"
+        # Black canvas
+        "color=black:size=1600x1200:rate={fps}:duration=99999[canvas];"
+        # Row 1: Shortside full 1344px at x=0,y=0
+        "[s0a]crop=1344:64:0:0[s_full];"
+        "[canvas][s_full]overlay=x=0:y=0:shortest=1[c1];"
+        # Row 2a: Shortside last 384px at x=0,y=64
+        "[s0b]crop=384:64:960:0[s_tail];"
+        "[c1][s_tail]overlay=x=0:y=64[c2];"
+        # Row 2b: LongsideLeft full 576px at x=384,y=64
+        "[s1a]crop=576:64:0:0[ll_full];"
+        "[c2][ll_full]overlay=x=384:y=64[c3];"
+        # Row 3: LongsideCenter first 1600px at x=0,y=128
+        "[s2a]crop=1600:64:0:0[lc_head];"
+        "[c3][lc_head]overlay=x=0:y=128[c4];"
+        # Row 4a: LongsideCenter last 768px at x=0,y=192
+        "[s2b]crop=768:64:960:0[lc_tail];"
+        "[c4][lc_tail]overlay=x=0:y=192[c5];"
+        # Row 4b: LongsideRight full 576px at x=768,y=192
+        "[3]crop=576:64:0:0[lr_full];"
+        "[c5][lr_full]overlay=x=768:y=192[c6];"
+        # Row 5a: LongsideLeft last 384px at x=0,y=256
+        "[s1b]crop=384:64:192:0[l576_tail];"
+        "[c6][l576_tail]overlay=x=0:y=256[c7];"
+        # Row 5b: Media full 192px at x=384,y=256
+        "[4]crop=192:64:0:0[media_full];"
+        "[c7][media_full]overlay=x=384:y=256[out]"
+    ).format(fps=fps)
+
+    run_cmd([
+        "ffmpeg", "-y",
+        "-i", str(shortside),
+        "-i", str(longsideleft),
+        "-i", str(longsidecenter),
+        "-i", str(longsideright),
+        "-i", str(media),
+        "-filter_complex", fc,
+        "-map", "[out]",
+        "-r", str(fps), "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        str(output_path),
+    ])
+
 def merge_worker(job_id, file_paths, tile_configs, mode, fps, output_path):
     """
     file_paths   : list of 5 server file paths
@@ -181,34 +242,12 @@ def merge_worker(job_id, file_paths, tile_configs, mode, fps, output_path):
                 else:
                     looped.append(p)
 
-            # Build two rows then vstack
-            # Row 1: Shortside(0) + LongsideLeft(1)   = 1920px
-            # Row 2: LongsideCenter(2) + LongsideRight(3) + Media(4) -- but 1728+576>1920
-            # Actually just hstack all 5 → single wide strip for Sedna
-            # OR build proper 2-row 1920×128 layout:
-            row1_tmp = tmp / "row1.mp4"
-            row2_tmp = tmp / "row2.mp4"
-            # Row 1: display 0 (Shortside 1334) + display 1 (LongsideLeft 576)
-            run_cmd([
-                "ffmpeg", "-y", "-i", str(looped[0]), "-i", str(looped[1]),
-                "-filter_complex", "hstack=inputs=2",
-                "-r", fps, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                str(row1_tmp),
-            ])
-            # Row 2: display 2 (LongsideCenter 1728) + display 4 (Media 192)
-            run_cmd([
-                "ffmpeg", "-y", "-i", str(looped[2]), "-i", str(looped[4]),
-                "-filter_complex", "hstack=inputs=2",
-                "-r", fps, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                str(row2_tmp),
-            ])
-            # vstack the two rows
-            run_cmd([
-                "ffmpeg", "-y", "-i", str(row1_tmp), "-i", str(row2_tmp),
-                "-filter_complex", "vstack=inputs=2",
-                "-r", fps, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                str(output_path),
-            ])
+            # Build 1600x1200 stacked export matching AE/ledventure layout
+            # displays: 0=shortside, 1=longsideleft, 2=longsidecenter, 3=longsideright, 4=media
+            build_stacked_export(
+                looped[0], looped[1], looped[2], looped[3], looped[4],
+                output_path, fps, tmp
+            )
         else:
             list_file = tmp / "concat.txt"
             list_file.write_text("\n".join(f"file '{p}'" for p in normed))
@@ -385,6 +424,14 @@ def list_576_variants():
     return jsonify(sorted(files))
 
 
+@app.route("/api/assets/media192")
+def list_media192():
+    MEDIA192_DIR.mkdir(exist_ok=True)
+    exts = {".mp4", ".mov", ".avi", ".png", ".jpg", ".jpeg", ".gif"}
+    files = [f.name for f in MEDIA192_DIR.iterdir() if f.suffix.lower() in exts]
+    return jsonify(sorted(files))
+
+
 @app.route("/api/lineup/select-576variant", methods=["POST"])
 def select_576_variant():
     data     = request.json
@@ -466,7 +513,7 @@ def stream_file():
         abort(400)
     src = Path(path)
     # Security: only allow files inside UPLOAD_DIR or OUTPUT_DIR or VARIANTS_DIR
-    allowed = [UPLOAD_DIR.resolve(), OUTPUT_DIR.resolve(), VARIANTS_DIR.resolve()]
+    allowed = [UPLOAD_DIR.resolve(), OUTPUT_DIR.resolve(), VARIANTS_DIR.resolve(), BG_DIR.resolve(), MEDIA192_DIR.resolve()]
     if not any(src.resolve().is_relative_to(d) for d in allowed):
         abort(403)
     if not src.exists():
@@ -496,14 +543,14 @@ def led_preview():
 
 LINEUP_DISPLAYS = [
     {"id": 0, "name": "Longside Center", "width": 1728, "height": 64},
-    {"id": 1, "name": "Shortside",       "width": 1334, "height": 64},
+    {"id": 1, "name": "Shortside",       "width": 1344, "height": 64},
     {"id": 2, "name": "Media",           "width":  192, "height": 64},
 ]
 
 FONT_PATH = Path("/app/fonts/RoadRage.ttf")
 
 
-def lineup_worker(job_id, bg_path, variant_576_path, number, name, fps_val, fade_dur, num_dur, total_dur, font_name=""):
+def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, font_name=""):
     tmp = Path(tempfile.mkdtemp(prefix="lineup_"))
     try:
         jobs[job_id]["status"] = "running"
@@ -511,10 +558,10 @@ def lineup_worker(job_id, bg_path, variant_576_path, number, name, fps_val, fade
         chosen_font = FONT_DIR / font_name if font_name else FONT_PATH
         font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
 
-        def render_text_clip(w, h, out_path):
-            font_size      = int(h * 0.80) if w >= 1000 else int(h * 0.72)
+        def render_text_clip(w, h, out_path, src_override=None):
             fade_out_start = num_dur - fade_dur
             fade_in_end    = num_dur + fade_dur
+            font_size      = int(h * 0.80) if w >= 1000 else int(h * 0.60) if w >= 400 else int(h * 0.50)
             number_text    = f"# {number}"
             name_text      = name.upper()
             txt_number = (
@@ -531,7 +578,10 @@ def lineup_worker(job_id, bg_path, variant_576_path, number, name, fps_val, fade
             )
             run_cmd([
                 "ffmpeg", "-y",
-                "-stream_loop", "-1", "-i", str(bg_path),
+                *(  ["-loop","1"] if src_override and src_override.suffix.lower() in (".png",".jpg",".jpeg")
+                    else ["-stream_loop","-1"]
+                   ),
+                "-i", str(src_override if src_override else bg_path),
                 "-t", str(total_dur),
                 "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,"
                        f"crop={w}:{h},{txt_number},{txt_name}",
@@ -539,16 +589,16 @@ def lineup_worker(job_id, bg_path, variant_576_path, number, name, fps_val, fade
                 str(out_path),
             ])
 
-        def render_576_clip(out_path):
-            if variant_576_path and Path(variant_576_path).exists():
-                src = Path(variant_576_path)
+        def render_576_clip(out_path, src_path):
+            if src_path and Path(src_path).exists():
+                src = Path(src_path)
                 ext = src.suffix.lower()
                 loop_arg = ["-loop", "1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop", "-1"]
                 run_cmd([
                     "ffmpeg", "-y", *loop_arg, "-i", str(src),
                     "-t", str(total_dur),
-                    "-vf", "scale=576:64:force_original_aspect_ratio=decrease,"
-                           "pad=576:64:(ow-iw)/2:(oh-ih)/2:color=black",
+                    "-vf", "scale=576:64:force_original_aspect_ratio=increase,"
+                           "crop=576:64",
                     "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
                     str(out_path),
                 ])
@@ -566,25 +616,34 @@ def lineup_worker(job_id, bg_path, variant_576_path, number, name, fps_val, fade
         clip_1728 = tmp / "clip_1728.mp4"
         render_text_clip(1728, 64, clip_1728)
 
-        jobs[job_id]["progress"] = "Rendering Shortside (1334)…"
-        clip_1334 = tmp / "clip_1334.mp4"
-        render_text_clip(1334, 64, clip_1334)
+        jobs[job_id]["progress"] = "Rendering Shortside (1344)…"
+        clip_1344 = tmp / "clip_1344.mp4"
+        render_text_clip(1344, 64, clip_1344)
 
         jobs[job_id]["progress"] = "Rendering Media (192)…"
         clip_192 = tmp / "clip_192.mp4"
-        render_text_clip(192, 64, clip_192)
+        src_192 = Path(media_192_path) if media_192_path and Path(media_192_path).exists() else None
+        render_text_clip(192, 64, clip_192, src_override=src_192)
 
-        jobs[job_id]["progress"] = "Rendering Longside Left/Right (576)…"
-        clip_576 = tmp / "clip_576.mp4"
-        render_576_clip(clip_576)
+        jobs[job_id]["progress"] = "Rendering Longside Left (576)…"
+        clip_576_left = tmp / "clip_576_left.mp4"
+        render_576_clip(clip_576_left, variant_576_left_path)
+
+        jobs[job_id]["progress"] = "Rendering Longside Right (576)…"
+        clip_576_right = tmp / "clip_576_right.mp4"
+        render_576_clip(clip_576_right, variant_576_right_path)
 
         # Copy individual outputs
-        out_1728 = OUTPUT_DIR / f"lineup_1728_{job_id[:8]}.mp4"
-        out_1334 = OUTPUT_DIR / f"lineup_1334_{job_id[:8]}.mp4"
-        out_192  = OUTPUT_DIR / f"lineup_192_{job_id[:8]}.mp4"
-        shutil.copy(str(clip_1728), str(out_1728))
-        shutil.copy(str(clip_1334), str(out_1334))
-        shutil.copy(str(clip_192),  str(out_192))
+        out_1728  = OUTPUT_DIR / f"lineup_1728_{job_id[:8]}.mp4"
+        out_1344  = OUTPUT_DIR / f"lineup_1344_{job_id[:8]}.mp4"
+        out_192   = OUTPUT_DIR / f"lineup_192_{job_id[:8]}.mp4"
+        out_576l  = OUTPUT_DIR / f"lineup_576_left_{job_id[:8]}.mp4"
+        out_576r  = OUTPUT_DIR / f"lineup_576_right_{job_id[:8]}.mp4"
+        shutil.copy(str(clip_1728),      str(out_1728))
+        shutil.copy(str(clip_1344),      str(out_1344))
+        shutil.copy(str(clip_192),       str(out_192))
+        shutil.copy(str(clip_576_left),  str(out_576l))
+        shutil.copy(str(clip_576_right), str(out_576r))
 
         # Build stacked 1920×128 export
         # All clips must be same duration — loop shorter ones to match longest
@@ -612,44 +671,27 @@ def lineup_worker(job_id, bg_path, variant_576_path, number, name, fps_val, fade
                 return dst
             return src
 
-        max_dur = max(probe_dur(clip_1728), probe_dur(clip_1334),
-                      probe_dur(clip_192), probe_dur(clip_576))
+        max_dur = max(probe_dur(clip_1728), probe_dur(clip_1344),
+                      probe_dur(clip_192), probe_dur(clip_576_left), probe_dur(clip_576_right))
 
-        c1728 = loop_to(clip_1728, tmp / "l_1728.mp4", max_dur)
-        c1334 = loop_to(clip_1334, tmp / "l_1334.mp4", max_dur)
-        c192  = loop_to(clip_192,  tmp / "l_192.mp4",  max_dur)
-        c576  = loop_to(clip_576,  tmp / "l_576.mp4",  max_dur)
+        c1728  = loop_to(clip_1728,      tmp / "l_1728.mp4",       max_dur)
+        c1344  = loop_to(clip_1344,      tmp / "l_1344.mp4",       max_dur)
+        c192   = loop_to(clip_192,       tmp / "l_192.mp4",        max_dur)
+        c576l  = loop_to(clip_576_left,  tmp / "l_576_left.mp4",   max_dur)
+        c576r  = loop_to(clip_576_right, tmp / "l_576_right.mp4",  max_dur)
 
-        row1 = tmp / "row1.mp4"
-        row2 = tmp / "row2.mp4"
-        run_cmd([
-            "ffmpeg", "-y", "-i", str(c1334), "-i", str(c576),
-            "-filter_complex", "hstack=inputs=2",
-            "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            str(row1),
-        ])
-        run_cmd([
-            "ffmpeg", "-y", "-i", str(c1728), "-i", str(c192),
-            "-filter_complex", "hstack=inputs=2",
-            "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            str(row2),
-        ])
-        list_file = tmp / "rows.txt"
-        list_file.write_text("file '" + str(row1) + "'\nfile '" + str(row2) + "'\n")
+        # Build 1600x1200 stacked export matching AE/ledventure layout
         out_stacked = OUTPUT_DIR / f"lineup_stacked_{job_id[:8]}.mp4"
-        run_cmd([
-            "ffmpeg", "-y",
-            "-f", "concat", "-safe", "0", "-i", str(list_file),
-            "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            str(out_stacked),
-        ])
+        build_stacked_export(c1344, c576l, c1728, c576r, c192, out_stacked, fps_val, tmp)
 
         jobs[job_id]["status"]   = "done"
         jobs[job_id]["progress"] = "Complete!"
         jobs[job_id]["outputs"]  = [
             out_stacked.name,
             out_1728.name,
-            out_1334.name,
+            out_1344.name,
+            out_576l.name,
+            out_576r.name,
             out_192.name,
         ]
 
@@ -753,12 +795,12 @@ def lineup_generate():
     total_dur = float(data.get("total_dur", 6.0))
     fade_dur        = 0.3
     font_name       = data.get("font_name", "")
-    variant_576     = data.get("variant_576", "")
-    variant_576_path = None
-    if variant_576:
-        p = VARIANTS_DIR / variant_576
-        if p.exists():
-            variant_576_path = str(p)
+    variant_576_left  = data.get("variant_576_left", "")
+    variant_576_right = data.get("variant_576_right", "")
+    variant_576_left_path  = str(VARIANTS_DIR / variant_576_left)  if variant_576_left  and (VARIANTS_DIR / variant_576_left).exists()  else None
+    variant_576_right_path = str(VARIANTS_DIR / variant_576_right) if variant_576_right and (VARIANTS_DIR / variant_576_right).exists() else None
+    media_192      = data.get("media_192", "")
+    media_192_path = str(MEDIA192_DIR / media_192) if media_192 and (MEDIA192_DIR / media_192).exists() else None
 
     if not bg_path or not Path(bg_path).exists():
         return jsonify({"error": "Background file missing"}), 400
@@ -771,7 +813,7 @@ def lineup_generate():
     jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": []}
     t = threading.Thread(
         target=lineup_worker,
-        args=(job_id, Path(bg_path), variant_576_path, number, name, fps_val, fade_dur, num_dur, total_dur, font_name),
+        args=(job_id, Path(bg_path), variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, font_name),
         daemon=True,
     )
     t.start()

@@ -4,3 +4,8 @@ __pycache__/
 uploads/
 outputs/
 *.zip
+
+# Ignore data files but keep directory structure
+data/**
+!data/**/
+!data/**/.gitkeep
