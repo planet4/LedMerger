@@ -1,7 +1,11 @@
-# LED Merger — A Customized LED >Rink content creator for Pixbo Floorball
+# LED Merger — A Customized LED rink content creator for Pixbo Floorball
 
 This app is customized to work with the setup at Wallenstam Arena. It will either merge 5 LED rink display files into one Sedna-compatible MP4, create branded player files or in the future any other custom text.
+The main usage for this app is to create one mp4 file of many small. By doing this it will be a stacked file in Sedna.
+
 ## Folder structure
+
+Put your own fonts in fonts dir. Put your custom backgrounds in the backgrounds dir.
 
 ```
 LedMerger/
@@ -55,15 +59,13 @@ docker compose up -d --build
 | Display 4 — Right Side  |  576px | 64px |
 | Display 5 — End Small   |  192px | 64px |
 
-## Merge modes
-
-- **Stacked** — All 5 clips side-by-side horizontally → one 4406×64px video
-- **Sequential** — Clips play one after another in time → standard resolution video
-
 ## Supported input formats
 
 MP4, MOV, AVI, GIF, PNG, JPG/JPEG
 
-- Static images are looped for 5 seconds
-- GIFs are looped for 10 seconds
-- All inputs are scaled and padded to exact display dimensions
+## Usage
+
+# File Merger
+# Players
+
+
