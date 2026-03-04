@@ -1,7 +1,6 @@
-# LED Merger — Docker Web App
+# LED Merger — A Customized LED >Rink content creator for Pixbo Floorball
 
-Web interface for merging 5 LED rink display files into one Sedna-compatible MP4. Very Nice!
-
+This app is customized to work with the setup at Wallenstam Arena. It will either merge 5 LED rink display files into one Sedna-compatible MP4, create branded player files or in the future any other custom text.
 ## Folder structure
 
 ```
