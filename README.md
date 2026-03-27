@@ -1,71 +1,94 @@
-# LED Merger — A Customized LED rink content creator for Pixbo Floorball
+# LedMerger — Pixbo LED Rink Content Creator
 
-This app is customized to work with the setup at Wallenstam Arena. It will either merge 5 LED rink display files into one Sedna-compatible MP4, create branded player files or in the future any other custom text.
-The main usage for this app is to create one mp4 file of many small. By doing this it will be a stacked file in Sedna.
+A web-based tool for creating and merging LED rink content for Wallenstam Arena (Pixbo Floorball). Produces stacked MP4 files compatible with the Sedna LED controller.
+
+## What it does
+
+- **File Merger** — Upload individual video/image files for each display zone and merge them into one stacked 1600×1200px MP4
+- **Players** — Generate branded player introduction videos using fixed Pixbo templates with Road Rage font and pop-wobble animation
+- **Custom** — Create custom text animations for any display zone with configurable backgrounds and timing
+
+All tabs produce a stacked 1600×1200px export matching the After Effects / ledventure.org reference layout, plus individual files per display.
+
+## Display layout
+
+| Display | Width | Height |
+|---------|-------|--------|
+| Shortside | 1344px | 64px |
+| Longside Left | 576px | 64px |
+| Longside Center | 1728px | 64px |
+| Longside Right | 576px | 64px |
+| Media | 192px | 64px |
+
+The stacked export folds all displays into a 1600px wide canvas across 5 rows (320px content + black padding to 1200px), matching the physical LED strip wiring at the arena.
 
 ## Folder structure
 
-Put your own fonts in fonts dir. Put your custom backgrounds in the backgrounds dir.
-
 ```
-LedMerger/
+ledmerger/
 ├── app.py
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 ├── templates/
-│   └── index.html
+│   ├── index.html
+│   └── led_preview.html
 └── data/
-    ├── uploads/
-    ├── outputs/
-    ├── backgrounds/
-    │   ├── media_192/
-    │   └── 576_variants/
-    └── fonts/
+    ├── uploads/          — temporary upload storage
+    ├── outputs/          — generated video files
+    ├── backgrounds/      — background video library
+    │   ├── 576_variants/ — 576px variant backgrounds (Players/Custom)
+    │   ├── media_192/    — 192px media backgrounds
+    │   └── layout.png    — arena layout reference image
+    └── fonts/            — custom font files (.ttf, .otf)
 ```
 
-## Running with Docker Compose
+## Player template files
+
+The Players tab requires these fixed template files to be present:
+
+```
+data/backgrounds/players-template-1728.mp4
+data/backgrounds/players-template-1344.mp4
+data/backgrounds/576_variants/players-template-576.mp4
+data/backgrounds/media_192/players-template-192.mp4
+```
+
+## Running with Docker
 
 ```bash
 # Build and start
-docker compose up -d --build
+sudo docker compose up -d --build
 
 # Open in browser
 http://localhost:5000
 
-# Or from another machine on your network:
-http://<your-server-ip>:5000
+# From another device on the network
+http://<server-ip>:5000
 ```
 
-## Stopping
+## Updating
+
+After changing any file:
+```bash
+sudo docker compose up -d --build
+```
+
+Then hard refresh the browser (Ctrl+Shift+R).
+
+## Cleaning up output files
 
 ```bash
-docker compose down
+rm -f data/outputs/*.mp4
+rm -f data/uploads/*
 ```
-
-## Updating the app
-
-```bash
-docker compose up -d --build
-```
-
-## Display configuration
-
-| Display | Width | Height |
-|---------|-------|--------|
-| Display 1 — Centre Main | 1334px | 64px |
-| Display 2 — Left Side   |  576px | 64px |
-| Display 3 — Back        | 1728px | 64px |
-| Display 4 — Right Side  |  576px | 64px |
-| Display 5 — End Small   |  192px | 64px |
 
 ## Supported input formats
 
 MP4, MOV, AVI, GIF, PNG, JPG/JPEG
 
-## Usage
+## Notes
 
-# File Merger
-# Players
-
-
+- Longside Left and Right should use the same source file in stacked exports to avoid visible cuts on the physical displays
+- The Players tab uses Road Rage font and white text — fixed and not configurable
+- Default player timing is 2.1s number + 3.9s name = 6s total (standard Pixbo lineup time)
