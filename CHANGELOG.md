@@ -7,7 +7,7 @@ All notable changes to the Pixbo LED Merger project are documented here.
 ## [1.1.0] - 2026-03-17
 
 ### UI Redesign
-- Replaced font **Barlow Condensed** with **DM Sans** for a cleaner, more modern look
+- RReplaced font **Barlow Condensed** with **DM Sans** for a cleaner, more modern look
 - Replaced monospace font **IBM Plex Mono** with **Space Mono**
 - Lightened background from pure black `#0C0C0C` to dark grey `#1A1A1F`
 - Cards and section headers now use a cleaner, less decorative style
