@@ -4,10 +4,42 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 ---
 
+## [1.3.0] - 2026-03-27
+
+- Updated version number in app header
+
+---
+
+## [1.2.0] - 2026-03-27
+
+### Players Tab — Complete Redesign
+
+- **Fixed template backgrounds** — backgrounds are now locked to the official Pixbo player template files:
+  - `players-template-1728.mp4` for Longside Center
+  - `players-template-1344.mp4` for Shortside
+  - `players-template-576.mp4` for Longside Left & Right
+  - `players-template-192.mp4` for Media 192px
+- **Fixed font** — always Road Rage, white color — no longer selectable
+- **Section 01** renamed to "01 — Settings" with only font size control remaining
+- **Generate button** now enabled as soon as number and name are filled in — no background selection needed
+- **LED Preview** updated to use fixed template paths automatically
+- **Pop Wobble effect** added — text pops in at 135% size and springs back with damped oscillation, matching the DaVinci Fusion reference
+- **192px font scaling** — font size automatically scales down for narrow displays so text fits
+- **Default timing** — number duration set to 2.1s, total 6s (standard Pixbo lineup time)
+- **Info box** replaced — warning about Left/Right files removed (no longer relevant), replaced with note about standard duration
+- **Export** — all individual files + stacked export available for download
+
+### Bug Fixes
+- Fixed `FONT_PATH` pointing to wrong filename (`RoadRage.ttf` → `Road_Rage.otf`)
+- Fixed LED preview being permanently disabled due to missing `bgPath`
+- Fixed Road Rage font not loading in canvas preview on tab load
+
+---
+
 ## [1.1.0] - 2026-03-17
 
 ### UI Redesign
-- RReplaced font **Barlow Condensed** with **DM Sans** for a cleaner, more modern look
+- Replaced font **Barlow Condensed** with **DM Sans** for a cleaner, more modern look
 - Replaced monospace font **IBM Plex Mono** with **Space Mono**
 - Lightened background from pure black `#0C0C0C` to dark grey `#1A1A1F`
 - Cards and section headers now use a cleaner, less decorative style
