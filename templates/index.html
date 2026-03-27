@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixbo LED Merger</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 tailwind.config = {
   theme: {
@@ -15,87 +15,113 @@ tailwind.config = {
         neon: '#00ff88',
       },
       fontFamily: {
-        display: ['"Barlow Condensed"','sans-serif'],
-        mono:    ['"IBM Plex Mono"','monospace'],
+        display: ['"DM Sans"','sans-serif'],
+        mono:    ['"Space Mono"','monospace'],
       },
     }
   }
 }
 </script>
 <style>
-  body { font-family:'Barlow Condensed',sans-serif; background:#0C0C0C; }
-  body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-    background:repeating-linear-gradient(-55deg,transparent 0,transparent 60px,rgba(204,16,32,0.03) 60px,rgba(204,16,32,0.03) 61px); }
-  .red-glow  { text-shadow:0 0 40px rgba(204,16,32,0.7),0 0 80px rgba(204,16,32,0.3); }
-  .red-box   { box-shadow:0 0 0 1px rgba(204,16,32,0.4),0 4px 24px rgba(204,16,32,0.2); }
-  .prog-bar  { animation:slide 1.2s ease-in-out infinite alternate; }
+  body { font-family:'DM Sans',sans-serif; background:#1A1A1F; color:#E0E0E8; }
+  
+  /* Clean section cards */
+  .section-card { background:#22222A; border:1px solid #2E2E3A; border-radius:10px; overflow:hidden; }
+  .section-header { background:#1E1E26; border-bottom:1px solid #2E2E3A; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
+  .section-title { font-family:'DM Sans',sans-serif; font-weight:600; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#CC1020; }
+  
+  /* Inputs & selects */
+  input, select, textarea { font-family:'DM Sans',sans-serif; }
+  
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:#1A1A1F; }
+  ::-webkit-scrollbar-thumb { background:#CC1020; border-radius:2px; }
+  select option { background:#22222A; }
+
+  /* Animations */
+  .prog-bar { animation:slide 1.2s ease-in-out infinite alternate; }
   @keyframes slide { from{margin-left:0} to{margin-left:70%} }
-  .tthumb    { transition:transform .18s; }
+
+  /* Toggles */
+  .tthumb { transition:transform .18s; }
   .tile-check:checked + .ttrack { background:#CC1020; }
   .tile-check:checked ~ .tthumb { transform:translateX(16px); }
-  .drop-active { border-color:#CC1020 !important; background:rgba(204,16,32,0.06) !important; }
-  .diag-block  { position:relative; overflow:hidden; }
-  .diag-thumb  { position:absolute; inset:0; object-fit:cover; width:100%; height:100%; opacity:0.85; }
-  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:#161616; }
-  ::-webkit-scrollbar-thumb { background:#CC1020; border-radius:3px; }
-  select option { background:#161616; }
-  .modal-bg { backdrop-filter:blur(4px); background:rgba(0,0,0,0.85); }
 
-  /* Tile slot upload zones */
+  /* Drop zones */
+  .drop-active { border-color:#CC1020 !important; background:rgba(204,16,32,0.06) !important; }
+
+  /* Diagram */
+  .diag-block { position:relative; overflow:hidden; }
+  .diag-thumb { position:absolute; inset:0; object-fit:cover; width:100%; height:100%; opacity:0.85; }
+
+  /* Modal */
+  .modal-bg { backdrop-filter:blur(6px); background:rgba(0,0,0,0.88); }
+
+  /* Tile slots */
   .tile-slot { transition:all .15s; }
   .tile-slot.uploaded { border-color:#00ff88; }
-  .tile-slot-thumb { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; border-radius:6px; }
+  .tile-slot-thumb { width:100%; height:100%; object-fit:contain; background:#000; position:absolute; inset:0; border-radius:6px; }
+
+  /* Info box */
+  .info-box { background:#1E1E26; border:1px solid #2E2E3A; border-left:3px solid #CC1020; border-radius:6px; padding:10px 14px; font-size:12px; color:#999; line-height:1.5; }
+
+  /* Red accent */
+  .red-glow { text-shadow:0 0 30px rgba(204,16,32,0.5); }
+  .red-box  { box-shadow:0 0 0 1px rgba(204,16,32,0.3),0 2px 12px rgba(204,16,32,0.15); }
 </style>
 </head>
 <body class="text-gray-200 min-h-screen">
-<!-- Force Barlow Condensed to load immediately -->
-<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Barlow Condensed';font-weight:900;font-size:1px;" id="fontPrimer">.</span>
+<!-- Font primer -->
+<span style="position:absolute;opacity:0;pointer-events:none;font-family:'DM Sans';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
 <div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
 
   <!-- HEADER -->
-  <header class="flex items-center gap-4 pb-6 mb-8 border-b border-px-border">
-    <div class="w-14 h-14 flex-shrink-0 bg-px-card rounded-xl red-box flex items-center justify-center p-1.5">
+  <header class="flex items-center gap-4 pb-5 mb-6 border-b border-[#2E2E3A]">
+    <div class="w-14 h-14 flex-shrink-0 bg-[#22222A] rounded-xl red-box flex items-center justify-center p-1.5">
       <img src="https://sportality.cdn.s8y.se/team-logos/pix1_pix.svg" alt="Pixbo" class="w-full h-full object-contain"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div style="display:none" class="w-full h-full items-center justify-center font-display font-black text-2xl text-px-red">P</div>
+      <div style="display:none" class="w-full h-full items-center justify-center font-bold text-2xl text-[#CC1020]">P</div>
     </div>
     <div class="flex-1">
-      <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow font-display leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-px-light mt-1">Pixbo LED Rink Content Creator 1.0</p>
+      <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow font-semibold leading-none">LED MERGER</h1>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator 1.0</p>
     </div>
     <div class="text-right">
-      <div class="font-mono text-xs text-px-muted uppercase tracking-widest">Fixed Output</div>
-      <div class="font-display font-bold text-xl text-px-red">50 FPS</div>
+      <div class="font-mono text-xs text-[#555] uppercase tracking-widest">Fixed Output</div>
+      <div class="font-semibold text-xl text-[#CC1020]">50 FPS</div>
     </div>
   </header>
 
   <!-- TABS -->
   <div class="flex gap-1 mb-0">
     <button onclick="switchTab('merge')" id="tab-merge"
-      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-px-red bg-px-card text-px-red font-display font-bold tracking-widest uppercase text-sm transition-all">FILE MERGER</button>
+      class="px-6 py-2 rounded-t-lg border border-b-0 border-[#2E2E3A] bg-[#22222A] text-[#CC1020] font-semibold text-xs tracking-widest uppercase transition-all">FILE MERGER</button>
     <button onclick="switchTab('lineup')" id="tab-lineup"
-      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-px-border bg-px-black text-px-light font-display font-bold tracking-widest uppercase text-sm transition-all hover:text-gray-200">PLAYERS</button>
+      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-[#2E2E3A] bg-[#1E1E26] text-[#888] font-semibold tracking-wider uppercase text-sm transition-all hover:text-gray-200">PLAYERS</button>
+    <button onclick="switchTab('custom')" id="tab-custom"
+      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-[#2E2E3A] bg-[#1E1E26] text-[#888] font-semibold tracking-wider uppercase text-sm transition-all hover:text-gray-200">CUSTOM</button>
   </div>
 
   <!-- ══════════════ FILE MERGER ══════════════ -->
   <div id="tab-merge-content" class="pt-5 space-y-4">
 
     <!-- 01 Upload -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3 flex items-center justify-between">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">01 — Upload Display Files</span>
-        <button onclick="openLayoutModal()" class="font-mono text-xs text-px-light hover:text-px-red transition-colors underline underline-offset-2">📐 View arena layout</button>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">01 — Upload Display Files</span>
+        <button onclick="openLayoutModal()" class="font-mono text-xs text-[#888] hover:text-[#CC1020] transition-colors underline underline-offset-2">📐 View arena layout</button>
       </div>
 
       {% for d in displays %}
-      <div class="border-b border-px-border last:border-b-0">
+      <div class="border-b border-[#2E2E3A] last:border-b-0">
         <!-- Main upload row -->
         <div class="grid items-center gap-3 px-5 py-3 hover:bg-white/[0.015]" style="grid-template-columns:185px 1fr 100px">
           <div>
-            <div class="font-display font-semibold text-sm text-gray-100 uppercase tracking-wide">{{ d.name }}</div>
-            <div class="font-mono text-xs text-px-red mt-0.5">{{ d.width }} × {{ d.height }} px</div>
+            <div class="font-semibold font-semibold text-sm text-gray-100 uppercase tracking-wide">{{ d.name }}</div>
+            <div class="font-mono text-xs text-[#CC1020] mt-0.5">{{ d.width }} × {{ d.height }} px</div>
           </div>
-          <div class="relative border-2 border-dashed border-px-muted rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-px-red/60 hover:bg-px-red/5 transition-all"
+          <div class="relative border-2 border-dashed border-[#3C3C3C] rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-[#CC1020]/60 hover:bg-[#CC1020]/5 transition-all"
                id="drop-{{ d.id }}"
                ondragover="event.preventDefault();this.classList.add('drop-active')"
                ondragleave="this.classList.remove('drop-active')"
@@ -103,9 +129,9 @@ tailwind.config = {
             <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                    accept=".mp4,.mov,.avi,.gif,.png,.jpg,.jpeg"
                    onchange="uploadDisplayFile({{ d.id }},this.files[0])">
-            <span class="font-mono text-xs text-px-light truncate pointer-events-none select-none" id="label-{{ d.id }}">Click or drag file…</span>
+            <span class="font-mono text-xs text-[#888] truncate pointer-events-none select-none" id="label-{{ d.id }}">Click or drag file…</span>
           </div>
-          <div class="font-mono text-xs text-right text-px-light" id="ustatus-{{ d.id }}">—</div>
+          <div class="font-mono text-xs text-right text-[#888]" id="ustatus-{{ d.id }}">—</div>
         </div>
 
         {% if d.id != 4 %}
@@ -118,24 +144,24 @@ tailwind.config = {
               <div class="ttrack w-9 h-5 bg-px-muted rounded-full transition-colors duration-200"></div>
               <div class="tthumb absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow"></div>
             </div>
-            <span class="font-mono text-xs text-px-light group-hover:text-gray-300 transition-colors">Tile mode</span>
+            <span class="font-mono text-xs text-[#888] group-hover:text-gray-300 transition-colors">Tile mode</span>
           </label>
           <div id="tile-opts-{{ d.id }}" class="hidden flex items-center gap-3 flex-wrap">
-            <span class="font-mono text-xs text-px-light">Repeat</span>
+            <span class="font-mono text-xs text-[#888]">Repeat</span>
             <select id="tile-count-{{ d.id }}" onchange="onTileCountChange({{ d.id }}, {{ d.width }})"
-                    class="bg-px-black border border-px-border rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-px-red cursor-pointer">
+                    class="bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020] cursor-pointer">
               <option value="2">2×</option><option value="3">3×</option><option value="4">4×</option>
             </select>
-            <span class="font-mono text-xs text-px-light">Duration</span>
+            <span class="font-mono text-xs text-[#888]">Duration</span>
             <input type="number" id="tile-dur-{{ d.id }}" value="6" min="1" max="60" step="0.5"
-                   class="w-16 bg-px-black border border-px-border rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-px-red">
-            <span class="font-mono text-xs text-px-light">sec</span>
-            <span class="font-mono text-xs text-px-red bg-px-red/10 px-2 py-0.5 rounded-md" id="tile-hint-{{ d.id }}"></span>
+                   class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
+            <span class="font-mono text-xs text-[#888]">sec</span>
+            <span class="font-mono text-xs text-[#CC1020] bg-[#CC1020]/10 px-2 py-0.5 rounded-md" id="tile-hint-{{ d.id }}"></span>
           </div>
         </div>
         <!-- Tile slot upload areas (shown when tile mode on) -->
         <div id="tile-slots-{{ d.id }}" class="hidden px-5 pb-4">
-          <div class="font-mono text-xs text-px-muted mb-2">Upload one file per tile slot (or leave empty to repeat slot 1):</div>
+          <div class="font-mono text-xs text-[#555] mb-2">Upload one file per tile slot (or leave empty to repeat slot 1):</div>
           <div class="flex gap-2 flex-wrap" id="tile-slots-inner-{{ d.id }}"></div>
         </div>
         {% endif %}
@@ -143,16 +169,20 @@ tailwind.config = {
       {% endfor %}
     </div>
 
+    <!-- Info: 576 Left/Right warning -->
+    <div class="info-box">
+      ⚠&nbsp; It is recommended to use the same file for <strong style="color:#ddd">Longside Left</strong> and <strong style="color:#ddd">Longside Right</strong> in stacked exports. Using different files may result in a visible cut on the physical LED displays.
+    </div>
     <!-- 02 Visual Layout -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">02 — Visual Layout</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">02 — Visual Layout</span>
       </div>
       <div class="p-5 space-y-2">
 
         <!-- Longside Center 1728px — reference width (100%) -->
         <div>
-          <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE CENTER — 1728px</div>
+          <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE CENTER — 1728px</div>
           <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1A4731;">
             <canvas id="mg-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
             <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="mg-lbl-2">no file</span>
@@ -161,7 +191,7 @@ tailwind.config = {
 
         <!-- Shortside 1344px — 77.2% of 1728 -->
         <div>
-          <div class="font-mono text-[10px] text-px-muted mb-1">SHORTSIDE — 1344px</div>
+          <div class="font-mono text-[10px] text-[#555] mb-1">SHORTSIDE — 1344px</div>
           <div style="width:77.2%;">
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7B1520;">
               <canvas id="mg-canvas-0" class="absolute inset-0 w-full h-full"></canvas>
@@ -173,21 +203,21 @@ tailwind.config = {
         <!-- Longside Left + Right + Media side by side -->
         <div class="flex gap-3 items-start">
           <div class="flex-1">
-            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE LEFT — 576px</div>
+            <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE LEFT — 576px</div>
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1E3A5F;">
               <canvas id="mg-canvas-1" class="absolute inset-0 w-full h-full"></canvas>
               <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="mg-lbl-1">no file</span>
             </div>
           </div>
           <div class="flex-1">
-            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE RIGHT — 576px</div>
+            <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE RIGHT — 576px</div>
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7A5C00;">
               <canvas id="mg-canvas-3" class="absolute inset-0 w-full h-full"></canvas>
               <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="mg-lbl-3">no file</span>
             </div>
           </div>
           <div style="width:10%">
-            <div class="font-mono text-[10px] text-px-muted mb-1">MEDIA — 192px</div>
+            <div class="font-mono text-[10px] text-[#555] mb-1">MEDIA — 192px</div>
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#4A2060;">
               <canvas id="mg-canvas-4" class="absolute inset-0 w-full h-full"></canvas>
               <span class="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/30 pointer-events-none" id="mg-lbl-4">no file</span>
@@ -195,36 +225,36 @@ tailwind.config = {
           </div>
         </div>
 
-        <p class="font-mono text-xs text-px-muted">Live preview — updates as files are uploaded.</p>
+        <p class="font-mono text-xs text-[#555]">Live preview — updates as files are uploaded.</p>
       </div>
     </div>
 
     <!-- 03 Generate -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">03 — Generate Output</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">03 — Generate Output</span>
       </div>
       <div class="px-5 py-4 flex items-center gap-4 flex-wrap">
         <button id="mergeBtn" onclick="startMerge()" disabled
-          class="bg-px-red hover:bg-px-dark text-white font-display font-bold tracking-widest uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
+          class="bg-[#CC1020] hover:bg-px-dark text-white font-semibold tracking-wider uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
           ▶ MERGE FILES
         </button>
         <button id="previewBtn" onclick="openLedPreview()" disabled
-          class="bg-px-black border border-px-border hover:border-px-red text-px-light hover:text-white font-display font-bold tracking-widest uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
+          class="bg-[#1E1E26] border border-[#2E2E3A] hover:border-[#CC1020] text-[#888] hover:text-white font-semibold tracking-wider uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
           ◉ LED PREVIEW
         </button>
-        <div class="flex-1 h-1.5 bg-px-black rounded-full overflow-hidden hidden min-w-[60px]" id="mergeProgress">
-          <div class="prog-bar h-full w-[30%] bg-px-red rounded-full"></div>
+        <div class="flex-1 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden hidden min-w-[60px]" id="mergeProgress">
+          <div class="prog-bar h-full w-[30%] bg-[#CC1020] rounded-full"></div>
         </div>
-        <div class="font-mono text-sm text-px-light" id="mergeStatus">Upload all 5 files to begin.</div>
+        <div class="font-mono text-sm text-[#888]" id="mergeStatus">Upload all 5 files to begin.</div>
       </div>
-      <div class="hidden mx-5 mb-5 items-center gap-4 bg-neon/5 border border-neon/30 rounded-xl px-5 py-4" id="mergeDownload">
+      <div class="hidden mx-5 mb-5 items-center gap-4 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4" id="mergeDownload">
         <span class="text-3xl">📥</span>
         <div>
-          <div class="font-display font-bold text-neon text-lg uppercase">Output ready!</div>
-          <div class="font-mono text-xs text-px-light mt-0.5" id="mergeDlName"></div>
+          <div class="font-semibold text-[#00ff88] text-lg uppercase">Output ready!</div>
+          <div class="font-mono text-xs text-[#888] mt-0.5" id="mergeDlName"></div>
         </div>
-        <button id="mergeDlBtn" class="ml-auto bg-neon text-black font-display font-bold px-5 py-2.5 rounded-xl hover:opacity-80 transition-opacity uppercase tracking-wide">Download MP4</button>
+        <button id="mergeDlBtn" class="ml-auto bg-[#00ff88] text-black font-semibold px-5 py-2.5 rounded-xl hover:opacity-80 transition-opacity uppercase tracking-wide">Download MP4</button>
       </div>
     </div>
 
@@ -235,119 +265,67 @@ tailwind.config = {
   <div id="tab-lineup-content" class="pt-5 space-y-4 hidden">
 
     <!-- 01 Background + Font -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">01 — Background &amp; Font</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">01 — Settings</span>
       </div>
-
-      <!-- Upload -->
-      <div class="px-5 pt-4 pb-2">
-        <div class="relative border-2 border-dashed border-px-muted rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-px-red/60 hover:bg-px-red/5 transition-all"
-             id="drop-bg"
-             ondragover="event.preventDefault();this.classList.add('drop-active')"
-             ondragleave="this.classList.remove('drop-active')"
-             ondrop="onDropBg(event)">
-          <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" accept=".mp4,.mov,.avi" onchange="uploadBg(this.files[0])">
-          <span class="font-mono text-xs text-px-light truncate pointer-events-none select-none" id="label-bg">Upload background MP4…</span>
-          <span class="ml-auto font-mono text-xs text-px-light" id="ustatus-bg"></span>
+      <div class="px-5 py-4">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="font-mono text-xs text-[#888]">Font size:</span>
+          <input type="number" id="luFontSize" value="50" min="10" max="200" step="5"
+            oninput="renderAllLuCanvases()"
+            class="w-14 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020] text-center">
+          <span class="font-mono text-xs text-[#888]">%</span>
         </div>
-      </div>
-
-      <!-- Select Background section -->
-      <div class="px-5 py-3 space-y-2 border-b border-px-border">
-        <div class="font-mono text-[10px] text-px-muted uppercase tracking-widest mb-2">Select Background</div>
-        <!-- Shortside + Longside Center (main bg) -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Shortside &amp; Longside Center:</span>
-          <select id="bgLibrary" onchange="selectBgFromLibrary(this.value)"
-            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-            <option value="">— select a background —</option>
-          </select>
-          <button onclick="loadBgLibrary()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
-        </div>
-        <!-- Longside Left 576 -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Longside Left (576px):</span>
-          <select id="variant576LeftSelect" onchange="select576Left(this.value)"
-            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-            <option value="">— black —</option>
-          </select>
-          <button onclick="load576Variants()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
-        </div>
-        <!-- Longside Right 576 -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Longside Right (576px):</span>
-          <select id="variant576RightSelect" onchange="select576Right(this.value)"
-            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-            <option value="">— black —</option>
-          </select>
-        </div>
-        <!-- Media 192 -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Media (192px):</span>
-          <select id="media192Select" onchange="selectMedia192(this.value)"
-            class="flex-1 bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-            <option value="">— use main background —</option>
-          </select>
-          <button onclick="loadMedia192()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
-        </div>
-      </div>
-
-      <!-- Font -->
-      <div class="px-5 py-3 flex items-center gap-3 flex-wrap">
-        <span class="font-mono text-xs text-px-light whitespace-nowrap w-52">Font:</span>
-        <select id="fontSelect" onchange="selectFont(this.value)"
-          class="flex-1 min-w-[180px] bg-px-black border border-px-border rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-px-red cursor-pointer">
-          <option value="">— loading… —</option>
-        </select>
-        <button onclick="loadFonts()" class="font-mono text-xs text-px-light hover:text-px-red">↺</button>
-        <span class="font-mono text-xs" id="fontStatus"></span>
       </div>
     </div>
-
+    <!-- Info: timing note -->
+    <div class="info-box">
+      ℹ&nbsp; Default duration is the standard Pixbo player lineup time. Change only if needed.
+    </div>
     <!-- 02 Player Info -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">02 — Player Info</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">02 — Player Info</span>
       </div>
       <div class="p-5 grid grid-cols-2 gap-4">
         <div class="space-y-1.5">
-          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Player Number</label>
+          <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Player Number</label>
           <input type="text" id="playerNumber" value="99" maxlength="3"
             oninput="updateTimeline();checkLineupReady()"
-            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
         <div class="space-y-1.5">
-          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Player Name</label>
+          <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Player Name</label>
           <input type="text" id="playerName" value="TED BORG"
             oninput="updateTimeline();checkLineupReady()"
-            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
         <div class="space-y-1.5">
-          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Number shown (sec)</label>
-          <input type="number" id="numDur" value="2" min="0.5" max="10" step="0.5"
+          <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Number shown (sec)</label>
+          <input type="number" id="numDur" value="2.1" min="0.5" max="10" step="0.1"
             oninput="updateTimeline()"
-            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
         <div class="space-y-1.5">
-          <label class="font-mono text-xs uppercase tracking-widest text-px-light">Total duration (sec)</label>
+          <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Total duration (sec)</label>
           <input type="number" id="totalDur" value="6" min="2" max="30" step="0.5"
             oninput="updateTimeline()"
-            class="w-full bg-px-black border-2 border-px-border rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-px-red transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
       </div>
     </div>
 
     <!-- 03 Visual Layout Preview -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">03 — Visual Layout Preview</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">03 — Visual Layout Preview</span>
       </div>
       <div class="p-5 space-y-2">
 
         <!-- Longside Center 1728px — reference width (100%) -->
         <div>
-          <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE CENTER — 1728px</div>
+          <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE CENTER — 1728px</div>
           <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1A4731;">
             <canvas id="lu-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
             <span class="lu-diag-label absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="lu-lbl-2"></span>
@@ -356,7 +334,7 @@ tailwind.config = {
 
         <!-- Shortside 1344px — 77.2% of 1728 width -->
         <div>
-          <div class="font-mono text-[10px] text-px-muted mb-1">SHORTSIDE — 1344px</div>
+          <div class="font-mono text-[10px] text-[#555] mb-1">SHORTSIDE — 1344px</div>
           <div style="width:77.2%;">
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7B1520;">
               <canvas id="lu-canvas-0" class="absolute inset-0 w-full h-full"></canvas>
@@ -368,21 +346,21 @@ tailwind.config = {
         <!-- Longside Left 576px — shown at true proportional width (30% of 1920) -->
         <div class="flex gap-3 items-start">
           <div class="flex-1">
-            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE LEFT — 576px</div>
+            <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE LEFT — 576px</div>
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1E3A5F;">
               <canvas id="lu-canvas-4" class="absolute inset-0 w-full h-full"></canvas>
               <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="lu-576-left-label">no file</span>
             </div>
           </div>
           <div class="flex-1">
-            <div class="font-mono text-[10px] text-px-muted mb-1">LONGSIDE RIGHT — 576px</div>
+            <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE RIGHT — 576px</div>
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7A5C00;">
               <canvas id="lu-canvas-5" class="absolute inset-0 w-full h-full"></canvas>
               <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="lu-576-right-label">no file</span>
             </div>
           </div>
           <div style="width:10%">
-            <div class="font-mono text-[10px] text-px-muted mb-1">MEDIA — 192px</div>
+            <div class="font-mono text-[10px] text-[#555] mb-1">MEDIA — 192px</div>
             <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#4A2060;">
               <canvas id="lu-canvas-3" class="absolute inset-0 w-full h-full"></canvas>
               <span class="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/30 pointer-events-none" id="lu-lbl-3"></span>
@@ -393,57 +371,332 @@ tailwind.config = {
         <!-- Hidden canvas-1 kept for JS compatibility (lu-canvas-1 used in Row1 previously) -->
         <canvas id="lu-canvas-1" style="display:none"></canvas>
 
-        <p class="font-mono text-xs text-px-muted">Live preview — updates as you type. LED Preview shows background only — player text is rendered on Generate.</p>
+        <p class="font-mono text-xs text-[#555]">Live preview — updates as you type. LED Preview shows background only — player text is rendered on Generate.</p>
       </div>
     </div>
 
     <!-- 04 Timing -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">04 — Timing Preview</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">04 — Timing Preview</span>
       </div>
       <div class="p-5">
-        <div class="flex h-10 rounded-xl overflow-hidden border border-px-border">
-          <div id="tlNum" style="width:33%" class="flex items-center justify-center font-mono text-xs text-white bg-px-red/70 border-r-2 border-px-red overflow-hidden whitespace-nowrap transition-all duration-300 px-2"># 99 · 2.0s</div>
-          <div id="tlName" class="flex-1 flex items-center justify-center font-mono text-xs text-neon bg-neon/10 overflow-hidden whitespace-nowrap px-2">TED BORG · 4.0s</div>
+        <div class="flex h-10 rounded-xl overflow-hidden border border-[#2E2E3A]">
+          <div id="tlNum" style="width:33%" class="flex items-center justify-center font-mono text-xs text-white bg-[#CC1020]/70 border-r-2 border-[#CC1020] overflow-hidden whitespace-nowrap transition-all duration-300 px-2"># 99 · 2.0s</div>
+          <div id="tlName" class="flex-1 flex items-center justify-center font-mono text-xs text-[#00ff88] bg-[#00ff88]/10 overflow-hidden whitespace-nowrap px-2">TED BORG · 4.0s</div>
         </div>
-        <div class="flex justify-between mt-2 font-mono text-xs text-px-muted">
-          <span>0s</span><span id="tlMid" class="text-px-red/70">2s ↔ fade</span><span id="tlEnd">6s</span>
+        <div class="flex justify-between mt-2 font-mono text-xs text-[#555]">
+          <span>0s</span><span id="tlMid" class="text-[#CC1020]/70">2s ↔ fade</span><span id="tlEnd">6s</span>
         </div>
-        <p class="font-mono text-xs text-px-muted mt-2">↳ 0.3s fade transition</p>
+        <p class="font-mono text-xs text-[#555] mt-2">↳ 0.3s fade transition</p>
       </div>
     </div>
 
     <!-- 04 Generate -->
-    <div class="bg-px-card border border-px-border rounded-2xl overflow-hidden">
-      <div class="bg-px-black border-b border-px-border px-5 py-3">
-        <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">05 — Generate</span>
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">05 — Generate</span>
       </div>
       <div class="px-5 py-4 flex items-center gap-4 flex-wrap">
         <button id="lineupBtn" onclick="startLineup()" disabled
-          class="bg-px-red hover:bg-px-dark text-white font-display font-bold tracking-widest uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
+          class="bg-[#CC1020] hover:bg-px-dark text-white font-semibold tracking-wider uppercase px-8 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all red-box text-sm">
           ▶ GENERATE PLAYER
         </button>
-        <button id="lineupPreviewBtn" onclick="openLineupLedPreview()" disabled
-          class="bg-px-black border border-px-border hover:border-px-red text-px-light hover:text-white font-display font-bold tracking-widest uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
+        <button id="lineupPreviewBtn" onclick="openLineupLedPreview()"
+          class="bg-[#1E1E26] border border-[#2E2E3A] hover:border-[#CC1020] text-[#888] hover:text-white font-semibold tracking-wider uppercase px-6 py-3 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
           ◉ LED PREVIEW
         </button>
-        <div class="flex-1 h-1.5 bg-px-black rounded-full overflow-hidden hidden min-w-[60px]" id="lineupProgress">
-          <div class="prog-bar h-full w-[30%] bg-px-red rounded-full"></div>
+        <div class="flex-1 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden hidden min-w-[60px]" id="lineupProgress">
+          <div class="prog-bar h-full w-[30%] bg-[#CC1020] rounded-full"></div>
         </div>
-        <div class="font-mono text-sm text-px-light" id="lineupStatus">Select background and enter player info.</div>
+        <div class="font-mono text-sm text-[#888]" id="lineupStatus">Select background and enter player info.</div>
       </div>
-      <div class="hidden mx-5 mb-5 items-center gap-4 bg-neon/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="lineupDownload">
+      <div class="hidden mx-5 mb-5 items-center gap-4 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="lineupDownload">
         <span class="text-3xl">🎬</span>
         <div>
-          <div class="font-display font-bold text-neon text-lg uppercase">Player video ready!</div>
-          <div class="font-mono text-xs text-px-light mt-0.5">Stacked export + 3 individual files</div>
+          <div class="font-semibold text-[#00ff88] text-lg uppercase">Player video ready!</div>
+          <div class="font-mono text-xs text-[#888] mt-0.5">Stacked export + 3 individual files</div>
         </div>
         <div class="ml-auto flex gap-2 flex-wrap" id="lineupDlButtons"></div>
       </div>
     </div>
 
   </div><!-- /tab-lineup -->
+
+  <!-- ══════════════ CUSTOM ══════════════ -->
+  <div id="tab-custom-content" class="pt-5 space-y-4 hidden">
+
+    <!-- 01 Background & Font -->
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">01 — Background &amp; Font</span>
+        <button onclick="loadCustomBgLibrary();loadCustom576Variants();loadCustomMedia192();" class="font-mono text-xs text-[#888] hover:text-[#CC1020]">↺ Refresh</button>
+      </div>
+      <div class="px-5 py-3 space-y-2">
+        <!-- Longside Center (1728) -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Longside Center (1728px):</span>
+          <select id="cuBgLibrary2" onchange="selectCustomBg(2, this.value)"
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            <option value="">— select background —</option>
+          </select>
+        </div>
+        <!-- Shortside (1344) -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Shortside (1344px):</span>
+          <select id="cuBgLibrary0" onchange="selectCustomBg(0, this.value)"
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            <option value="">— select background —</option>
+          </select>
+        </div>
+        <!-- Longside Left 576 -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Longside 576px (Left &amp; Right):</span>
+          <select id="cuVariant576Left" onchange="selectCustom576Left(this.value)"
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            <option value="">— black —</option>
+          </select>
+        </div>
+        <!-- Longside Right 576 removed — uses same as Left -->
+        <!-- Media 192 -->
+        <div class="flex items-center gap-2 border-t border-[#2E2E3A] pt-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Media (192px):</span>
+          <select id="cuMedia192Select" onchange="selectCustomMedia192(this.value)"
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            <option value="">— black —</option>
+          </select>
+        </div>
+        <!-- Font + Size + Color -->
+        <div class="flex items-center gap-3 flex-wrap border-t border-[#2E2E3A] pt-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Font:</span>
+          <select id="cuFontSelect" onchange="selectCustomFont(this.value)"
+            class="flex-1 min-w-[180px] bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            <option value="">— loading… —</option>
+          </select>
+          <span class="font-mono text-xs" id="cuFontStatus"></span>
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap">Size:</span>
+          <input type="number" id="cuFontSize" value="50" min="10" max="200" step="5"
+            oninput="renderAllCuCanvases()"
+            class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-2 py-2 outline-none focus:border-[#CC1020] text-center">
+          <span class="font-mono text-xs text-[#888]">%</span>
+          <input type="color" id="cuTextColor" value="#ffffff"
+            oninput="renderAllCuCanvases()"
+            class="w-8 h-8 rounded cursor-pointer border border-[#2E2E3A] bg-transparent p-0.5">
+        </div>
+      </div>
+    </div>
+    <!-- 02 Custom Text (5 screen cards) -->
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">02 — Custom Text</span>
+      </div>
+      <div class="p-5 space-y-4">
+
+        <!-- 1728 Longside Center -->
+        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
+          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">Longside Center — 1728px</div>
+          <div class="grid grid-cols-3 gap-0 divide-x divide-px-border">
+            {% for si in range(3) %}
+            <div class="p-3 space-y-1.5">
+              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
+              <input type="text" id="cu-text-2-{{ si }}" placeholder="Text…"
+                oninput="updateCustomTimeline(2);renderAllCuCanvases()"
+                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cu-dur-2-{{ si }}" value="2" min="0" max="60" step="0.5"
+                  oninput="updateCustomTimeline(2);renderAllCuCanvases()"
+                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
+                <span class="font-mono text-[10px] text-[#555]">sec</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 1344 Shortside -->
+        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
+          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">Shortside — 1344px</div>
+          <div class="grid grid-cols-3 gap-0 divide-x divide-px-border">
+            {% for si in range(3) %}
+            <div class="p-3 space-y-1.5">
+              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
+              <input type="text" id="cu-text-0-{{ si }}" placeholder="Text…"
+                oninput="updateCustomTimeline(0);renderAllCuCanvases()"
+                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cu-dur-0-{{ si }}" value="2" min="0" max="60" step="0.5"
+                  oninput="updateCustomTimeline(0);renderAllCuCanvases()"
+                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
+                <span class="font-mono text-[10px] text-[#555]">sec</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 576 Unified (Left & Right mirror each other in stacked export) -->
+        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
+          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest flex items-center justify-between">
+            <span>Longside 576px <span class="text-[#444] normal-case tracking-normal">(Left &amp; Right — same content)</span></span>
+          </div>
+          <div class="grid grid-cols-3 gap-0 divide-x divide-[#2E2E3A]">
+            {% for si in range(3) %}
+            <div class="p-3 space-y-1.5">
+              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
+              <input type="text" id="cu-text-1-{{ si }}" placeholder="Text…"
+                oninput="updateCustomTimeline(1);renderAllCuCanvases()"
+                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cu-dur-1-{{ si }}" value="2" min="0" max="60" step="0.5"
+                  oninput="updateCustomTimeline(1);renderAllCuCanvases()"
+                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
+                <span class="font-mono text-[10px] text-[#555]">sec</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 192 Media -->
+        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
+          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">Media — 192px</div>
+          <div class="grid grid-cols-3 gap-0 divide-x divide-px-border">
+            {% for si in range(3) %}
+            <div class="p-3 space-y-1.5">
+              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
+              <input type="text" id="cu-text-4-{{ si }}" placeholder="Text…"
+                oninput="updateCustomTimeline(4);renderAllCuCanvases()"
+                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cu-dur-4-{{ si }}" value="2" min="0" max="60" step="0.5"
+                  oninput="updateCustomTimeline(4);renderAllCuCanvases()"
+                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
+                <span class="font-mono text-[10px] text-[#555]">sec</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 03 Visual Layout Preview -->
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">03 — Visual Layout Preview</span>
+      </div>
+      <div class="p-5 space-y-2">
+        <!-- Longside Center 1728 -->
+        <div>
+          <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE CENTER — 1728px</div>
+          <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1A4731;">
+            <canvas id="cu-canvas-2" class="absolute inset-0 w-full h-full"></canvas>
+            <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="cu-lbl-2">no bg</span>
+          </div>
+        </div>
+        <!-- Shortside 1344 -->
+        <div>
+          <div class="font-mono text-[10px] text-[#555] mb-1">SHORTSIDE — 1344px</div>
+          <div style="width:77.2%;">
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#7B1520;">
+              <canvas id="cu-canvas-0" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-xs text-white/30 pointer-events-none" id="cu-lbl-0">no bg</span>
+            </div>
+          </div>
+        </div>
+        <!-- 576 unified + 192 -->
+        <div class="flex gap-3 items-start">
+          <div class="flex-1">
+            <div class="font-mono text-[10px] text-[#555] mb-1">LONGSIDE 576px (Left &amp; Right)</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#1E3A5F;">
+              <canvas id="cu-canvas-1" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/30 pointer-events-none" id="cu-lbl-1">no bg</span>
+            </div>
+          </div>
+          <!-- cu-canvas-3 hidden but kept for JS compat -->
+          <canvas id="cu-canvas-3" style="display:none"></canvas>
+          <span id="cu-lbl-3" style="display:none"></span>
+          <div style="width:10%">
+            <div class="font-mono text-[10px] text-[#555] mb-1">MEDIA — 192px</div>
+            <div class="relative rounded-lg overflow-hidden" style="height:48px;background:#4A2060;">
+              <canvas id="cu-canvas-4" class="absolute inset-0 w-full h-full"></canvas>
+              <span class="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-white/30 pointer-events-none" id="cu-lbl-4">no bg</span>
+            </div>
+          </div>
+        </div>
+        <p class="font-mono text-xs text-[#555]">Live preview — shows background + first non-empty text slot.</p>
+      </div>
+    </div>
+
+    <!-- 04 Timing Preview per screen -->
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">04 — Timing Preview</span>
+      </div>
+      <div class="p-5 space-y-4">
+        <!-- Longside Center -->
+        <div>
+          <div class="font-mono text-[10px] text-[#555] mb-1 uppercase tracking-widest">Longside Center (1728)</div>
+          <div class="flex h-8 rounded-lg overflow-hidden border border-[#2E2E3A]" id="cu-timeline-2"></div>
+          <div class="flex justify-between mt-1 font-mono text-[10px] text-[#555]" id="cu-timeline-labels-2"></div>
+        </div>
+        <!-- Shortside -->
+        <div>
+          <div class="font-mono text-[10px] text-[#555] mb-1 uppercase tracking-widest">Shortside (1344)</div>
+          <div class="flex h-8 rounded-lg overflow-hidden border border-[#2E2E3A]" id="cu-timeline-0"></div>
+          <div class="flex justify-between mt-1 font-mono text-[10px] text-[#555]" id="cu-timeline-labels-0"></div>
+        </div>
+        <!-- Longside Left (mirrors Right) -->
+        <div>
+          <div class="font-mono text-[10px] text-[#555] mb-1 uppercase tracking-widest">Longside 576px (Left &amp; Right)</div>
+          <div class="flex h-8 rounded-lg overflow-hidden border border-[#2E2E3A]" id="cu-timeline-1"></div>
+          <div class="flex justify-between mt-1 font-mono text-[10px] text-[#555]" id="cu-timeline-labels-1"></div>
+        </div>
+        <!-- Longside Right hidden but kept for JS compat -->
+        <div style="display:none" id="cu-timeline-3-wrap">
+          <div class="flex h-8 rounded-lg overflow-hidden border border-[#2E2E3A]" id="cu-timeline-3"></div>
+          <div id="cu-timeline-labels-3"></div>
+        </div>
+        <!-- Media -->
+        <div>
+          <div class="font-mono text-[10px] text-[#555] mb-1 uppercase tracking-widest">Media (192)</div>
+          <div class="flex h-8 rounded-lg overflow-hidden border border-[#2E2E3A]" id="cu-timeline-4"></div>
+          <div class="flex justify-between mt-1 font-mono text-[10px] text-[#555]" id="cu-timeline-labels-4"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 Generate -->
+    <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+      <div class="section-header">
+        <span class="section-title">05 — Generate</span>
+      </div>
+      <div class="px-5 py-4 flex items-center gap-4 flex-wrap">
+        <button id="customBtn" onclick="startCustom()"
+          class="bg-[#CC1020] hover:bg-px-dark text-white font-semibold tracking-wider uppercase px-8 py-3 rounded-xl transition-all red-box text-sm">
+          ▶ GENERATE CUSTOM
+        </button>
+        <button onclick="openCustomLedPreview()"
+          class="bg-[#1E1E26] border border-[#2E2E3A] hover:border-[#CC1020] text-[#888] hover:text-white font-semibold tracking-wider uppercase px-6 py-3 rounded-xl transition-all text-sm">
+          ◉ LED PREVIEW
+        </button>
+        <div class="flex-1 h-1.5 bg-[#1E1E26] rounded-full overflow-hidden hidden min-w-[60px]" id="customProgress">
+          <div class="prog-bar h-full w-[30%] bg-[#CC1020] rounded-full"></div>
+        </div>
+        <div class="font-mono text-sm text-[#888]" id="customStatus">Configure screens above, then generate.</div>
+      </div>
+      <div class="hidden mx-5 mb-5 items-center gap-4 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="customDownload">
+        <span class="text-3xl">🎬</span>
+        <div>
+          <div class="font-semibold text-[#00ff88] text-lg uppercase">Custom video ready!</div>
+          <div class="font-mono text-xs text-[#888] mt-0.5">Stacked export + 5 individual files</div>
+        </div>
+        <div class="ml-auto flex gap-2 flex-wrap" id="customDlButtons"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-custom -->
 </div>
 
 <!-- Footer credit -->
@@ -453,20 +706,20 @@ tailwind.config = {
 
 <!-- ARENA LAYOUT MODAL -->
 <div id="layoutModal" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4" onclick="closeLayoutModal()">
-  <div class="bg-px-card border border-px-border rounded-2xl max-w-3xl w-full overflow-hidden" onclick="event.stopPropagation()">
-    <div class="bg-px-black border-b border-px-border px-5 py-3 flex items-center justify-between">
-      <span class="font-display font-bold tracking-widest uppercase text-px-red text-sm">Arena LED Layout</span>
-      <button onclick="closeLayoutModal()" class="font-mono text-px-light hover:text-white text-lg leading-none">✕</button>
+  <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl max-w-3xl w-full overflow-hidden" onclick="event.stopPropagation()">
+    <div class="section-header">
+      <span class="section-title">Arena LED Layout</span>
+      <button onclick="closeLayoutModal()" class="font-mono text-[#888] hover:text-white text-lg leading-none">✕</button>
     </div>
     <div class="p-4">
       <img src="/api/layout-image" alt="Arena layout" class="w-full rounded-xl"
            onerror="this.parentElement.querySelector('.layout-fallback').style.display='block';this.style.display='none'">
-      <div class="layout-fallback hidden bg-px-black rounded-xl p-6 text-center font-mono text-xs text-px-light">
+      <div class="layout-fallback hidden bg-[#1E1E26] rounded-xl p-6 text-center font-mono text-xs text-[#888]">
         Drop <code class="text-gray-300">layout.png</code> in <code class="text-gray-300">data/backgrounds/</code> to show arena photo here
       </div>
       <div class="mt-4 grid grid-cols-1 gap-2 font-mono text-xs">
-        <div class="bg-px-black rounded-lg p-3 border border-px-border">
-          <div class="font-bold text-white mb-2 font-display uppercase tracking-wide text-sm">Arena LED Layout — 1600×1200px</div>
+        <div class="bg-[#1E1E26] rounded-lg p-3 border border-[#2E2E3A]">
+          <div class="font-bold text-white mb-2 font-semibold uppercase tracking-wide text-sm">Arena LED Layout — 1600×1200px</div>
           <div class="flex gap-4 flex-wrap">
             <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#1A4731"></span>Longside Center — 1728px</div>
             <div class="flex gap-2 items-center"><span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#7B1520"></span>Shortside — 1344px</div>
@@ -487,14 +740,15 @@ const VARIANTS_DIR_PREFIX = '/app/backgrounds/576_variants/';
 
 // ══ TABS ══
 function switchTab(name) {
-  ['merge','lineup'].forEach(t => {
+  ['merge','lineup','custom'].forEach(t => {
     const a = t === name;
     document.getElementById(`tab-${t}`).className = a
-      ? 'px-7 py-2.5 rounded-t-xl border border-b-0 border-px-red bg-px-card text-px-red font-display font-bold tracking-widest uppercase text-sm transition-all'
-      : 'px-7 py-2.5 rounded-t-xl border border-b-0 border-px-border bg-px-black text-px-light font-display font-bold tracking-widest uppercase text-sm transition-all hover:text-gray-200';
+      ? 'px-6 py-2 rounded-t-lg border border-b-0 border-[#2E2E3A] bg-[#22222A] text-[#CC1020] font-semibold text-xs tracking-widest uppercase transition-all'
+      : 'px-6 py-2 rounded-t-lg border border-b-0 border-[#2E2E3A] bg-[#1A1A1F] text-[#555] font-semibold text-xs tracking-widest uppercase transition-all hover:text-[#888]';
     document.getElementById(`tab-${t}-content`).classList.toggle('hidden', !a);
   });
   if (name === 'lineup') setTimeout(renderAllLuCanvases, 50);
+  if (name === 'custom') setTimeout(renderAllCuCanvases, 50);
 }
 
 // ══ MODAL ══
@@ -541,7 +795,7 @@ function buildTileSlots(id, totalW, tiles) {
   for (let slot = 0; slot < tiles; slot++) {
     const tileW = Math.floor(totalW / tiles);
     const div = document.createElement('div');
-    div.className = 'relative tile-slot border-2 border-dashed border-px-muted rounded-xl cursor-pointer hover:border-px-red/60 transition-all flex flex-col items-center justify-center gap-1';
+    div.className = 'relative tile-slot border-2 border-dashed border-[#3C3C3C] rounded-xl cursor-pointer hover:border-[#CC1020]/60 transition-all flex flex-col items-center justify-center gap-1';
     div.style.cssText = `width:80px;height:48px;`;
     div.id = `tile-slot-${id}-${slot}`;
     if (tileSlotPaths[id][slot]) div.classList.add('uploaded');
@@ -552,12 +806,12 @@ function buildTileSlots(id, totalW, tiles) {
     inp.onchange = (e) => uploadTileSlot(id, slot, e.target.files[0], totalW);
 
     const lbl = document.createElement('span');
-    lbl.className = 'font-mono text-[9px] text-px-light pointer-events-none';
+    lbl.className = 'font-mono text-[9px] text-[#888] pointer-events-none';
     lbl.id = `tile-slot-lbl-${id}-${slot}`;
     lbl.textContent = tileSlotPaths[id][slot] ? '✓' : `Tile ${slot+1}`;
 
     const size = document.createElement('span');
-    size.className = 'font-mono text-[8px] text-px-muted pointer-events-none';
+    size.className = 'font-mono text-[8px] text-[#555] pointer-events-none';
     size.textContent = `${tileW}px`;
 
     // Preview thumb if already uploaded
@@ -636,11 +890,20 @@ function updateDiagramTiledPreview(id, totalW) {
     const x = i * tileCanvasW;
     const img = new Image();
     img.onload = () => {
-      const scale = Math.max(tileCanvasW / img.naturalWidth, H / img.naturalHeight);
-      const sw = tileCanvasW / scale, sh = H / scale;
-      const sx = (img.naturalWidth  - sw) / 2;
-      const sy = (img.naturalHeight - sh) / 2;
-      ctx.drawImage(img, sx, sy, sw, sh, x, 0, tileCanvasW, H);
+      // Mirror ffmpeg logic: scale to height=H, then center (pad or crop) to tileCanvasW
+      const scale = H / img.naturalHeight;
+      const scaledW = img.naturalWidth * scale;
+      if (scaledW >= tileCanvasW) {
+        // Wider than tile — crop center
+        const sx = (img.naturalWidth - tileCanvasW / scale) / 2;
+        ctx.drawImage(img, sx, 0, tileCanvasW / scale, img.naturalHeight, x, 0, tileCanvasW, H);
+      } else {
+        // Narrower than tile — center with black padding
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x, 0, tileCanvasW, H);
+        const offsetX = Math.floor((tileCanvasW - scaledW) / 2);
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, x + offsetX, 0, scaledW, H);
+      }
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(x, 0, tileCanvasW, H);
     };
@@ -669,8 +932,8 @@ async function uploadDisplayFile(id, file) {
     if (data.ok) {
       uploadedPaths[id] = data.path;
       drop.style.borderColor = '#00ff88';
-      label.className = 'font-mono text-xs text-neon truncate pointer-events-none select-none';
-      status.textContent = '✓'; status.className = 'font-mono text-xs text-right text-neon';
+      label.className = 'font-mono text-xs text-[#00ff88] truncate pointer-events-none select-none';
+      status.textContent = '✓'; status.className = 'font-mono text-xs text-right text-[#00ff88]';
       updateDiagramPreview(id);
     } else throw new Error(data.error);
   } catch(e) {
@@ -737,15 +1000,18 @@ function updateDiagramPreview(id) {
 window.addEventListener('resize', renderAllMgCanvases);
 
 function openLineupLedPreview() {
-  // Build params using bgPath for all text displays, variant576 for 576 panels
-  // Mirrors the stacked export layout: row1=shortside+longsideleft, row2=center+media
+  // Use fixed template backgrounds
+  const TMPL_1728 = '/app/backgrounds/players-template-1728.mp4';
+  const TMPL_1344 = '/app/backgrounds/players-template-1344.mp4';
+  const TMPL_576  = '/app/backgrounds/576_variants/players-template-576.mp4';
+  const TMPL_192  = '/app/backgrounds/media_192/players-template-192.mp4';
   const params = new URLSearchParams();
   const lineupDisplays = [
-    { id:0, path: bgPath, width:1344, name:'Shortside' },
-    { id:1, path: selected576Left  ? (VARIANTS_DIR_PREFIX + selected576Left)  : '', width:576, name:'Longside Left' },
-    { id:2, path: bgPath, width:1728, name:'Longside Center' },
-    { id:3, path: selected576Right ? (VARIANTS_DIR_PREFIX + selected576Right) : '', width:576, name:'Longside Right' },
-    { id:4, path: selectedMedia192 ? ('/app/backgrounds/media_192/' + selectedMedia192) : bgPath, width:192, name:'Media' },
+    { id:0, path: TMPL_1344, width:1344, name:'Shortside' },
+    { id:1, path: TMPL_576,  width:576,  name:'Longside Left' },
+    { id:2, path: TMPL_1728, width:1728, name:'Longside Center' },
+    { id:3, path: TMPL_576,  width:576,  name:'Longside Right' },
+    { id:4, path: TMPL_192,  width:192,  name:'Media' },
   ];
   lineupDisplays.forEach(d => {
     if (d.path) params.set('d' + d.id, d.path);
@@ -846,7 +1112,7 @@ async function selectFont(f) {
   selectedFont = f || null;
   const s = document.getElementById('fontStatus');
   s.textContent = f ? `Loading…` : '';
-  s.className = 'font-mono text-xs text-px-light';
+  s.className = 'font-mono text-xs text-[#888]';
   if (f) {
     try {
       // Derive a clean CSS font-family name from the filename (strip extension)
@@ -855,7 +1121,7 @@ async function selectFont(f) {
       const loaded = await fontFace.load();
       document.fonts.add(loaded);
       luActiveFontFamily = `"${familyName}"`;
-      s.textContent = `✓ ${f}`; s.className = 'font-mono text-xs text-neon';
+      s.textContent = `✓ ${f}`; s.className = 'font-mono text-xs text-[#00ff88]';
     } catch(e) {
       console.warn('Font load failed:', e);
       luActiveFontFamily = '"Barlow Condensed"';
@@ -905,7 +1171,7 @@ function selectBgFromLibrary(filename) {
         showBgPreview(null, filename);
         updateLineupDiagram();
         document.getElementById('label-bg').textContent = filename;
-        document.getElementById('label-bg').className = 'font-mono text-xs text-neon truncate pointer-events-none select-none';
+        document.getElementById('label-bg').className = 'font-mono text-xs text-[#00ff88] truncate pointer-events-none select-none';
         document.getElementById('ustatus-bg').textContent = '✓';
         checkLineupReady();
       }
@@ -928,7 +1194,7 @@ async function uploadBg(file) {
     if (data.ok) {
       bgPath = data.path;
       document.getElementById('drop-bg').style.borderColor = '#00ff88';
-      document.getElementById('label-bg').className = 'font-mono text-xs text-neon truncate pointer-events-none select-none';
+      document.getElementById('label-bg').className = 'font-mono text-xs text-[#00ff88] truncate pointer-events-none select-none';
       document.getElementById('ustatus-bg').textContent = '✓';
       // Use server thumbnail (seeks to 20%) rather than raw object URL (frame 1)
       showBgPreview(null, data.filename || file.name, data.path);
@@ -955,20 +1221,17 @@ function updateTimeline() {
 function checkLineupReady() {
   const num  = document.getElementById('playerNumber').value.trim();
   const name = document.getElementById('playerName').value.trim();
-  const ok   = !!(bgPath && num && name);
+  const ok   = !!(num && name);
   document.getElementById('lineupBtn').disabled = !ok;
-  const prevBtn = document.getElementById('lineupPreviewBtn');
-  if (prevBtn) prevBtn.disabled = !bgPath;
   const s = document.getElementById('lineupStatus');
-  if (!bgPath)         s.textContent = 'Select or upload a background video.';
-  else if (!num||!name) s.textContent = 'Enter player number and name.';
-  else                  s.textContent = 'Ready — click Generate Player!';
+  if (!num||!name) s.textContent = 'Enter player number and name.';
+  else             s.textContent = 'Ready — click Generate Player!';
 }
 
 // ── Lineup canvas preview ──────────────────────────────────────────────────
 // bgImg: loaded Image object for background, variant576Img: for the 576 panels
 let luBgImg = null, lu576LeftImg = null, lu576RightImg = null, luMedia192Img = null;
-let luActiveFontFamily = '"Barlow Condensed"'; // updated when user picks a font
+let luActiveFontFamily = '"Road Rage"'; // always Road Rage for Players tab
 
 // Canvas slots: [canvasId, showPlayerText, widthPx]
 const LU_CANVASES = [
@@ -1014,16 +1277,18 @@ function renderLuCanvas(cfg) {
   const name     = (document.getElementById('playerName')?.value?.trim() || '').toUpperCase();
   if (!number && !name) return;
 
-  const fontSize = Math.max(10, Math.round(H * 0.5));
   const activeFontName = luActiveFontFamily || '"Barlow Condensed"';
-  const fontStr  = `900 ${fontSize}px ${activeFontName}, sans-serif`;
+  const luSizePct  = parseFloat(document.getElementById('luFontSize')?.value) || 50;
+  const luColor    = document.getElementById('luTextColor')?.value || '#ffffff';
+  const fontSize   = Math.max(4, Math.round(H * luSizePct / 100));
+  const fontStr    = `900 ${fontSize}px ${activeFontName}, sans-serif`;
 
   ctx.textBaseline = 'middle';
 
   if (W < 250) {
     // Narrow — just centred number
     ctx.font      = fontStr;
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillStyle = luColor;
     ctx.textAlign = 'center';
     ctx.fillText(`#${number}`, W / 2, H / 2);
   } else {
@@ -1039,11 +1304,11 @@ function renderLuCanvas(cfg) {
     const x0 = Math.max(8, (W - totalW) / 2);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#FF4455';
+    ctx.fillStyle = luColor;
     ctx.fillText(numText, x0, H / 2);
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.fillText(sep, x0 + nw, H / 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillStyle = luColor;
     ctx.fillText(nameText, x0 + nw + sw2, H / 2);
   }
 }
@@ -1093,7 +1358,7 @@ function updateLineupDiagram576Right(filename) {
 async function startLineup() {
   const number   = document.getElementById('playerNumber').value.trim();
   const name     = document.getElementById('playerName').value.trim();
-  const numDur   = parseFloat(document.getElementById('numDur').value) || 2;
+  const numDur   = parseFloat(document.getElementById('numDur').value) || 2.1;
   const totalDur = parseFloat(document.getElementById('totalDur').value) || 6;
   document.getElementById('lineupBtn').disabled = true;
   document.getElementById('lineupDownload').classList.add('hidden');
@@ -1101,8 +1366,7 @@ async function startLineup() {
   document.getElementById('lineupStatus').textContent = 'Starting…';
   const r = await fetch('/api/lineup/generate', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ bg_path:bgPath, number, name, fps:FPS, num_dur:numDur, total_dur:totalDur,
-                           font_name:selectedFont, variant_576_left:selected576Left||'', variant_576_right:selected576Right||'', media_192:selectedMedia192||'' }),
+    body: JSON.stringify({ number, name, fps:FPS, num_dur:numDur, total_dur:totalDur }),
   });
   const res = await r.json();
   if (res.error) {
@@ -1113,10 +1377,12 @@ async function startLineup() {
   }
   pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', job => {
     const btns = document.getElementById('lineupDlButtons'); btns.innerHTML = '';
-    const labels = ['↓ Stacked 1600×1200','↓ Longside 1728','↓ Shortside 1344','↓ Media 192'];
-    (job.outputs||[]).forEach((fname,i) => {
+    const labels = ['↓ Stacked 1600×1200','↓ Longside 1728','↓ Shortside 1344','↓ Media 192','↓ 576 Left','↓ 576 Right'];
+    // Show all output files
+    const outputs = (job.outputs||[]);
+    outputs.forEach((fname,i) => {
       const b = document.createElement('button');
-      b.className = 'bg-neon text-black font-display font-bold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
+      b.className = 'bg-[#00ff88] text-black font-semibold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
       b.textContent = labels[i]||`↓ ${fname}`;
       b.onclick = () => window.location.href = `/api/download/${fname}`;
       btns.appendChild(b);
@@ -1146,12 +1412,335 @@ function pollJob(job_id, statusId, progressId, btnId, onDone) {
   }, 1200);
 }
 
-// Init
+// Init — auto-load fixed template backgrounds into preview
 updateTimeline();
-loadFonts();
-loadBgLibrary();
-load576Variants();
-  loadMedia192();
+checkLineupReady();
+
+// Load Road Rage font for canvas preview
+(async function loadRoadRageFont() {
+  try {
+    const fonts = await (await fetch('/api/assets/fonts')).json();
+    const rr = fonts.find(f => f.toLowerCase().includes('road') || f.toLowerCase().includes('rage'));
+    if (rr) {
+      const familyName = rr.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+      const fontFace = new FontFace(familyName, `url(/api/assets/font-file/${encodeURIComponent(rr)})`);
+      const loaded = await fontFace.load();
+      document.fonts.add(loaded);
+      luActiveFontFamily = `"${familyName}"`;
+      renderAllLuCanvases();
+    }
+  } catch(e) { console.warn('Road Rage font load failed:', e); }
+})();
+
+// Load template bg preview for canvas
+(function loadTemplatePreviews() {
+  const bgImg = new Image();
+  bgImg.crossOrigin = 'anonymous';
+  bgImg.onload  = () => { luBgImg = bgImg; renderAllLuCanvases(); };
+  bgImg.src = '/api/bg-preview-path?path=/app/backgrounds/players-template-1728.mp4';
+
+  const img576 = new Image();
+  img576.crossOrigin = 'anonymous';
+  img576.onload = () => { lu576LeftImg = img576; lu576RightImg = img576; renderAllLuCanvases(); };
+  img576.src = '/api/bg-preview-path?path=/app/backgrounds/576_variants/players-template-576.mp4';
+
+  const img192 = new Image();
+  img192.crossOrigin = 'anonymous';
+  img192.onload = () => { luMedia192Img = img192; renderAllLuCanvases(); };
+  img192.src = '/api/bg-preview-path?path=/app/backgrounds/media_192/players-template-192.mp4';
+})();
+
+// ══ CUSTOM TAB ══
+const cuBgPaths = {0:null, 1:null, 2:null, 3:null, 4:null};
+const cuBgImgs  = {0:null, 1:null, 2:null, 3:null, 4:null};
+let cuFont = null;
+let cuActiveFontFamily = '"Barlow Condensed"';
+
+const CU_CANVASES = [
+  { id:0, canvasId:'cu-canvas-0', lblId:'cu-lbl-0', w:1344 },
+  { id:1, canvasId:'cu-canvas-1', lblId:'cu-lbl-1', w:576  },
+  { id:2, canvasId:'cu-canvas-2', lblId:'cu-lbl-2', w:1728 },
+  { id:3, canvasId:'cu-canvas-3', lblId:'cu-lbl-3', w:576  },
+  { id:4, canvasId:'cu-canvas-4', lblId:'cu-lbl-4', w:192  },
+];
+
+const SLOT_COLORS = ['rgba(204,16,32,0.75)', 'rgba(0,80,200,0.75)', 'rgba(0,160,80,0.75)'];
+
+async function loadCustomFonts() {
+  try {
+    const fonts = await (await fetch('/api/assets/fonts')).json();
+    const sel = document.getElementById('cuFontSelect');
+    sel.innerHTML = fonts.length
+      ? fonts.map(f=>`<option value="${f}">${f}</option>`).join('')
+      : '<option value="">— no fonts in /data/fonts —</option>';
+    const rr = fonts.find(f=>f.toLowerCase().includes('road')||f.toLowerCase().includes('rage'));
+    const pick = rr || fonts[0];
+    if (pick) { sel.value = pick; await selectCustomFont(pick); }
+  } catch(e) {}
+}
+
+async function selectCustomFont(f) {
+  cuFont = f || null;
+  const s = document.getElementById('cuFontStatus');
+  s.textContent = f ? 'Loading…' : '';
+  s.className = 'font-mono text-xs text-[#888]';
+  if (f) {
+    try {
+      const familyName = f.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+      const fontFace = new FontFace(familyName, `url(/api/assets/font-file/${encodeURIComponent(f)})`);
+      const loaded = await fontFace.load();
+      document.fonts.add(loaded);
+      cuActiveFontFamily = `"${familyName}"`;
+      s.textContent = `✓ ${f}`; s.className = 'font-mono text-xs text-[#00ff88]';
+    } catch(e) {
+      cuActiveFontFamily = '"Barlow Condensed"';
+      s.textContent = `⚠ ${f}`; s.className = 'font-mono text-xs text-yellow-400';
+    }
+  } else {
+    cuActiveFontFamily = '"Barlow Condensed"';
+    s.textContent = ''; s.className = '';
+  }
+  renderAllCuCanvases();
+}
+
+async function loadCustomBgLibrary() {
+  try {
+    const bgs = await (await fetch('/api/assets/backgrounds')).json();
+    const opts = '<option value="">— select background —</option>' +
+      bgs.map(f=>`<option value="${f}">${f}</option>`).join('');
+    document.getElementById('cuBgLibrary2').innerHTML = opts;
+    document.getElementById('cuBgLibrary0').innerHTML = opts;
+  } catch(e) {}
+}
+
+async function loadCustom576Variants() {
+  try {
+    const files = await (await fetch('/api/assets/576variants')).json();
+    const opts = '<option value="">— black —</option>' +
+      files.map(f=>`<option value="${f}">${f}</option>`).join('');
+    document.getElementById('cuVariant576Left').innerHTML = opts;
+  } catch(e) {}
+}
+
+async function loadCustomMedia192() {
+  try {
+    const files = await (await fetch('/api/assets/media192')).json();
+    const opts = '<option value="">— black —</option>' +
+      files.map(f=>`<option value="${f}">${f}</option>`).join('');
+    document.getElementById('cuMedia192Select').innerHTML = opts;
+  } catch(e) {}
+}
+
+function selectCustomBg(displayId, filename) {
+  if (!filename) { cuBgPaths[displayId] = null; cuBgImgs[displayId] = null; renderAllCuCanvases(); return; }
+  fetch('/api/lineup/select-bg', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename})})
+    .then(r=>r.json()).then(data => {
+      if (data.ok) {
+        cuBgPaths[displayId] = data.path;
+        const img = new Image(); img.crossOrigin='anonymous';
+        img.onload  = () => { cuBgImgs[displayId] = img; renderAllCuCanvases(); };
+        img.onerror = () => { cuBgImgs[displayId] = null; renderAllCuCanvases(); };
+        img.src = `/api/bg-preview-path?path=${encodeURIComponent(data.path)}&t=${Date.now()}`;
+      }
+    });
+}
+
+function selectCustom576Left(filename) {
+  if (!filename) {
+    cuBgPaths[1] = null; cuBgImgs[1] = null;
+    cuBgPaths[3] = null; cuBgImgs[3] = null;
+    renderAllCuCanvases(); return;
+  }
+  fetch('/api/lineup/select-576variant', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename})})
+    .then(r=>r.json()).then(data => {
+      if (data.ok) {
+        cuBgPaths[1] = data.path;
+        cuBgPaths[3] = data.path; // mirror to Right
+        const img = new Image(); img.crossOrigin='anonymous';
+        img.onload  = () => { cuBgImgs[1] = img; cuBgImgs[3] = img; renderAllCuCanvases(); };
+        img.onerror = () => { cuBgImgs[1] = null; cuBgImgs[3] = null; renderAllCuCanvases(); };
+        img.src = `/api/bg-preview-path?path=${encodeURIComponent(data.path)}&t=${Date.now()}`;
+      }
+    });
+}
+
+// selectCustom576Right removed — Right mirrors Left automatically
+
+function selectCustomMedia192(filename) {
+  if (!filename) { cuBgPaths[4] = null; cuBgImgs[4] = null; renderAllCuCanvases(); return; }
+  fetch('/api/assets/media192').then(()=>{});  // just trigger load
+  const path = '/app/backgrounds/media_192/' + filename;
+  cuBgPaths[4] = path;
+  const img = new Image(); img.crossOrigin='anonymous';
+  img.onload  = () => { cuBgImgs[4] = img; renderAllCuCanvases(); };
+  img.onerror = () => { cuBgImgs[4] = null; renderAllCuCanvases(); };
+  img.src = `/api/bg-preview-path?path=${encodeURIComponent(path)}&t=${Date.now()}`;
+}
+
+function renderCuCanvas(cfg) {
+  const canvas = document.getElementById(cfg.canvasId);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  const rect = parent.getBoundingClientRect();
+  const W = Math.round(rect.width) || parent.offsetWidth || 300;
+  const H = Math.round(rect.height) || parent.offsetHeight || 48;
+  if (W === 0 || H === 0) return;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const img = cuBgImgs[cfg.id];
+  const lbl = document.getElementById(cfg.lblId);
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const sw = W / scale, sh = H / scale;
+    const sx = (img.naturalWidth  - sw) / 2;
+    const sy = (img.naturalHeight - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(0, 0, W, H);
+    if (lbl) lbl.style.opacity = '0';
+  } else {
+    if (lbl) lbl.style.opacity = '1';
+  }
+
+  // Draw first non-empty text slot as preview
+  for (let si = 0; si < 3; si++) {
+    const textEl = document.getElementById(`cu-text-${cfg.id}-${si}`);
+    const text = (textEl?.value || '').trim();
+    if (text) {
+      const cuSizePct = parseFloat(document.getElementById('cuFontSize')?.value) || 50;
+      const cuColor   = document.getElementById('cuTextColor')?.value || '#ffffff';
+      const fontSize  = Math.max(4, Math.round(H * cuSizePct / 100));
+      ctx.font = `900 ${fontSize}px ${cuActiveFontFamily}, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = cuColor;
+      ctx.fillText(text, W / 2, H / 2);
+      break;
+    }
+  }
+}
+
+function renderAllCuCanvases() {
+  const tab = document.getElementById('tab-custom-content');
+  if (!tab || tab.classList.contains('hidden')) return;
+  CU_CANVASES.forEach(cfg => renderCuCanvas(cfg));
+}
+
+function updateCustomTimeline(displayId) {
+  const bar    = document.getElementById(`cu-timeline-${displayId}`);
+  const labels = document.getElementById(`cu-timeline-labels-${displayId}`);
+  if (!bar || !labels) return;
+
+  const slots = [];
+  let total = 0;
+  for (let si = 0; si < 3; si++) {
+    const text = (document.getElementById(`cu-text-${displayId}-${si}`)?.value || '').trim();
+    const dur  = parseFloat(document.getElementById(`cu-dur-${displayId}-${si}`)?.value) || 0;
+    slots.push({text, dur});
+    total += dur;
+  }
+
+  bar.innerHTML = '';
+  if (total <= 0) {
+    bar.innerHTML = '<div class="flex-1 bg-[#1E1E26] flex items-center justify-center font-mono text-[10px] text-[#555]">0s total</div>';
+    labels.innerHTML = '';
+    return;
+  }
+
+  let elapsed = 0;
+  slots.forEach((s, i) => {
+    if (s.dur <= 0) return;
+    const pct = (s.dur / total * 100).toFixed(2);
+    const label = (s.text ? (s.text.length > 10 ? s.text.slice(0,10)+'…' : s.text) : '—') + ` · ${s.dur}s`;
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-center overflow-hidden px-1';
+    div.style.cssText = `width:${pct}%;background:${SLOT_COLORS[i]};`;
+    div.innerHTML = `<span class="font-mono text-[10px] text-white whitespace-nowrap overflow-hidden text-ellipsis">${label}</span>`;
+    bar.appendChild(div);
+    elapsed += s.dur;
+  });
+
+  // Time labels
+  let labHtml = `<span>0s</span>`;
+  let acc = 0;
+  slots.forEach(s => {
+    if (s.dur > 0) { acc += s.dur; labHtml += `<span>${acc}s</span>`; }
+  });
+  labels.innerHTML = labHtml;
+}
+
+function openCustomLedPreview() {
+  const params = new URLSearchParams();
+  const displayOrder = [
+    { id:0, width:1344, name:'Shortside' },
+    { id:1, width:576,  name:'Longside Left' },
+    { id:2, width:1728, name:'Longside Center' },
+    { id:3, width:576,  name:'Longside Right' },
+    { id:4, width:192,  name:'Media' },
+  ];
+  displayOrder.forEach(d => {
+    if (cuBgPaths[d.id]) params.set('d' + d.id, cuBgPaths[d.id]);
+    params.set('w' + d.id, d.width);
+    params.set('n' + d.id, d.name);
+  });
+  window.open('/led-preview?' + params.toString(), 'ledpreview_custom',
+    'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+}
+
+async function startCustom() {
+  const btn = document.getElementById('customBtn');
+  btn.disabled = true;
+  document.getElementById('customDownload').classList.add('hidden');
+  document.getElementById('customProgress').classList.remove('hidden');
+  document.getElementById('customStatus').textContent = 'Starting…';
+
+  const screen_configs = [0,1,2,3,4].map(displayId => {
+    // display_id 3 (Longside Right) mirrors display_id 1 (Longside Left)
+    const srcId = displayId === 3 ? 1 : displayId;
+    const texts = [], durations = [];
+    for (let si = 0; si < 3; si++) {
+      texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
+      durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
+    }
+    return { display_id: displayId, bg_path: cuBgPaths[srcId] || null, texts, durations };
+  });
+
+  const r = await fetch('/api/custom/generate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ screen_configs, font_name: cuFont || '', font_color: document.getElementById('cuTextColor')?.value||'#ffffff', fps: FPS }),
+  });
+  const res = await r.json();
+  if (res.error) {
+    document.getElementById('customStatus').textContent = '✗ ' + res.error;
+    btn.disabled = false;
+    document.getElementById('customProgress').classList.add('hidden');
+    return;
+  }
+  pollJob(res.job_id, 'customStatus', 'customProgress', 'customBtn', job => {
+    const btns = document.getElementById('customDlButtons'); btns.innerHTML = '';
+    const labels = ['↓ Stacked 1600×1200','↓ Shortside 1344','↓ 576 Left','↓ 1728 Center','↓ 576 Right','↓ Media 192'];
+    (job.outputs||[]).forEach((fname,i) => {
+      const b = document.createElement('button');
+      b.className = 'bg-[#00ff88] text-black font-semibold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
+      b.textContent = labels[i] || `↓ ${fname}`;
+      b.onclick = () => window.location.href = `/api/download/${fname}`;
+      btns.appendChild(b);
+    });
+    const c = document.getElementById('customDownload');
+    c.classList.remove('hidden'); c.classList.add('flex');
+  });
+}
+
+// Custom init
+loadCustomFonts();
+loadCustomBgLibrary();
+loadCustom576Variants();
+loadCustomMedia192();
+[0,1,2,3,4].forEach(id => updateCustomTimeline(id));
 </script>
 </body>
 </html>
+

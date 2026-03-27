@@ -10,6 +10,7 @@ import subprocess
 import threading
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template, send_file, abort
+from PIL import ImageFont
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB
@@ -32,6 +33,23 @@ DISPLAYS = [
 
 # job_id -> {"status": "...", "progress": "...", "output": "..."}
 jobs = {}
+
+_font_size_cache: dict = {}
+
+def font_size_for_height(font_path: Path, panel_h: int, target_ratio: float = 0.9) -> int:
+    """Return the ffmpeg fontsize so the rendered cap height ≈ target_ratio * panel_h."""
+    cache_key = (str(font_path), panel_h, target_ratio)
+    if cache_key in _font_size_cache:
+        return _font_size_cache[cache_key]
+    REF = 200
+    try:
+        pil_font = ImageFont.truetype(str(font_path), REF)
+        ascent, _ = pil_font.getmetrics()
+        size = max(8, int(REF * panel_h * target_ratio / ascent))
+    except Exception:
+        size = max(8, int(panel_h * 0.65))
+    _font_size_cache[cache_key] = size
+    return size
 
 
 def run_cmd(cmd):
@@ -69,21 +87,27 @@ def normalise(src: Path, dst: Path, w: int, h: int, fps: str):
 
 def normalise_to_tile(src: Path, dst: Path, tile_w: int, tile_h: int,
                       duration: float, fps: str):
-    """Normalise one source clip/image to tile_w×tile_h at given duration."""
+    """Normalise one source clip/image to tile_w×tile_h at given duration.
+    Scales to fill the tile (height-first if landscape, width-first if portrait/square)
+    then crops to exact tile dimensions."""
     ext = src.suffix.lower()
+    # Scale to height=64 (keeping aspect ratio), then:
+    # - if result is wider than tile_w: crop to tile_w
+    # - if result is narrower than tile_w: pad to tile_w (center)
+    vf = (f"scale=-2:{tile_h},"
+          f"pad='max(iw,{tile_w})':{tile_h}:(ow-iw)/2:0:color=black,"
+          f"crop={tile_w}:{tile_h}")
     if ext in (".png", ".jpg", ".jpeg"):
         cmd = [
             "ffmpeg", "-y", "-loop", "1", "-i", str(src), "-t", str(duration),
-            "-vf", f"scale={tile_w}:{tile_h}:force_original_aspect_ratio=decrease,"
-                   f"pad={tile_w}:{tile_h}:(ow-iw)/2:(oh-ih)/2:color=black",
+            "-vf", vf,
             "-r", fps, "-c:v", "libx264", "-pix_fmt", "yuv420p", str(dst),
         ]
     else:
         cmd = [
             "ffmpeg", "-y", "-stream_loop", "-1", "-i", str(src),
             "-t", str(duration),
-            "-vf", f"scale={tile_w}:{tile_h}:force_original_aspect_ratio=decrease,"
-                   f"pad={tile_w}:{tile_h}:(ow-iw)/2:(oh-ih)/2:color=black",
+            "-vf", vf,
             "-r", fps, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", str(dst),
         ]
     run_cmd(cmd)
@@ -547,32 +571,50 @@ LINEUP_DISPLAYS = [
     {"id": 2, "name": "Media",           "width":  192, "height": 64},
 ]
 
-FONT_PATH = Path("/app/fonts/RoadRage.ttf")
+FONT_PATH = Path("/app/fonts/Road_Rage.otf")
+
+# Fixed player template backgrounds
+PLAYERS_BG_1728  = BG_DIR   / "players-template-1728.mp4"
+PLAYERS_BG_1344  = BG_DIR   / "players-template-1344.mp4"
+PLAYERS_BG_576   = VARIANTS_DIR / "players-template-576.mp4"
+PLAYERS_BG_192   = MEDIA192_DIR / "players-template-192.mp4"
 
 
-def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, font_name=""):
+def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, bg_1344_override=None):
     tmp = Path(tempfile.mkdtemp(prefix="lineup_"))
     try:
         jobs[job_id]["status"] = "running"
 
-        chosen_font = FONT_DIR / font_name if font_name else FONT_PATH
+        chosen_font = FONT_PATH  # always Road Rage
         font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+        fc          = "0xFFFFFF"  # always white
 
         def render_text_clip(w, h, out_path, src_override=None):
             fade_out_start = num_dur - fade_dur
             fade_in_end    = num_dur + fade_dur
-            font_size      = int(h * 0.80) if w >= 1000 else int(h * 0.60) if w >= 400 else int(h * 0.50)
+            base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+            # Scale font down for narrow displays so text fits
+            # At 192px wide, full name would overflow — cap proportionally
+            max_chars      = max(len(f"# {number}"), len(name))
+            max_px_per_char = w / max(1, max_chars) * 1.8  # Road Rage is wide
+            base_size      = min(base_size, int(max_px_per_char))
+            base_size      = max(8, base_size)
             number_text    = f"# {number}"
             name_text      = name.upper()
+            # Pop wobble: text pops in large then springs to normal size
+            # Number: wobble starts at t=0
+            # Name: wobble starts at t=num_dur
+            wobble_num  = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+            wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
             txt_number = (
-                f"drawtext={font_arg}text='{number_text}':fontcolor=white:"
-                f"fontsize={font_size}:x=(w-text_w)/2:y=(h-text_h)/2:"
+                f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
+                f"fontsize='{wobble_num}':x=(w-text_w)/2:y=(h-text_h)/2:"
                 f"alpha='if(lt(t,{fade_out_start}),1,"
                 f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
             )
             txt_name = (
-                f"drawtext={font_arg}text='{name_text}':fontcolor=white:"
-                f"fontsize={font_size}:x=(w-text_w)/2:y=(h-text_h)/2:"
+                f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
+                f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x=(w-text_w)/2:y=(h-text_h)/2:"
                 f"alpha='if(lt(t,{num_dur}),0,"
                 f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
             )
@@ -618,7 +660,8 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
 
         jobs[job_id]["progress"] = "Rendering Shortside (1344)…"
         clip_1344 = tmp / "clip_1344.mp4"
-        render_text_clip(1344, 64, clip_1344)
+        src_1344 = Path(bg_1344_override) if bg_1344_override and Path(bg_1344_override).exists() else None
+        render_text_clip(1344, 64, clip_1344, src_override=src_1344)
 
         jobs[job_id]["progress"] = "Rendering Media (192)…"
         clip_192 = tmp / "clip_192.mp4"
@@ -787,33 +830,259 @@ def lineup_upload_font():
 @app.route("/api/lineup/generate", methods=["POST"])
 def lineup_generate():
     data      = request.json
-    bg_path   = data.get("bg_path")
     number    = str(data.get("number", "")).strip()
     name      = str(data.get("name", "")).strip()
-    fps_val   = int(data.get("fps", 30))
-    num_dur   = float(data.get("num_dur", 2.0))
+    fps_val   = int(data.get("fps", 50))
+    num_dur   = float(data.get("num_dur", 2.1))
     total_dur = float(data.get("total_dur", 6.0))
-    fade_dur        = 0.3
-    font_name       = data.get("font_name", "")
-    variant_576_left  = data.get("variant_576_left", "")
-    variant_576_right = data.get("variant_576_right", "")
-    variant_576_left_path  = str(VARIANTS_DIR / variant_576_left)  if variant_576_left  and (VARIANTS_DIR / variant_576_left).exists()  else None
-    variant_576_right_path = str(VARIANTS_DIR / variant_576_right) if variant_576_right and (VARIANTS_DIR / variant_576_right).exists() else None
-    media_192      = data.get("media_192", "")
-    media_192_path = str(MEDIA192_DIR / media_192) if media_192 and (MEDIA192_DIR / media_192).exists() else None
+    fade_dur  = 0.3
 
-    if not bg_path or not Path(bg_path).exists():
-        return jsonify({"error": "Background file missing"}), 400
     if not number:
         return jsonify({"error": "Player number required"}), 400
     if not name:
         return jsonify({"error": "Player name required"}), 400
 
+    # Use fixed template backgrounds — check they exist
+    if not PLAYERS_BG_1728.exists():
+        return jsonify({"error": "players-template-1728.mp4 not found in data/backgrounds/"}), 400
+    if not PLAYERS_BG_576.exists():
+        return jsonify({"error": "players-template-576.mp4 not found in data/backgrounds/576_variants/"}), 400
+    if not PLAYERS_BG_192.exists():
+        return jsonify({"error": "players-template-192.mp4 not found in data/backgrounds/media_192/"}), 400
+
+    # bg_path = 1728 template (used for 1728 and 1344 displays)
+    bg_path = PLAYERS_BG_1728
+    # For 1344 use its own template if available, else fall back to 1728
+    bg_1344 = PLAYERS_BG_1344 if PLAYERS_BG_1344.exists() else PLAYERS_BG_1728
+
     job_id = uuid.uuid4().hex
     jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": []}
     t = threading.Thread(
         target=lineup_worker,
-        args=(job_id, Path(bg_path), variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, font_name),
+        args=(job_id, bg_path, str(PLAYERS_BG_576), str(PLAYERS_BG_576), str(PLAYERS_BG_192), number, name, fps_val, fade_dur, num_dur, total_dur),
+        kwargs={"bg_1344_override": bg_1344},
+        daemon=True,
+    )
+    t.start()
+    return jsonify({"job_id": job_id})
+
+
+def _esc_dt(text):
+    """Escape text for ffmpeg drawtext filter (backslash, colon, single-quote)."""
+    text = text.replace("\\", "\\\\")
+    text = text.replace("'",  "\u2019")   # replace smart apostrophe to avoid quoting issues
+    text = text.replace(":",  "\\:")
+    return text
+
+
+def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#ffffff"):
+    """
+    screen_configs: list of dicts:
+      {"display_id": int, "bg_path": str|None, "texts": [t0,t1,t2], "durations": [d0,d1,d2]}
+    display_id mapping: 0=Shortside(1344), 1=LongsideLeft(576), 2=LongsideCenter(1728),
+                        3=LongsideRight(576), 4=Media(192)
+    """
+    tmp = Path(tempfile.mkdtemp(prefix="custom_"))
+    try:
+        jobs[job_id]["status"] = "running"
+
+        chosen_font = FONT_PATH  # always Road Rage
+        font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+        fc          = "0xFFFFFF"  # always white
+
+        # Build a lookup by display_id
+        cfg_by_id = {c["display_id"]: c for c in screen_configs}
+
+        # Per-display info
+        display_info = {d["id"]: d for d in DISPLAYS}
+
+        full_clips = {}  # display_id -> Path of full-duration clip
+
+        for display_id, d in display_info.items():
+            jobs[job_id]["progress"] = f"Rendering {d['name']} ({display_id+1}/5)…"
+            w, h = d["width"], d["height"]
+            cfg  = cfg_by_id.get(display_id, {})
+            bg   = cfg.get("bg_path") or None
+            texts     = cfg.get("texts",     ["", "", ""])
+            durations = cfg.get("durations", [2, 2, 2])
+
+            # Choose fallback background source
+            if bg and Path(bg).exists():
+                bg_path = Path(bg)
+            else:
+                # black frame fallback
+                bg_path = None
+
+            slot_clips = []
+            for si in range(3):
+                dur = float(durations[si]) if si < len(durations) else 0
+                if dur <= 0:
+                    continue
+                text = texts[si] if si < len(texts) else ""
+                slot_out = tmp / f"cu_{display_id}_s{si}.mp4"
+
+                if bg_path:
+                    ext = bg_path.suffix.lower()
+                    loop_args = (["-loop", "1"] if ext in (".png", ".jpg", ".jpeg")
+                                 else ["-stream_loop", "-1"])
+                    if text.strip():
+                        esc = _esc_dt(text)
+                        font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                        vf = (
+                            f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+                            f"crop={w}:{h},"
+                            f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
+                            f"fontsize={font_size}:x=(w-text_w)/2:y=(h-text_h)/2"
+                        )
+                    else:
+                        vf = (
+                            f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+                            f"crop={w}:{h}"
+                        )
+                    run_cmd([
+                        "ffmpeg", "-y", *loop_args, "-i", str(bg_path),
+                        "-t", str(dur),
+                        "-vf", vf,
+                        "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
+                        str(slot_out),
+                    ])
+                else:
+                    # Black frame + optional text
+                    if text.strip():
+                        esc = _esc_dt(text)
+                        font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                        vf = (
+                            f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
+                            f"fontsize={font_size}:x=(w-text_w)/2:y=(h-text_h)/2"
+                        )
+                        run_cmd([
+                            "ffmpeg", "-y",
+                            "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
+                            "-t", str(dur),
+                            "-vf", vf,
+                            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                            str(slot_out),
+                        ])
+                    else:
+                        run_cmd([
+                            "ffmpeg", "-y",
+                            "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
+                            "-t", str(dur),
+                            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                            str(slot_out),
+                        ])
+                slot_clips.append(slot_out)
+
+            if not slot_clips:
+                # All durations zero — make a 2s black clip
+                slot_out = tmp / f"cu_{display_id}_blank.mp4"
+                run_cmd([
+                    "ffmpeg", "-y",
+                    "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
+                    "-t", "2",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    str(slot_out),
+                ])
+                slot_clips = [slot_out]
+
+            # Concat slot clips into one full clip for this display
+            full_out = tmp / f"cu_full_{display_id}.mp4"
+            if len(slot_clips) == 1:
+                shutil.copy(str(slot_clips[0]), str(full_out))
+            else:
+                list_file = tmp / f"concat_{display_id}.txt"
+                list_file.write_text("\n".join(f"file '{p}'" for p in slot_clips))
+                run_cmd([
+                    "ffmpeg", "-y",
+                    "-f", "concat", "-safe", "0", "-i", str(list_file),
+                    "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    str(full_out),
+                ])
+
+            full_clips[display_id] = full_out
+
+        # Save individual output files
+        jobs[job_id]["progress"] = "Saving individual files…"
+        label_map = {0: "1344", 1: "576left", 2: "1728", 3: "576right", 4: "192"}
+        individual_outputs = {}
+        for display_id, clip_path in full_clips.items():
+            lbl = label_map.get(display_id, str(display_id))
+            out_name = f"custom_{lbl}_{job_id[:8]}.mp4"
+            out_path = OUTPUT_DIR / out_name
+            shutil.copy(str(clip_path), str(out_path))
+            individual_outputs[display_id] = out_name
+
+        # Loop all clips to max duration
+        jobs[job_id]["progress"] = "Looping clips to max duration…"
+
+        def probe_dur(p):
+            r = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "default=noprint_wrappers=1:nokey=1", str(p)],
+                capture_output=True, text=True
+            )
+            try:
+                return float(r.stdout.strip())
+            except:
+                return 2.0
+
+        durations_all = {did: probe_dur(p) for did, p in full_clips.items()}
+        max_dur = max(durations_all.values()) if durations_all else 2.0
+
+        looped = {}
+        for display_id, clip_path in full_clips.items():
+            dur = durations_all[display_id]
+            if dur < max_dur - 0.05:
+                lp = tmp / f"cu_looped_{display_id}.mp4"
+                run_cmd([
+                    "ffmpeg", "-y",
+                    "-stream_loop", "-1", "-i", str(clip_path),
+                    "-t", str(max_dur),
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    str(lp),
+                ])
+                looped[display_id] = lp
+            else:
+                looped[display_id] = clip_path
+
+        # Build stacked 1600×1200 export
+        # DISPLAYS: 0=Shortside(1344), 1=LongsideLeft(576), 2=LongsideCenter(1728),
+        #           3=LongsideRight(576), 4=Media(192)
+        jobs[job_id]["progress"] = "Building stacked 1600×1200…"
+        out_stacked_name = f"custom_stacked_{job_id[:8]}.mp4"
+        out_stacked = OUTPUT_DIR / out_stacked_name
+        build_stacked_export(
+            looped[0], looped[1], looped[2], looped[3], looped[4],
+            out_stacked, fps_val, tmp
+        )
+
+        jobs[job_id]["status"]   = "done"
+        jobs[job_id]["progress"] = "Complete!"
+        jobs[job_id]["outputs"]  = (
+            [out_stacked_name] +
+            [individual_outputs[i] for i in range(5)]
+        )
+
+    except Exception as e:
+        jobs[job_id]["status"]   = "error"
+        jobs[job_id]["progress"] = str(e)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@app.route("/api/custom/generate", methods=["POST"])
+def custom_generate():
+    data           = request.json
+    screen_configs = data.get("screen_configs", [])
+    font_name      = data.get("font_name", "")
+    font_color     = data.get("font_color", "#ffffff")
+    fps_val        = int(data.get("fps", 50))
+
+    job_id = uuid.uuid4().hex
+    jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": []}
+    t = threading.Thread(
+        target=custom_worker,
+        args=(job_id, screen_configs, font_name, fps_val, font_color),
         daemon=True,
     )
     t.start()
