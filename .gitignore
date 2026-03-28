@@ -9,3 +9,8 @@ outputs/
 data/**
 !data/**/
 !data/**/.gitkeep
+
+# Include red cloud backgrounds as reference examples
+!data/backgrounds/red clouds.mp4
+!data/backgrounds/576_variants/Red Clouds.mp4
+!data/backgrounds/media_192/Red clouds.mp4
