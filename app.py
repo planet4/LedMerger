@@ -1015,24 +1015,26 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                 text = texts[si] if si < len(texts) else ""
                 slot_out = tmp / f"cu_{display_id}_s{si}.mp4"
 
+                def _text_vf(base_vf, esc, font_size):
+                    wobble = f"{font_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                    alpha  = f"if(lt(t,0.2),t/0.2,1)"
+                    return (f"{base_vf},"
+                            f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
+                            f"fontsize='{wobble}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                            f"alpha='{alpha}'")
+
                 if bg_path:
                     ext = bg_path.suffix.lower()
                     loop_args = (["-loop", "1"] if ext in (".png", ".jpg", ".jpeg")
                                  else ["-stream_loop", "-1"])
+                    scale_vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
                     if text.strip():
                         esc = _esc_dt(text)
                         font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
-                        vf = (
-                            f"scale={w}:{h}:force_original_aspect_ratio=increase,"
-                            f"crop={w}:{h},"
-                            f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                            f"fontsize={font_size}:x=(w-text_w)/2:y=(h-text_h)/2"
-                        )
+                        font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
+                        vf = _text_vf(scale_vf, esc, font_size)
                     else:
-                        vf = (
-                            f"scale={w}:{h}:force_original_aspect_ratio=increase,"
-                            f"crop={w}:{h}"
-                        )
+                        vf = scale_vf
                     run_cmd([
                         "ffmpeg", "-y", *loop_args, "-i", str(bg_path),
                         "-t", str(dur),
@@ -1045,10 +1047,8 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                     if text.strip():
                         esc = _esc_dt(text)
                         font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
-                        vf = (
-                            f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                            f"fontsize={font_size}:x=(w-text_w)/2:y=(h-text_h)/2"
-                        )
+                        font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
+                        vf = _text_vf("", esc, font_size).lstrip(",")
                         run_cmd([
                             "ffmpeg", "-y",
                             "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
@@ -1180,6 +1180,134 @@ def custom_generate():
         daemon=True,
     )
     t.start()
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/custom/preview-render", methods=["POST"])
+def custom_preview_render():
+    """Render per-display clips for LED preview — no stacked export, lower fps."""
+    data           = request.json
+    screen_configs = data.get("screen_configs", [])
+    font_name      = str(data.get("font_name", "")).strip()
+    font_color     = str(data.get("font_color", "#ffffff")).strip()
+    fps_val        = 25  # lower fps for faster preview
+
+    job_id = uuid.uuid4().hex
+    jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": {}}
+
+    def preview_worker():
+        tmp = Path(tempfile.mkdtemp(prefix="cuprev_"))
+        try:
+            jobs[job_id]["status"] = "running"
+
+            chosen_font = FONT_DIR / font_name if font_name else FONT_PATH
+            if not chosen_font.exists():
+                chosen_font = FONT_PATH
+            font_arg = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+
+            r_hex = font_color.lstrip("#")
+            fc = f"0x{r_hex.upper()}" if r_hex else "0xFFFFFF"
+
+            cfg_by_id    = {c["display_id"]: c for c in screen_configs}
+            display_info = {d["id"]: d for d in DISPLAYS}
+            label_map    = {0: "1344", 1: "576", 2: "1728", 4: "192"}
+            outputs      = {}
+
+            for display_id in [0, 1, 2, 4]:  # skip 3 — right mirrors left
+                d    = display_info[display_id]
+                w, h = d["width"], d["height"]
+                cfg  = cfg_by_id.get(display_id, {})
+                bg   = cfg.get("bg_path") or None
+                texts     = cfg.get("texts",     ["", "", ""])
+                durations = cfg.get("durations", [2, 2, 2])
+
+                jobs[job_id]["progress"] = f"Rendering {d['name']}…"
+
+                bg_path = Path(bg) if bg and Path(bg).exists() else None
+
+                slot_clips = []
+                for si in range(3):
+                    dur  = float(durations[si]) if si < len(durations) else 0
+                    if dur <= 0:
+                        continue
+                    text     = texts[si] if si < len(texts) else ""
+                    slot_out = tmp / f"cuprev_{display_id}_s{si}.mp4"
+
+                    def _prev_text_vf(base_vf, esc, font_size):
+                        wobble = f"{font_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                        alpha  = f"if(lt(t,0.2),t/0.2,1)"
+                        return (f"{base_vf},"
+                                f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
+                                f"fontsize='{wobble}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                                f"alpha='{alpha}'")
+
+                    if bg_path:
+                        ext       = bg_path.suffix.lower()
+                        loop_args = (["-loop", "1"] if ext in (".png", ".jpg", ".jpeg")
+                                     else ["-stream_loop", "-1"])
+                        scale_vf  = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
+                        if text.strip():
+                            esc       = _esc_dt(text)
+                            font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                            font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
+                            vf = _prev_text_vf(scale_vf, esc, font_size)
+                        else:
+                            vf = scale_vf
+                        run_cmd(["ffmpeg", "-y", *loop_args, "-i", str(bg_path),
+                                 "-t", str(dur), "-vf", vf,
+                                 "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
+                                 str(slot_out)])
+                    else:
+                        if text.strip():
+                            esc       = _esc_dt(text)
+                            font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                            font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
+                            vf = _prev_text_vf("", esc, font_size).lstrip(",")
+                            run_cmd(["ffmpeg", "-y",
+                                     "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
+                                     "-t", str(dur), "-vf", vf,
+                                     "-c:v", "libx264", "-pix_fmt", "yuv420p", str(slot_out)])
+                        else:
+                            run_cmd(["ffmpeg", "-y",
+                                     "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
+                                     "-t", str(dur),
+                                     "-c:v", "libx264", "-pix_fmt", "yuv420p", str(slot_out)])
+                    slot_clips.append(slot_out)
+
+                if not slot_clips:
+                    slot_out = tmp / f"cuprev_{display_id}_blank.mp4"
+                    run_cmd(["ffmpeg", "-y",
+                             "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
+                             "-t", "2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(slot_out)])
+                    slot_clips = [slot_out]
+
+                full_out = tmp / f"cuprev_full_{display_id}.mp4"
+                if len(slot_clips) == 1:
+                    shutil.copy(str(slot_clips[0]), str(full_out))
+                else:
+                    list_file = tmp / f"cuprev_concat_{display_id}.txt"
+                    list_file.write_text("\n".join(f"file '{p}'" for p in slot_clips))
+                    run_cmd(["ffmpeg", "-y",
+                             "-f", "concat", "-safe", "0", "-i", str(list_file),
+                             "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                             str(full_out)])
+
+                lbl      = label_map[display_id]
+                out_name = f"cuprev_{lbl}_{job_id[:8]}.mp4"
+                shutil.copy(str(full_out), str(OUTPUT_DIR / out_name))
+                outputs[lbl] = out_name
+
+            jobs[job_id]["status"]   = "done"
+            jobs[job_id]["progress"] = "Ready!"
+            jobs[job_id]["outputs"]  = outputs
+
+        except Exception as e:
+            jobs[job_id]["status"]   = "error"
+            jobs[job_id]["progress"] = str(e)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    threading.Thread(target=preview_worker, daemon=True).start()
     return jsonify({"job_id": job_id})
 
 

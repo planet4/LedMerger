@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+<script>
+  (function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');if(t==='light')document.documentElement.classList.add('light');})();
+</script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixbo LED Merger</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 tailwind.config = {
   theme: {
@@ -15,29 +18,53 @@ tailwind.config = {
         neon: '#00ff88',
       },
       fontFamily: {
-        display: ['"DM Sans"','sans-serif'],
-        mono:    ['"Space Mono"','monospace'],
+        sans:    ['"Noto Sans"','sans-serif'],
+        mono:    ['"Noto Sans Mono"','monospace'],
       },
     }
   }
 }
 </script>
 <style>
-  body { font-family:'DM Sans',sans-serif; background:#1A1A1F; color:#E0E0E8; }
-  
-  /* Clean section cards */
-  .section-card { background:#22222A; border:1px solid #2E2E3A; border-radius:10px; overflow:hidden; }
-  .section-header { background:#1E1E26; border-bottom:1px solid #2E2E3A; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
-  .section-title { font-family:'DM Sans',sans-serif; font-weight:600; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#CC1020; }
-  
+  /* ── Theme variables ── */
+  :root {
+    --bg-page:   #1B1E26;
+    --bg-card:   #22262F;
+    --bg-sub:    #1E2229;
+    --bd:        #333A4A;
+    --bd-muted:  #424A5C;
+    --tx-main:   #E4E6ED;
+    --tx-muted:  #8890A4;
+    --tx-dim:    #5C6478;
+    --tx-info:   #9096A8;
+  }
+  html.light {
+    --bg-page:   #F0F2F7;
+    --bg-card:   #FFFFFF;
+    --bg-sub:    #EAECF2;
+    --bd:        #D2D5E0;
+    --bd-muted:  #BEC1CC;
+    --tx-main:   #1C1E2E;
+    --tx-muted:  #62648A;
+    --tx-dim:    #9698B0;
+    --tx-info:   #75778A;
+  }
+
+  body { font-family:'Noto Sans',sans-serif; background:var(--bg-page); color:var(--tx-main); }
+
+  /* Section cards */
+  .section-card { background:var(--bg-card); border:1px solid var(--bd); border-radius:12px; overflow:hidden; }
+  .section-header { background:var(--bg-sub); border-bottom:1px solid var(--bd); padding:13px 20px; display:flex; align-items:center; justify-content:space-between; }
+  .section-title { font-family:'Noto Sans',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.01em; color:var(--tx-main); }
+
   /* Inputs & selects */
-  input, select, textarea { font-family:'DM Sans',sans-serif; }
-  
+  input, select, textarea { font-family:'Noto Sans',sans-serif; }
+
   /* Scrollbar */
   ::-webkit-scrollbar { width:4px; }
-  ::-webkit-scrollbar-track { background:#1A1A1F; }
+  ::-webkit-scrollbar-track { background:var(--bg-page); }
   ::-webkit-scrollbar-thumb { background:#CC1020; border-radius:2px; }
-  select option { background:#22222A; }
+  select option { background:var(--bg-card); color:var(--tx-main); }
 
   /* Animations */
   .prog-bar { animation:slide 1.2s ease-in-out infinite alternate; }
@@ -64,16 +91,45 @@ tailwind.config = {
   .tile-slot-thumb { width:100%; height:100%; object-fit:contain; background:#000; position:absolute; inset:0; border-radius:6px; }
 
   /* Info box */
-  .info-box { background:#1E1E26; border:1px solid #2E2E3A; border-left:3px solid #CC1020; border-radius:6px; padding:10px 14px; font-size:12px; color:#999; line-height:1.5; }
+  .info-box { background:var(--bg-sub); border:1px solid var(--bd); border-left:3px solid #CC1020; border-radius:8px; padding:10px 14px; font-size:12px; color:var(--tx-info); line-height:1.6; }
 
   /* Red accent */
-  .red-glow { text-shadow:0 0 30px rgba(204,16,32,0.5); }
-  .red-box  { box-shadow:0 0 0 1px rgba(204,16,32,0.3),0 2px 12px rgba(204,16,32,0.15); }
+  .red-glow { text-shadow:0 0 30px rgba(204,16,32,0.4); }
+  .red-box  { box-shadow:0 0 0 1px rgba(204,16,32,0.25),0 2px 12px rgba(204,16,32,0.1); }
+
+  /* Tabs — pill/segment style */
+  .tab-bar  { display:flex; gap:3px; padding:4px; background:var(--bg-sub); border:1px solid var(--bd); border-radius:10px; width:fit-content; margin-bottom:16px; }
+  .tab-pill { padding:6px 20px; border-radius:7px; font-weight:600; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; border:none; transition:all .18s; background:transparent; color:var(--tx-dim); }
+  .tab-pill:hover:not(.tab-active) { color:var(--tx-muted); }
+  .tab-pill.tab-active { background:var(--bg-card); color:var(--tx-main); box-shadow:0 1px 4px rgba(0,0,0,0.25); }
+
+  /* Theme toggle */
+  #themeToggle { cursor:pointer; background:none; border:1px solid var(--bd); border-radius:8px; padding:5px 10px; color:var(--tx-muted); font-size:15px; transition:border-color .2s,color .2s; }
+  #themeToggle:hover { border-color:#CC1020; color:#CC1020; }
+
+  /* ── Remap Tailwind inline hex classes to theme vars ── */
+  .bg-\[\#22222A\]      { background:var(--bg-card) !important; }
+  .bg-\[\#1E1E26\]      { background:var(--bg-sub)  !important; }
+  .bg-\[\#1A1A1F\]      { background:var(--bg-page) !important; }
+  .border-\[\#2E2E3A\]  { border-color:var(--bd)       !important; }
+  .border-\[\#3C3C3C\]  { border-color:var(--bd-muted) !important; }
+  .text-\[\#555\]       { color:var(--tx-dim)   !important; }
+  .text-\[\#888\]       { color:var(--tx-muted) !important; }
+  .text-\[\#444\]       { color:var(--tx-dim)   !important; }
+  .text-gray-200        { color:var(--tx-main)  !important; }
+  .text-gray-100        { color:var(--tx-main)  !important; }
+  .text-gray-300        { color:var(--tx-muted) !important; }
+
+  /* Light-mode extras */
+  html.light input:not([type=color]):not([type=range]),
+  html.light select,
+  html.light textarea { background:var(--bg-sub) !important; color:var(--tx-main) !important; border-color:var(--bd) !important; }
+  html.light .hover\:bg-white\/\[0\.015\]:hover { background:rgba(0,0,0,0.025) !important; }
 </style>
 </head>
 <body class="text-gray-200 min-h-screen">
 <!-- Font primer -->
-<span style="position:absolute;opacity:0;pointer-events:none;font-family:'DM Sans';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
+<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Noto Sans';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
 <div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
 
   <!-- HEADER -->
@@ -84,23 +140,21 @@ tailwind.config = {
       <div style="display:none" class="w-full h-full items-center justify-center font-bold text-2xl text-[#CC1020]">P</div>
     </div>
     <div class="flex-1">
-      <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow font-semibold leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator 1.0</p>
+      <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.21 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a></p>
     </div>
-    <div class="text-right">
+    <div class="flex flex-col items-end gap-2">
+      <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
       <div class="font-mono text-xs text-[#555] uppercase tracking-widest">Fixed Output</div>
       <div class="font-semibold text-xl text-[#CC1020]">50 FPS</div>
     </div>
   </header>
 
   <!-- TABS -->
-  <div class="flex gap-1 mb-0">
-    <button onclick="switchTab('merge')" id="tab-merge"
-      class="px-6 py-2 rounded-t-lg border border-b-0 border-[#2E2E3A] bg-[#22222A] text-[#CC1020] font-semibold text-xs tracking-widest uppercase transition-all">FILE MERGER</button>
-    <button onclick="switchTab('lineup')" id="tab-lineup"
-      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-[#2E2E3A] bg-[#1E1E26] text-[#888] font-semibold tracking-wider uppercase text-sm transition-all hover:text-gray-200">PLAYERS</button>
-    <button onclick="switchTab('custom')" id="tab-custom"
-      class="px-7 py-2.5 rounded-t-xl border border-b-0 border-[#2E2E3A] bg-[#1E1E26] text-[#888] font-semibold tracking-wider uppercase text-sm transition-all hover:text-gray-200">CUSTOM</button>
+  <div class="tab-bar">
+    <button onclick="switchTab('merge')" id="tab-merge" class="tab-pill tab-active">File Merger</button>
+    <button onclick="switchTab('lineup')" id="tab-lineup" class="tab-pill">Players</button>
+    <button onclick="switchTab('custom')" id="tab-custom" class="tab-pill">Custom</button>
   </div>
 
   <!-- ══════════════ FILE MERGER ══════════════ -->
@@ -489,22 +543,32 @@ tailwind.config = {
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
       <div class="section-header">
         <span class="section-title">02 — Custom Text</span>
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-[#888]">Slots:</span>
+          <div class="flex gap-1">
+            {% for n in [1,2,3,4] %}
+            <button onclick="setCuSlotCount({{ n }})" id="cu-slot-btn-{{ n }}"
+              class="w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all {% if n == 3 %}bg-[#CC1020] text-white{% else %}bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]{% endif %}">{{ n }}</button>
+            {% endfor %}
+          </div>
+        </div>
       </div>
       <div class="p-5 space-y-4">
 
-        <!-- 1728 Longside Center -->
+        {% set cu_displays = [(2,'Longside Center — 1728px'),(0,'Shortside — 1344px'),(1,'Longside 576px (Left &amp; Right — same content)'),(4,'Media — 192px')] %}
+        {% for did, dlabel in cu_displays %}
         <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
-          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">Longside Center — 1728px</div>
-          <div class="grid grid-cols-3 gap-0 divide-x divide-px-border">
-            {% for si in range(3) %}
-            <div class="p-3 space-y-1.5">
+          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">{{ dlabel }}</div>
+          <div id="cu-slots-grid-{{ did }}" class="grid grid-cols-3 gap-0 divide-x divide-[#2E2E3A]">
+            {% for si in range(4) %}
+            <div id="cu-slot-col-{{ did }}-{{ si }}" class="p-3 space-y-1.5{% if si >= 3 %} hidden{% endif %}">
               <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
-              <input type="text" id="cu-text-2-{{ si }}" placeholder="Text…"
-                oninput="updateCustomTimeline(2);renderAllCuCanvases()"
+              <input type="text" id="cu-text-{{ did }}-{{ si }}" placeholder="Text…"
+                oninput="updateCustomTimeline({{ did }});renderAllCuCanvases()"
                 class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
               <div class="flex items-center gap-1.5">
-                <input type="number" id="cu-dur-2-{{ si }}" value="2" min="0" max="60" step="0.5"
-                  oninput="updateCustomTimeline(2);renderAllCuCanvases()"
+                <input type="number" id="cu-dur-{{ did }}-{{ si }}" value="{% if si < 3 %}2{% else %}0{% endif %}" min="0" max="60" step="0.5"
+                  oninput="updateCustomTimeline({{ did }});renderAllCuCanvases()"
                   class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
                 <span class="font-mono text-[10px] text-[#555]">sec</span>
               </div>
@@ -512,71 +576,7 @@ tailwind.config = {
             {% endfor %}
           </div>
         </div>
-
-        <!-- 1344 Shortside -->
-        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
-          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">Shortside — 1344px</div>
-          <div class="grid grid-cols-3 gap-0 divide-x divide-px-border">
-            {% for si in range(3) %}
-            <div class="p-3 space-y-1.5">
-              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
-              <input type="text" id="cu-text-0-{{ si }}" placeholder="Text…"
-                oninput="updateCustomTimeline(0);renderAllCuCanvases()"
-                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
-              <div class="flex items-center gap-1.5">
-                <input type="number" id="cu-dur-0-{{ si }}" value="2" min="0" max="60" step="0.5"
-                  oninput="updateCustomTimeline(0);renderAllCuCanvases()"
-                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
-                <span class="font-mono text-[10px] text-[#555]">sec</span>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- 576 Unified (Left & Right mirror each other in stacked export) -->
-        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
-          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest flex items-center justify-between">
-            <span>Longside 576px <span class="text-[#444] normal-case tracking-normal">(Left &amp; Right — same content)</span></span>
-          </div>
-          <div class="grid grid-cols-3 gap-0 divide-x divide-[#2E2E3A]">
-            {% for si in range(3) %}
-            <div class="p-3 space-y-1.5">
-              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
-              <input type="text" id="cu-text-1-{{ si }}" placeholder="Text…"
-                oninput="updateCustomTimeline(1);renderAllCuCanvases()"
-                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
-              <div class="flex items-center gap-1.5">
-                <input type="number" id="cu-dur-1-{{ si }}" value="2" min="0" max="60" step="0.5"
-                  oninput="updateCustomTimeline(1);renderAllCuCanvases()"
-                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
-                <span class="font-mono text-[10px] text-[#555]">sec</span>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- 192 Media -->
-        <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
-          <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">Media — 192px</div>
-          <div class="grid grid-cols-3 gap-0 divide-x divide-px-border">
-            {% for si in range(3) %}
-            <div class="p-3 space-y-1.5">
-              <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
-              <input type="text" id="cu-text-4-{{ si }}" placeholder="Text…"
-                oninput="updateCustomTimeline(4);renderAllCuCanvases()"
-                class="w-full bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2.5 py-1.5 outline-none focus:border-[#CC1020]">
-              <div class="flex items-center gap-1.5">
-                <input type="number" id="cu-dur-4-{{ si }}" value="2" min="0" max="60" step="0.5"
-                  oninput="updateCustomTimeline(4);renderAllCuCanvases()"
-                  class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-lg font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
-                <span class="font-mono text-[10px] text-[#555]">sec</span>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
+        {% endfor %}
 
       </div>
     </div>
@@ -677,7 +677,7 @@ tailwind.config = {
           class="bg-[#CC1020] hover:bg-px-dark text-white font-semibold tracking-wider uppercase px-8 py-3 rounded-xl transition-all red-box text-sm">
           ▶ GENERATE CUSTOM
         </button>
-        <button onclick="openCustomLedPreview()"
+        <button id="customPreviewBtn" onclick="openCustomLedPreview()"
           class="bg-[#1E1E26] border border-[#2E2E3A] hover:border-[#CC1020] text-[#888] hover:text-white font-semibold tracking-wider uppercase px-6 py-3 rounded-xl transition-all text-sm">
           ◉ LED PREVIEW
         </button>
@@ -742,9 +742,8 @@ const VARIANTS_DIR_PREFIX = '/app/backgrounds/576_variants/';
 function switchTab(name) {
   ['merge','lineup','custom'].forEach(t => {
     const a = t === name;
-    document.getElementById(`tab-${t}`).className = a
-      ? 'px-6 py-2 rounded-t-lg border border-b-0 border-[#2E2E3A] bg-[#22222A] text-[#CC1020] font-semibold text-xs tracking-widest uppercase transition-all'
-      : 'px-6 py-2 rounded-t-lg border border-b-0 border-[#2E2E3A] bg-[#1A1A1F] text-[#555] font-semibold text-xs tracking-widest uppercase transition-all hover:text-[#888]';
+    const btn = document.getElementById(`tab-${t}`);
+    btn.classList.toggle('tab-active', a);
     document.getElementById(`tab-${t}-content`).classList.toggle('hidden', !a);
   });
   if (name === 'lineup') setTimeout(renderAllLuCanvases, 50);
@@ -1517,7 +1516,8 @@ const CU_CANVASES = [
   { id:4, canvasId:'cu-canvas-4', lblId:'cu-lbl-4', w:192  },
 ];
 
-const SLOT_COLORS = ['rgba(204,16,32,0.75)', 'rgba(0,80,200,0.75)', 'rgba(0,160,80,0.75)'];
+const SLOT_COLORS = ['rgba(204,16,32,0.75)', 'rgba(0,80,200,0.75)', 'rgba(0,160,80,0.75)', 'rgba(200,100,0,0.75)'];
+let cuSlotCount = 3;
 
 async function loadCustomFonts() {
   try {
@@ -1561,8 +1561,14 @@ async function loadCustomBgLibrary() {
     const bgs = await (await fetch('/api/assets/backgrounds')).json();
     const opts = '<option value="">— select background —</option>' +
       bgs.map(f=>`<option value="${f}">${f}</option>`).join('');
-    document.getElementById('cuBgLibrary2').innerHTML = opts;
-    document.getElementById('cuBgLibrary0').innerHTML = opts;
+    ['cuBgLibrary2','cuBgLibrary0'].forEach(id => {
+      document.getElementById(id).innerHTML = opts;
+    });
+    const def = 'red clouds.mp4';
+    if (bgs.includes(def)) {
+      document.getElementById('cuBgLibrary2').value = def; selectCustomBg(2, def);
+      document.getElementById('cuBgLibrary0').value = def; selectCustomBg(0, def);
+    }
   } catch(e) {}
 }
 
@@ -1572,6 +1578,10 @@ async function loadCustom576Variants() {
     const opts = '<option value="">— black —</option>' +
       files.map(f=>`<option value="${f}">${f}</option>`).join('');
     document.getElementById('cuVariant576Left').innerHTML = opts;
+    const def = 'Red Clouds.mp4';
+    if (files.includes(def)) {
+      document.getElementById('cuVariant576Left').value = def; selectCustom576Left(def);
+    }
   } catch(e) {}
 }
 
@@ -1581,6 +1591,10 @@ async function loadCustomMedia192() {
     const opts = '<option value="">— black —</option>' +
       files.map(f=>`<option value="${f}">${f}</option>`).join('');
     document.getElementById('cuMedia192Select').innerHTML = opts;
+    const def = 'Red clouds.mp4';
+    if (files.includes(def)) {
+      document.getElementById('cuMedia192Select').value = def; selectCustomMedia192(def);
+    }
   } catch(e) {}
 }
 
@@ -1659,7 +1673,7 @@ function renderCuCanvas(cfg) {
   }
 
   // Draw first non-empty text slot as preview
-  for (let si = 0; si < 3; si++) {
+  for (let si = 0; si < 4; si++) {
     const textEl = document.getElementById(`cu-text-${cfg.id}-${si}`);
     const text = (textEl?.value || '').trim();
     if (text) {
@@ -1670,7 +1684,7 @@ function renderCuCanvas(cfg) {
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
       ctx.fillStyle = cuColor;
-      ctx.fillText(text, W / 2, H / 2);
+      ctx.fillText(text, W / 2, H / 2, W * 0.95);
       break;
     }
   }
@@ -1689,7 +1703,7 @@ function updateCustomTimeline(displayId) {
 
   const slots = [];
   let total = 0;
-  for (let si = 0; si < 3; si++) {
+  for (let si = 0; si < 4; si++) {
     const text = (document.getElementById(`cu-text-${displayId}-${si}`)?.value || '').trim();
     const dur  = parseFloat(document.getElementById(`cu-dur-${displayId}-${si}`)?.value) || 0;
     slots.push({text, dur});
@@ -1725,22 +1739,112 @@ function updateCustomTimeline(displayId) {
   labels.innerHTML = labHtml;
 }
 
-function openCustomLedPreview() {
-  const params = new URLSearchParams();
-  const displayOrder = [
-    { id:0, width:1344, name:'Shortside' },
-    { id:1, width:576,  name:'Longside Left' },
-    { id:2, width:1728, name:'Longside Center' },
-    { id:3, width:576,  name:'Longside Right' },
-    { id:4, width:192,  name:'Media' },
-  ];
-  displayOrder.forEach(d => {
-    if (cuBgPaths[d.id]) params.set('d' + d.id, cuBgPaths[d.id]);
-    params.set('w' + d.id, d.width);
-    params.set('n' + d.id, d.name);
+function setCuSlotCount(n) {
+  cuSlotCount = n;
+  // Update active button style
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`cu-slot-btn-${i}`);
+    if (!btn) continue;
+    if (i === n) {
+      btn.className = 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#CC1020] text-white';
+    } else {
+      btn.className = 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]';
+    }
+  }
+  // Show/hide slot columns and update grid cols for each display
+  [0, 1, 2, 4].forEach(did => {
+    const grid = document.getElementById(`cu-slots-grid-${did}`);
+    if (grid) {
+      grid.className = grid.className.replace(/grid-cols-\d/, `grid-cols-${n}`);
+    }
+    for (let si = 0; si < 4; si++) {
+      const col = document.getElementById(`cu-slot-col-${did}-${si}`);
+      if (!col) continue;
+      const visible = si < n;
+      col.classList.toggle('hidden', !visible);
+      // Zero out duration for hidden slots so they don't render
+      const durEl = document.getElementById(`cu-dur-${did}-${si}`);
+      if (durEl && !visible) durEl.value = 0;
+    }
+    updateCustomTimeline(did);
   });
-  window.open('/led-preview?' + params.toString(), 'ledpreview_custom',
-    'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+  renderAllCuCanvases();
+}
+
+async function openCustomLedPreview() {
+  const btn = document.getElementById('customPreviewBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Rendering preview…';
+  document.getElementById('customStatus').textContent = 'Rendering preview clips…';
+  document.getElementById('customProgress').classList.remove('hidden');
+
+  const screen_configs = [0,1,2,3,4].map(displayId => {
+    const srcId = displayId === 3 ? 1 : displayId;
+    const texts = [], durations = [];
+    for (let si = 0; si < 4; si++) {
+      texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
+      durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
+    }
+    return { display_id: displayId, bg_path: cuBgPaths[srcId] || null, texts, durations };
+  });
+
+  try {
+    const r = await fetch('/api/custom/preview-render', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        screen_configs,
+        font_name:  cuFont || '',
+        font_color: document.getElementById('cuTextColor')?.value || '#ffffff',
+      }),
+    });
+    const res = await r.json();
+    if (res.error) {
+      document.getElementById('customStatus').textContent = '✗ ' + res.error;
+      btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+      document.getElementById('customProgress').classList.add('hidden');
+      return;
+    }
+
+    await new Promise((resolve, reject) => {
+      const t = setInterval(async () => {
+        const data = await (await fetch(`/api/status/${res.job_id}`)).json();
+        document.getElementById('customStatus').textContent = data.progress;
+        if (data.status === 'done') {
+          clearInterval(t); resolve(data.outputs);
+        } else if (data.status === 'error') {
+          clearInterval(t); reject(data.progress);
+        }
+      }, 500);
+    }).then(outputs => {
+      document.getElementById('customProgress').classList.add('hidden');
+      btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+      document.getElementById('customStatus').textContent = '✓ Preview opened!';
+
+      const params = new URLSearchParams();
+      const map = [
+        { id:0, key:'1344', w:1344, n:'Shortside'       },
+        { id:1, key:'576',  w:576,  n:'Longside Left'   },
+        { id:2, key:'1728', w:1728, n:'Longside Center' },
+        { id:3, key:'576',  w:576,  n:'Longside Right'  },
+        { id:4, key:'192',  w:192,  n:'Media'           },
+      ];
+      map.forEach(d => {
+        params.set('d'+d.id, '/app/outputs/'+outputs[d.key]);
+        params.set('w'+d.id, d.w);
+        params.set('n'+d.id, d.n);
+      });
+      window.open('/led-preview?'+params.toString(), 'ledpreview_custom',
+        'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+    }).catch(err => {
+      document.getElementById('customStatus').textContent = '✗ ' + err;
+      btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+      document.getElementById('customProgress').classList.add('hidden');
+    });
+  } catch(e) {
+    document.getElementById('customStatus').textContent = '✗ Network error';
+    btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+    document.getElementById('customProgress').classList.add('hidden');
+  }
 }
 
 async function startCustom() {
@@ -1754,7 +1858,7 @@ async function startCustom() {
     // display_id 3 (Longside Right) mirrors display_id 1 (Longside Left)
     const srcId = displayId === 3 ? 1 : displayId;
     const texts = [], durations = [];
-    for (let si = 0; si < 3; si++) {
+    for (let si = 0; si < 4; si++) {
       texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
       durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
     }
@@ -1793,6 +1897,24 @@ loadCustomBgLibrary();
 loadCustom576Variants();
 loadCustomMedia192();
 [0,1,2,3,4].forEach(id => updateCustomTimeline(id));
+
+// ── Theme toggle ──
+function applyTheme(t) {
+  const light = t === 'light';
+  document.documentElement.classList.toggle('light', light);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = light ? '🌙' : '☀️';
+}
+function toggleTheme() {
+  const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+}
+(function() {
+  const stored = localStorage.getItem('theme');
+  const pref = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  applyTheme(pref);
+})();
 </script>
 </body>
 </html>

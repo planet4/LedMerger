@@ -2,32 +2,53 @@
 
 All notable changes to the Pixbo LED Merger project are documented here.
 
----
-
-## [1.3.0] - 2026-03-27
-
-- Updated version number in app header
+Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
 ---
 
-## [1.2.0] - 2026-03-27
+## [0.21] - 2026-03-28
+
+### Custom Tab
+- **Pop-wobble effect** added to all text slots — same damped oscillation as Players tab (`base*(1+0.35*exp(-8*t)*cos(12*t))`), with a 0.2s fade-in per slot
+- **Slot count selector** (1–4) added to "02 — Custom Text" header — hides unused slot columns and zeroes their duration so they don't render
+
+---
+
+## [0.2] - 2026-03-28
+
+### UI Redesign
+- Replaced fonts **DM Sans** and **Space Mono** with **Noto Sans** and **Noto Sans Mono**
+- Lightened dark palette to a cooler blue-gray tone (`#1B1E26` base)
+- Section headers changed from small red uppercase caps to bold white normal-case text
+- Tabs replaced with pill/segment control style
+- CSS custom properties used throughout for theme consistency
+
+### Dark / Light Mode
+- Added ☀️/🌙 toggle button in the header
+- Preference persisted in `localStorage`, OS `prefers-color-scheme` respected on first visit
+- No flash on load — theme applied before render via inline script
+
+### Custom Tab — LED Preview
+- LED Preview button now renders real preview clips before opening the preview window (same pattern as Players tab)
+- New backend route `/api/custom/preview-render` — renders 4 clips at 25fps, no stacked export
+- Fixed `FONTS_DIR` → `FONT_DIR` typo in preview route
+
+### Other
+- GitHub link added to header subtitle
+- Red clouds set as default background on all Custom tab screens
+
+---
+
+## [0.12] - 2026-03-27
 
 ### Players Tab — Complete Redesign
-
-- **Fixed template backgrounds** — backgrounds are now locked to the official Pixbo player template files:
-  - `players-template-1728.mp4` for Longside Center
-  - `players-template-1344.mp4` for Shortside
-  - `players-template-576.mp4` for Longside Left & Right
-  - `players-template-192.mp4` for Media 192px
-- **Fixed font** — always Road Rage, white color — no longer selectable
-- **Section 01** renamed to "01 — Settings" with only font size control remaining
-- **Generate button** now enabled as soon as number and name are filled in — no background selection needed
-- **LED Preview** updated to use fixed template paths automatically
-- **Pop Wobble effect** added — text pops in at 135% size and springs back with damped oscillation, matching the DaVinci Fusion reference
-- **192px font scaling** — font size automatically scales down for narrow displays so text fits
-- **Default timing** — number duration set to 2.1s, total 6s (standard Pixbo lineup time)
-- **Info box** replaced — warning about Left/Right files removed (no longer relevant), replaced with note about standard duration
-- **Export** — all individual files + stacked export available for download
+- Fixed template backgrounds locked to official Pixbo player template files
+- Fixed font — always Road Rage, white — no longer selectable
+- Pop wobble effect added (`base*(1+0.35*exp(-8*t)*cos(12*t))`)
+- 192px font scaling — auto scales down for narrow displays
+- Default timing: 2.1s number, 6s total
+- LED Preview button renders real clips at 25fps before opening preview
+- Export: stacked + all individual files
 
 ### Bug Fixes
 - Fixed `FONT_PATH` pointing to wrong filename (`RoadRage.ttf` → `Road_Rage.otf`)
@@ -36,121 +57,49 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 ---
 
-## [1.1.0] - 2026-03-17
+## [0.11] - 2026-03-17
 
 ### UI Redesign
-- Replaced font **Barlow Condensed** with **DM Sans** for a cleaner, more modern look
-- Replaced monospace font **IBM Plex Mono** with **Space Mono**
-- Lightened background from pure black `#0C0C0C` to dark grey `#1A1A1F`
-- Cards and section headers now use a cleaner, less decorative style
-- Tabs redesigned to be smaller and simpler
-- Red accent color `#CC1020` retained throughout
-- Consistent display color coding across all tabs:
-  - Longside Center — Green `#1A4731`
-  - Shortside — Red `#7B1520`
-  - Longside Left — Blue `#1E3A5F`
-  - Longside Right — Yellow `#7A5C00`
-  - Media 192px — Purple `#4A2060`
+- Replaced fonts Barlow Condensed / IBM Plex Mono with DM Sans / Space Mono
+- Lightened background from pure black to dark grey `#1A1A1F`
+- Cleaner, less decorative cards and section headers
+- Consistent display color coding across all tabs
 
 ### File Merger Tab
-- **02 — Visual Layout** now shows a live canvas preview matching the Players tab style
-- Preview updates instantly when files are uploaded
+- Live canvas preview in "02 — Visual Layout" updates on upload
 - Tile mode preview rewritten to draw correctly onto canvas
-- Tile slot thumbnails now use `object-fit:contain` to correctly show image proportions
 
 ### Custom Tab
-- **Longside Left and Right 576px** merged into a single unified section
-- One background selector and one text input section controls both Left and Right
-- Left and Right always use identical content in the stacked export — enforced automatically
-- Removed separate Longside Right selector and timeline row
-
-### Info Boxes
-- Added warning box on **File Merger** and **Players** tabs advising to use the same file for Longside Left and Longside Right in stacked exports
-- No warning on Custom tab since Left/Right are now unified automatically
+- Longside Left and Right 576px merged into one unified section — always same content
+- Removed separate Longside Right selector
 
 ### Tile Mode Fix
-- Tile images now scale to **64px height first** (keeping aspect ratio) before tiling
-- If image is narrower than tile width after scaling, it is centered with black padding
-- If image is wider, it is cropped from center
-- Fixes crash when using square or portrait images (e.g. 1280×1280) in tile mode
-- Canvas preview updated to match the same height-first scaling logic
-
-### Export (Unchanged)
-- All three tabs produce identical 1600×1200px stacked exports
-- Layout matches the AE/ledventure reference exactly
+- Images now scale to 64px height first before tiling
+- Fixes crash with square or portrait images in tile mode
 
 ---
 
-## [1.0.0] - 2026-03-05
+## [0.1] - 2026-03-05
 
 ### Initial stable release
 
-#### File Merger Tab
 - Upload files for all 5 displays: Shortside (1344px), Longside Left (576px), Longside Center (1728px), Longside Right (576px), Media (192px)
-- Tile mode for each display — repeat a file N times across the display width
-- Per-tile slot upload (different image per tile position)
-- Live canvas preview for each display in **02 — Visual Layout**
-- Stacked 1600×1200px export + individual file per display
-
-#### Players Tab
-- Select background video from library
-- Select font from library (Road Rage, Barlow Condensed, Oswald, etc.)
-- Select 576px variant background for Longside Left and Right independently
-- Select Media 192px background
-- Enter player number and name
-- Number fades out, name fades in with configurable timing
-- Live visual layout preview with canvas rendering
-- Timing preview bar showing number/name durations
-- Stacked 1600×1200px export + individual file per display
-
-#### Custom Tab
-- Per-display background selection (library or black)
-- Per-display text slots (up to 3 slots per display, each with configurable duration)
-- Font selection shared across all displays
-- Font size and color controls
-- Live visual layout preview
-- Timing preview bar per display
-- Stacked 1600×1200px export + individual file per display
-
-#### Core Export Engine
-- Stacked export: 1600×1200px, 50fps, h264/yuv420p
-- Layout matches the After Effects / ledventure.org reference template exactly:
-  - Row 1 (y=0): Shortside 1344px
-  - Row 2 (y=64): Shortside tail 384px + Longside Left 576px
-  - Row 3 (y=128): Longside Center 1728px (clipped to 1600)
-  - Row 4 (y=192): Longside Center tail 768px + Longside Right 576px
-  - Row 5 (y=256): Longside Left tail 384px + Media 192px
-  - Rows 6-19: black padding to 1200px
-- All clips looped to match longest duration before merging
-- Individual exports at native display sizes
-
-#### Other Features
-- Arena LED layout diagram modal with color-coded display map
-- Live LED preview window (opens in separate browser tab)
-- Docker deployment with docker-compose
-- Background and font libraries loaded from data/ folder
-- 576px variant library for Players and Custom tabs
-- Media 192px library
+- Tile mode per display with per-slot upload
+- Players tab: number fades to name, configurable timing, pop-wobble, canvas preview
+- Custom tab: per-display text slots (3), font/color/size controls, timing preview
+- Stacked 1600×1200px export (50fps, h264/yuv420p) + individual files per display
+- Layout matches After Effects / ledventure.org reference exactly
+- Arena LED layout diagram modal
+- Live LED preview window
+- Docker deployment
 
 ---
 
 ## [0.x] - 2026-02-26 to 2026-03-04
 
-### Development history (pre-release)
+### Development / pre-release
 
-- Investigated After Effects project file (Pixbo-Mall-fran_ledventure-org.aep) to determine exact export format
-- Analyzed reference export Timeout_Pixbo.mp4 pixel-by-pixel to confirm row layout
-- Discovered displays wrap across rows at 1600px boundary
-- Confirmed Shortside is 1344px (not 1334px as initially assumed)
-- Confirmed 576 content appears in 3 positions in the strip — same source used for rows 2, 4 and 5
-- Built and iterated on ffmpeg filter_complex with split filters for reused inputs
-- Added separate Longside Left and Right selectors with independent state
-- Added Media 192px background selector with separate folder
-- Fixed merge width mismatch
-- Fixed LED preview to show all 5 displays
-- Rebuilt visual layout preview with 5 named blocks and proportional widths
-- Fixed 192px rendering — text overlay, correct scale, no thin-line artifact
-- Fixed 576 clips — background-only (no player text on side panels)
-- Added Media 192px to Players tab with number/name text overlay
-- Fixed filter_complex to split reused inputs (was causing silent hang on merge)
-- Tested and verified output against reference video
+- Analyzed reference AE project and export to determine exact row layout
+- Confirmed display sizes and 576 content appearing in 3 strip positions
+- Built and iterated ffmpeg filter_complex
+- Fixed merge, preview, scaling and rendering issues
