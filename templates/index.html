@@ -1559,16 +1559,17 @@ async function selectCustomFont(f) {
 async function loadCustomBgLibrary() {
   try {
     const bgs = await (await fetch('/api/assets/backgrounds')).json();
-    const opts = '<option value="">— select background —</option>' +
-      bgs.map(f=>`<option value="${f}">${f}</option>`).join('');
-    ['cuBgLibrary2','cuBgLibrary0'].forEach(id => {
-      document.getElementById(id).innerHTML = opts;
-    });
-    const def = 'red clouds.mp4';
-    if (bgs.includes(def)) {
-      document.getElementById('cuBgLibrary2').value = def; selectCustomBg(2, def);
-      document.getElementById('cuBgLibrary0').value = def; selectCustomBg(0, def);
-    }
+    // Filter by dimension hint in filename — files with "1344" excluded from 1728 selector and vice versa
+    const bgs1728 = bgs.filter(f => !f.includes('1344'));
+    const bgs1344 = bgs.filter(f => !f.includes('1728'));
+    const mkOpts = (list) => '<option value="">— select background —</option>' +
+      list.map(f => `<option value="${f}">${f}</option>`).join('');
+    document.getElementById('cuBgLibrary2').innerHTML = mkOpts(bgs1728);
+    document.getElementById('cuBgLibrary0').innerHTML = mkOpts(bgs1344);
+    const def1728 = 'red clouds.mp4';
+    if (bgs1728.includes(def1728)) { document.getElementById('cuBgLibrary2').value = def1728; selectCustomBg(2, def1728); }
+    const def1344 = 'redclouds-1344.mp4';
+    if (bgs1344.includes(def1344)) { document.getElementById('cuBgLibrary0').value = def1344; selectCustomBg(0, def1344); }
   } catch(e) {}
 }
 
