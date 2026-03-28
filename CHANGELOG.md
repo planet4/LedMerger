@@ -6,6 +6,17 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.23] - 2026-03-28
+
+### Background Directory Restructure
+- Moved 1344px backgrounds to `data/backgrounds/1344/`, 1728px to `data/backgrounds/1728/`
+- Added `BG_DIR_1344` / `BG_DIR_1728` constants and `/api/assets/backgrounds1344` + `/api/assets/backgrounds1728` routes
+- Custom tab now fetches each width's library from its own endpoint — no more filename-based filtering
+- `select-bg` checks both subdirs; stream security allows both new paths
+- Updated `.gitignore` red cloud exception paths to match new locations
+
+---
+
 ## [0.22] - 2026-03-28
 
 ### Custom Tab

@@ -141,7 +141,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.22 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.23 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a></p>
     </div>
     <div class="flex flex-col items-end gap-2">
       <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
@@ -1489,7 +1489,7 @@ checkLineupReady();
   const bgImg = new Image();
   bgImg.crossOrigin = 'anonymous';
   bgImg.onload  = () => { luBgImg = bgImg; renderAllLuCanvases(); };
-  bgImg.src = '/api/bg-preview-path?path=/app/backgrounds/players-template-1728.mp4';
+  bgImg.src = '/api/bg-preview-path?path=/app/backgrounds/1728/players-template-1728.mp4';
 
   const img576 = new Image();
   img576.crossOrigin = 'anonymous';
@@ -1558,10 +1558,10 @@ async function selectCustomFont(f) {
 
 async function loadCustomBgLibrary() {
   try {
-    const bgs = await (await fetch('/api/assets/backgrounds')).json();
-    // Filter by dimension hint in filename — files with "1344" excluded from 1728 selector and vice versa
-    const bgs1728 = bgs.filter(f => !f.includes('1344'));
-    const bgs1344 = bgs.filter(f => !f.includes('1728'));
+    const [bgs1728, bgs1344] = await Promise.all([
+      fetch('/api/assets/backgrounds1728').then(r => r.json()),
+      fetch('/api/assets/backgrounds1344').then(r => r.json()),
+    ]);
     const mkOpts = (list) => '<option value="">— select background —</option>' +
       list.map(f => `<option value="${f}">${f}</option>`).join('');
     document.getElementById('cuBgLibrary2').innerHTML = mkOpts(bgs1728);

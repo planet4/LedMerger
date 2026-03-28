@@ -19,8 +19,10 @@ UPLOAD_DIR  = Path("/app/uploads")
 OUTPUT_DIR  = Path("/app/outputs")
 FONT_DIR    = Path("/app/fonts")
 BG_DIR        = Path("/app/backgrounds")
+BG_DIR_1344   = Path("/app/backgrounds/1344")
+BG_DIR_1728   = Path("/app/backgrounds/1728")
 MEDIA192_DIR  = Path("/app/backgrounds/media_192")
-for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, MEDIA192_DIR]:
+for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, BG_DIR_1344, BG_DIR_1728, MEDIA192_DIR]:
     _d.mkdir(exist_ok=True)
 
 DISPLAYS = [
@@ -431,11 +433,18 @@ def serve_font(filename):
     return send_file(str(path), mimetype=mime)
 
 
-@app.route("/api/assets/backgrounds")
-def list_backgrounds():
+@app.route("/api/assets/backgrounds1728")
+def list_backgrounds_1728():
     exts = {".mp4", ".mov", ".avi"}
-    bgs = [f.name for f in BG_DIR.iterdir() if f.suffix.lower() in exts]
-    return jsonify(sorted(bgs))
+    files = [f.name for f in BG_DIR_1728.iterdir() if f.suffix.lower() in exts]
+    return jsonify(sorted(files))
+
+
+@app.route("/api/assets/backgrounds1344")
+def list_backgrounds_1344():
+    exts = {".mp4", ".mov", ".avi"}
+    files = [f.name for f in BG_DIR_1344.iterdir() if f.suffix.lower() in exts]
+    return jsonify(sorted(files))
 
 
 VARIANTS_DIR = Path("/app/backgrounds/576_variants")
@@ -537,7 +546,7 @@ def stream_file():
         abort(400)
     src = Path(path)
     # Security: only allow files inside UPLOAD_DIR or OUTPUT_DIR or VARIANTS_DIR
-    allowed = [UPLOAD_DIR.resolve(), OUTPUT_DIR.resolve(), VARIANTS_DIR.resolve(), BG_DIR.resolve(), MEDIA192_DIR.resolve()]
+    allowed = [UPLOAD_DIR.resolve(), OUTPUT_DIR.resolve(), VARIANTS_DIR.resolve(), BG_DIR.resolve(), BG_DIR_1344.resolve(), BG_DIR_1728.resolve(), MEDIA192_DIR.resolve()]
     if not any(src.resolve().is_relative_to(d) for d in allowed):
         abort(403)
     if not src.exists():
@@ -574,8 +583,8 @@ LINEUP_DISPLAYS = [
 FONT_PATH = Path("/app/fonts/Road_Rage.otf")
 
 # Fixed player template backgrounds
-PLAYERS_BG_1728  = BG_DIR   / "players-template-1728.mp4"
-PLAYERS_BG_1344  = BG_DIR   / "players-template-1344.mp4"
+PLAYERS_BG_1728  = BG_DIR_1728 / "players-template-1728.mp4"
+PLAYERS_BG_1344  = BG_DIR_1344 / "players-template-1344.mp4"
 PLAYERS_BG_576   = VARIANTS_DIR / "players-template-576.mp4"
 PLAYERS_BG_192   = MEDIA192_DIR / "players-template-192.mp4"
 
@@ -808,10 +817,11 @@ def preview_frame(display_id):
 def lineup_select_bg():
     data     = request.json
     filename = data.get("filename", "")
-    path     = BG_DIR / filename
-    if not path.exists():
-        return jsonify({"error": "File not found"}), 404
-    return jsonify({"ok": True, "path": str(path)})
+    for d in [BG_DIR_1728, BG_DIR_1344]:
+        path = d / filename
+        if path.exists():
+            return jsonify({"ok": True, "path": str(path)})
+    return jsonify({"error": "File not found"}), 404
 
 
 @app.route("/api/lineup/upload-font", methods=["POST"])
