@@ -608,13 +608,13 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
             wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
             txt_number = (
                 f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
-                f"fontsize='{wobble_num}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                 f"alpha='if(lt(t,{fade_out_start}),1,"
                 f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
             )
             txt_name = (
                 f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x=(w-text_w)/2:y=(h-text_h)/2:"
+                f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                 f"alpha='if(lt(t,{num_dur}),0,"
                 f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
             )
@@ -911,10 +911,10 @@ def lineup_preview_render():
                 wobble_num  = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                 txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
-                         f"fontsize='{wobble_num}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                         f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                          f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
                 txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
-                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x=(w-text_w)/2:y=(h-text_h)/2:"
+                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                           f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
                 ext = Path(src).suffix.lower()
                 loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
@@ -1020,7 +1020,7 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                     alpha  = f"if(lt(t,0.2),t/0.2,1)"
                     return (f"{base_vf},"
                             f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                            f"fontsize='{wobble}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                            f"fontsize='{wobble}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                             f"alpha='{alpha}'")
 
                 if bg_path:
@@ -1238,7 +1238,7 @@ def custom_preview_render():
                         alpha  = f"if(lt(t,0.2),t/0.2,1)"
                         return (f"{base_vf},"
                                 f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                                f"fontsize='{wobble}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                                f"fontsize='{wobble}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                                 f"alpha='{alpha}'")
 
                     if bg_path:
