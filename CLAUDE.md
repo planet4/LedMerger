@@ -3,6 +3,8 @@
 ## What this project is
 A Flask/Docker web app for creating and merging LED rink content for Pixbo Floorball at Wallenstam Arena. It produces stacked MP4 files compatible with the Sedna LED controller.
 
+## Current version: 1.3
+
 ## Critical — Export format
 The stacked export MUST always be exactly 1600×1200px, 50fps, h264/yuv420p.
 The layout matches the After Effects/ledventure.org reference template:
@@ -27,14 +29,17 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
 - Video processing: ffmpeg (filter_complex)
 - Frontend: Tailwind CSS, vanilla JS, Canvas API
 - Deployment: Docker Compose
+- Server: NUC at 192.168.0.140, accessed via VS Code Remote SSH
+- GitHub: planet4/LedMerger
 
 ## File structure
 - `app.py` — all backend logic, Flask routes, ffmpeg workers
 - `templates/index.html` — entire frontend (single file, ~1800 lines)
-- `templates/led_preview.html` — LED preview popup window
+- `templates/led_preview.html` — LED preview popup window (60fps, pixel grid, arena view)
 - `data/backgrounds/` — background video library
 - `data/backgrounds/576_variants/` — 576px variant backgrounds
 - `data/backgrounds/media_192/` — 192px media backgrounds
+- `data/backgrounds/layout.png` — arena photo used in LED preview arena view
 - `data/fonts/` — font files (.ttf, .otf)
 - `data/uploads/` — temporary upload storage (safe to delete)
 - `data/outputs/` — generated video files (safe to delete)
@@ -54,6 +59,17 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
   - media_192/players-template-192.mp4
 - Default timing: 2.1s number, 6s total
 - Pop wobble effect: fontsize expression using damped oscillation
+  - formula: `base*(1+0.35*exp(-8*t)*cos(12*t))`
+- LED Preview button renders real clips at 25fps first, then opens preview
+- Export: stacked + all individual files
+
+## LED Preview (led_preview.html)
+- 60fps using CSS image-rendering:pixelated (not JS pixel loop)
+- GLOW toggle — off by default
+- GRID toggle — SVG overlay, off by default
+- ARENA VIEW toggle — overlays videos on layout.png arena photo
+- SYNC button — resets all videos to t=0
+- Arena zone coordinates defined as percentages in ARENA_ZONES array
 
 ## Deployment
 ```bash
@@ -61,8 +77,17 @@ sudo docker compose up -d --build
 ```
 Then hard refresh browser (Ctrl+Shift+R).
 
+Template-only changes (index.html, led_preview.html): just copy file + hard refresh, no rebuild needed.
+
+## Cleanup outputs
+```bash
+rm -f data/outputs/*.mp4
+rm -f data/uploads/*
+```
+
 ## Important rules
 - Never change build_stacked_export() without verifying on physical displays
-- Longside Left and Right should use same source to avoid visible cuts on displays
+- Longside Left and Right always use same source to avoid visible cuts on displays
 - All three tabs must call the same build_stacked_export() function
 - The 576 display appears 3 times in the strip — left, right, and row 5 tail
+- FONT_PATH = /app/fonts/Road_Rage.otf (correct filename — do not change)
