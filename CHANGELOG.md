@@ -6,6 +6,16 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.22] - 2026-03-28
+
+### Custom Tab
+- Slots expanded from 4 to 6 — slots 4–6 shown as a second row of 3 columns
+- Fixed text clipping on narrow displays (192px) — font size now capped by display width
+- Fixed pop-wobble clipping left edge — drawtext x/y clamped to `max(0, (w-text_w)/2)`
+- Fixed slot 4+ not appearing in timing preview or LED preview — revealed slots restore default 2s duration
+
+---
+
 ## [0.21] - 2026-03-28
 
 ### Custom Tab
