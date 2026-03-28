@@ -546,7 +546,7 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <span class="font-mono text-xs text-[#888]">Slots:</span>
           <div class="flex gap-1">
-            {% for n in [1,2,3,4] %}
+            {% for n in [1,2,3,4,5,6] %}
             <button onclick="setCuSlotCount({{ n }})" id="cu-slot-btn-{{ n }}"
               class="w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all {% if n == 3 %}bg-[#CC1020] text-white{% else %}bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]{% endif %}">{{ n }}</button>
             {% endfor %}
@@ -559,9 +559,9 @@ tailwind.config = {
         {% for did, dlabel in cu_displays %}
         <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
           <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">{{ dlabel }}</div>
-          <div id="cu-slots-grid-{{ did }}" class="grid grid-cols-3 gap-0 divide-x divide-[#2E2E3A]">
-            {% for si in range(4) %}
-            <div id="cu-slot-col-{{ did }}-{{ si }}" class="p-3 space-y-1.5{% if si >= 3 %} hidden{% endif %}">
+          <div id="cu-slots-grid-{{ did }}" class="grid grid-cols-3 gap-px bg-[#2E2E3A]">
+            {% for si in range(6) %}
+            <div id="cu-slot-col-{{ did }}-{{ si }}" class="bg-[#22222A] p-3 space-y-1.5{% if si >= 3 %} hidden{% endif %}">
               <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
               <input type="text" id="cu-text-{{ did }}-{{ si }}" placeholder="Text…"
                 oninput="updateCustomTimeline({{ did }});renderAllCuCanvases()"
@@ -1516,7 +1516,7 @@ const CU_CANVASES = [
   { id:4, canvasId:'cu-canvas-4', lblId:'cu-lbl-4', w:192  },
 ];
 
-const SLOT_COLORS = ['rgba(204,16,32,0.75)', 'rgba(0,80,200,0.75)', 'rgba(0,160,80,0.75)', 'rgba(200,100,0,0.75)'];
+const SLOT_COLORS = ['rgba(204,16,32,0.75)','rgba(0,80,200,0.75)','rgba(0,160,80,0.75)','rgba(200,100,0,0.75)','rgba(120,0,180,0.75)','rgba(0,160,180,0.75)'];
 let cuSlotCount = 3;
 
 async function loadCustomFonts() {
@@ -1673,7 +1673,7 @@ function renderCuCanvas(cfg) {
   }
 
   // Draw first non-empty text slot as preview
-  for (let si = 0; si < 4; si++) {
+  for (let si = 0; si < 6; si++) {
     const textEl = document.getElementById(`cu-text-${cfg.id}-${si}`);
     const text = (textEl?.value || '').trim();
     if (text) {
@@ -1703,7 +1703,7 @@ function updateCustomTimeline(displayId) {
 
   const slots = [];
   let total = 0;
-  for (let si = 0; si < 4; si++) {
+  for (let si = 0; si < 6; si++) {
     const text = (document.getElementById(`cu-text-${displayId}-${si}`)?.value || '').trim();
     const dur  = parseFloat(document.getElementById(`cu-dur-${displayId}-${si}`)?.value) || 0;
     slots.push({text, dur});
@@ -1741,30 +1741,24 @@ function updateCustomTimeline(displayId) {
 
 function setCuSlotCount(n) {
   cuSlotCount = n;
-  // Update active button style
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 6; i++) {
     const btn = document.getElementById(`cu-slot-btn-${i}`);
     if (!btn) continue;
-    if (i === n) {
-      btn.className = 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#CC1020] text-white';
-    } else {
-      btn.className = 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]';
-    }
+    btn.className = i === n
+      ? 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#CC1020] text-white'
+      : 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]';
   }
-  // Show/hide slot columns and update grid cols for each display
   [0, 1, 2, 4].forEach(did => {
-    const grid = document.getElementById(`cu-slots-grid-${did}`);
-    if (grid) {
-      grid.className = grid.className.replace(/grid-cols-\d/, `grid-cols-${n}`);
-    }
-    for (let si = 0; si < 4; si++) {
+    for (let si = 0; si < 6; si++) {
       const col = document.getElementById(`cu-slot-col-${did}-${si}`);
       if (!col) continue;
       const visible = si < n;
       col.classList.toggle('hidden', !visible);
-      // Zero out duration for hidden slots so they don't render
       const durEl = document.getElementById(`cu-dur-${did}-${si}`);
-      if (durEl && !visible) durEl.value = 0;
+      if (durEl) {
+        if (!visible) durEl.value = 0;
+        else if (parseFloat(durEl.value) === 0) durEl.value = 2;
+      }
     }
     updateCustomTimeline(did);
   });
@@ -1781,7 +1775,7 @@ async function openCustomLedPreview() {
   const screen_configs = [0,1,2,3,4].map(displayId => {
     const srcId = displayId === 3 ? 1 : displayId;
     const texts = [], durations = [];
-    for (let si = 0; si < 4; si++) {
+    for (let si = 0; si < 6; si++) {
       texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
       durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
     }
@@ -1858,7 +1852,7 @@ async function startCustom() {
     // display_id 3 (Longside Right) mirrors display_id 1 (Longside Left)
     const srcId = displayId === 3 ? 1 : displayId;
     const texts = [], durations = [];
-    for (let si = 0; si < 4; si++) {
+    for (let si = 0; si < 6; si++) {
       texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
       durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
     }
