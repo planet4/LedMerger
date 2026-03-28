@@ -85,7 +85,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow font-semibold leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator 1.3</p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator 1.0</p>
     </div>
     <div class="text-right">
       <div class="font-mono text-xs text-[#555] uppercase tracking-widest">Fixed Output</div>
@@ -371,7 +371,7 @@ tailwind.config = {
         <!-- Hidden canvas-1 kept for JS compatibility (lu-canvas-1 used in Row1 previously) -->
         <canvas id="lu-canvas-1" style="display:none"></canvas>
 
-        <p class="font-mono text-xs text-[#555]">Live preview — updates as you type. LED Preview shows background only — player text is rendered on Generate.</p>
+        <p class="font-mono text-xs text-[#555]">Live preview — updates as you type. LED Preview renders clips with full text and pop wobble effect.</p>
       </div>
     </div>
 
@@ -999,27 +999,80 @@ function updateDiagramPreview(id) {
 
 window.addEventListener('resize', renderAllMgCanvases);
 
-function openLineupLedPreview() {
-  // Use fixed template backgrounds
-  const TMPL_1728 = '/app/backgrounds/players-template-1728.mp4';
-  const TMPL_1344 = '/app/backgrounds/players-template-1344.mp4';
-  const TMPL_576  = '/app/backgrounds/576_variants/players-template-576.mp4';
-  const TMPL_192  = '/app/backgrounds/media_192/players-template-192.mp4';
-  const params = new URLSearchParams();
-  const lineupDisplays = [
-    { id:0, path: TMPL_1344, width:1344, name:'Shortside' },
-    { id:1, path: TMPL_576,  width:576,  name:'Longside Left' },
-    { id:2, path: TMPL_1728, width:1728, name:'Longside Center' },
-    { id:3, path: TMPL_576,  width:576,  name:'Longside Right' },
-    { id:4, path: TMPL_192,  width:192,  name:'Media' },
-  ];
-  lineupDisplays.forEach(d => {
-    if (d.path) params.set('d' + d.id, d.path);
-    params.set('w' + d.id, d.width);
-    params.set('n' + d.id, d.name);
-  });
-  const url = '/led-preview?' + params.toString();
-  window.open(url, 'ledpreview_lineup', 'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+async function openLineupLedPreview() {
+  const number = document.getElementById('playerNumber').value.trim();
+  const name   = document.getElementById('playerName').value.trim();
+  if (!number || !name) {
+    document.getElementById('lineupStatus').textContent = 'Enter player number and name first.';
+    return;
+  }
+
+  const btn = document.getElementById('lineupPreviewBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Rendering preview…';
+  document.getElementById('lineupStatus').textContent = 'Rendering preview clips…';
+  document.getElementById('lineupProgress').classList.remove('hidden');
+
+  const numDur   = parseFloat(document.getElementById('numDur').value)   || 2.1;
+  const totalDur = parseFloat(document.getElementById('totalDur').value) || 6.0;
+
+  try {
+    const r = await fetch('/api/lineup/preview-render', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ number, name, num_dur:numDur, total_dur:totalDur, fps:FPS }),
+    });
+    const res = await r.json();
+    if (res.error) {
+      document.getElementById('lineupStatus').textContent = '✗ ' + res.error;
+      btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+      document.getElementById('lineupProgress').classList.add('hidden');
+      return;
+    }
+
+    // Poll until done
+    await new Promise((resolve, reject) => {
+      const t = setInterval(async () => {
+        const data = await (await fetch(`/api/status/${res.job_id}`)).json();
+        document.getElementById('lineupStatus').textContent = data.progress;
+        if (data.status === 'done') {
+          clearInterval(t);
+          resolve(data.outputs);
+        } else if (data.status === 'error') {
+          clearInterval(t);
+          reject(data.progress);
+        }
+      }, 500);
+    }).then(outputs => {
+      document.getElementById('lineupProgress').classList.add('hidden');
+      btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+      document.getElementById('lineupStatus').textContent = 'Ready — click Generate Player!';
+
+      // Build LED preview URL with rendered clips
+      const params = new URLSearchParams();
+      const map = [
+        { id:0, key:'1344', w:1344, n:'Shortside'       },
+        { id:1, key:'576',  w:576,  n:'Longside Left'   },
+        { id:2, key:'1728', w:1728, n:'Longside Center' },
+        { id:3, key:'576',  w:576,  n:'Longside Right'  },
+        { id:4, key:'192',  w:192,  n:'Media'           },
+      ];
+      map.forEach(d => {
+        params.set('d'+d.id, '/app/outputs/'+outputs[d.key]);
+        params.set('w'+d.id, d.w);
+        params.set('n'+d.id, d.n);
+      });
+      window.open('/led-preview?'+params.toString(), 'ledpreview_lineup',
+        'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+    }).catch(err => {
+      document.getElementById('lineupStatus').textContent = '✗ ' + err;
+      btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+      document.getElementById('lineupProgress').classList.add('hidden');
+    });
+  } catch(e) {
+    document.getElementById('lineupStatus').textContent = '✗ Network error';
+    btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
+    document.getElementById('lineupProgress').classList.add('hidden');
+  }
 }
 
 function checkMergeReady() {

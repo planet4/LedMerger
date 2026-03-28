@@ -867,6 +867,100 @@ def lineup_generate():
     return jsonify({"job_id": job_id})
 
 
+@app.route("/api/lineup/preview-render", methods=["POST"])
+def lineup_preview_render():
+    """Render individual clips for LED preview — no stacked export, faster."""
+    data      = request.json
+    number    = str(data.get("number", "")).strip()
+    name      = str(data.get("name",   "")).strip()
+    num_dur   = float(data.get("num_dur",   2.1))
+    total_dur = float(data.get("total_dur", 6.0))
+    fps_val   = 25  # lower fps for faster preview render
+    fade_dur  = 0.3
+
+    if not number:
+        return jsonify({"error": "Player number required"}), 400
+    if not name:
+        return jsonify({"error": "Player name required"}), 400
+    if not PLAYERS_BG_1728.exists():
+        return jsonify({"error": "players-template-1728.mp4 not found"}), 400
+
+    bg_path = PLAYERS_BG_1728
+    bg_1344 = PLAYERS_BG_1344 if PLAYERS_BG_1344.exists() else PLAYERS_BG_1728
+
+    job_id = uuid.uuid4().hex
+    jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": []}
+
+    def preview_worker():
+        tmp = Path(tempfile.mkdtemp(prefix="preview_"))
+        try:
+            jobs[job_id]["status"] = "running"
+            chosen_font = FONT_PATH
+            font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+            fc          = "0xFFFFFF"
+
+            def render_clip(w, h, out_path, src):
+                fade_out_start = num_dur - fade_dur
+                fade_in_end    = num_dur + fade_dur
+                base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                max_chars      = max(len(f"# {number}"), len(name))
+                max_px_per_char = w / max(1, max_chars) * 1.8
+                base_size      = max(8, min(base_size, int(max_px_per_char)))
+                num_txt  = f"# {number}"
+                name_txt = name.upper()
+                wobble_num  = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
+                txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
+                         f"fontsize='{wobble_num}':x=(w-text_w)/2:y=(h-text_h)/2:"
+                         f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
+                txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
+                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x=(w-text_w)/2:y=(h-text_h)/2:"
+                          f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
+                ext = Path(src).suffix.lower()
+                loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
+                run_cmd(["ffmpeg","-y",*loop,"-i",str(src),"-t",str(total_dur),
+                         "-vf",f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},{txt_n},{txt_nm}",
+                         "-r",str(fps_val),"-c:v","libx264","-pix_fmt","yuv420p","-an",str(out_path)])
+
+            jobs[job_id]["progress"] = "Rendering Longside Center…"
+            c1728 = OUTPUT_DIR / f"prev_1728_{job_id[:8]}.mp4"
+            render_clip(1728, 64, c1728, bg_path)
+
+            jobs[job_id]["progress"] = "Rendering Shortside…"
+            c1344 = OUTPUT_DIR / f"prev_1344_{job_id[:8]}.mp4"
+            render_clip(1344, 64, c1344, bg_1344)
+
+            jobs[job_id]["progress"] = "Rendering Media 192…"
+            c192  = OUTPUT_DIR / f"prev_192_{job_id[:8]}.mp4"
+            src_192 = PLAYERS_BG_192 if PLAYERS_BG_192.exists() else bg_path
+            render_clip(192, 64, c192, src_192)
+
+            jobs[job_id]["progress"] = "Rendering 576…"
+            c576  = OUTPUT_DIR / f"prev_576_{job_id[:8]}.mp4"
+            ext576 = PLAYERS_BG_576.suffix.lower()
+            loop576 = ["-loop","1"] if ext576 in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
+            run_cmd(["ffmpeg","-y",*loop576,"-i",str(PLAYERS_BG_576),"-t",str(total_dur),
+                     "-vf","scale=576:64:force_original_aspect_ratio=increase,crop=576:64",
+                     "-r",str(fps_val),"-c:v","libx264","-pix_fmt","yuv420p","-an",str(c576)])
+
+            jobs[job_id]["status"]   = "done"
+            jobs[job_id]["progress"] = "Ready!"
+            jobs[job_id]["outputs"]  = {
+                "1728": c1728.name,
+                "1344": c1344.name,
+                "576":  c576.name,
+                "192":  c192.name,
+            }
+        except Exception as e:
+            jobs[job_id]["status"]   = "error"
+            jobs[job_id]["progress"] = str(e)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    threading.Thread(target=preview_worker, daemon=True).start()
+    return jsonify({"job_id": job_id})
+
+
 def _esc_dt(text):
     """Escape text for ffmpeg drawtext filter (backslash, colon, single-quote)."""
     text = text.replace("\\", "\\\\")
