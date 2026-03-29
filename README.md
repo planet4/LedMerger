@@ -36,7 +36,9 @@ ledmerger/
 └── data/
     ├── uploads/          — temporary upload storage
     ├── outputs/          — generated video files
-    ├── backgrounds/      — background video library
+    ├── backgrounds/
+    │   ├── 1728/         — 1728px backgrounds (Longside Center)
+    │   ├── 1344/         — 1344px backgrounds (Shortside)
     │   ├── 576_variants/ — 576px variant backgrounds (Players/Custom)
     │   ├── media_192/    — 192px media backgrounds
     │   └── layout.png    — arena layout reference image
@@ -45,14 +47,16 @@ ledmerger/
 
 ## Player template files
 
-The Players tab requires these fixed template files to be present:
+The Players tab requires these fixed template files. **The filenames are hardcoded — do not rename them.**
 
 ```
-data/backgrounds/players-template-1728.mp4
-data/backgrounds/players-template-1344.mp4
+data/backgrounds/1728/players-template-1728.mp4
+data/backgrounds/1344/players-template-1344.mp4
 data/backgrounds/576_variants/players-template-576.mp4
 data/backgrounds/media_192/players-template-192.mp4
 ```
+
+All other files in `1728/` and `1344/` are freely renameable — they only appear as dropdown options in the UI.
 
 ## Running with Docker
 

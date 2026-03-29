@@ -36,7 +36,8 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
 - `app.py` — all backend logic, Flask routes, ffmpeg workers
 - `templates/index.html` — entire frontend (single file, ~1800 lines)
 - `templates/led_preview.html` — LED preview popup window (60fps, pixel grid, arena view)
-- `data/backgrounds/` — background video library
+- `data/backgrounds/1728/` — 1728px backgrounds (Longside Center)
+- `data/backgrounds/1344/` — 1344px backgrounds (Shortside)
 - `data/backgrounds/576_variants/` — 576px variant backgrounds
 - `data/backgrounds/media_192/` — 192px media backgrounds
 - `data/backgrounds/layout.png` — arena photo used in LED preview arena view
@@ -52,11 +53,12 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
 ## Players tab specifics
 - Font: Road Rage (Road_Rage.otf) — always, not configurable
 - Color: white — always
-- Backgrounds: fixed template files must exist in data/backgrounds/
-  - players-template-1728.mp4
-  - players-template-1344.mp4
-  - 576_variants/players-template-576.mp4
-  - media_192/players-template-192.mp4
+- Backgrounds: fixed template files — **exact filenames are hardcoded, do not rename**
+  - `data/backgrounds/1728/players-template-1728.mp4`
+  - `data/backgrounds/1344/players-template-1344.mp4`
+  - `data/backgrounds/576_variants/players-template-576.mp4`
+  - `data/backgrounds/media_192/players-template-192.mp4`
+- Other files in `1728/` and `1344/` are freely renameable — they only appear as dropdown options
 - Default timing: 2.1s number, 6s total
 - Pop wobble effect: fontsize expression using damped oscillation
   - formula: `base*(1+0.35*exp(-8*t)*cos(12*t))`
