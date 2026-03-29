@@ -9,6 +9,7 @@ services:
       - ./data/outputs:/app/outputs
       - ./data/fonts:/app/fonts
       - ./data/backgrounds:/app/backgrounds
+      - ./data/library:/app/library
     restart: unless-stopped
     environment:
       - FLASK_ENV=production

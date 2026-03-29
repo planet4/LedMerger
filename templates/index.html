@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixbo LED Merger</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 tailwind.config = {
   theme: {
@@ -18,7 +18,7 @@ tailwind.config = {
         neon: '#00ff88',
       },
       fontFamily: {
-        sans:    ['"Noto Sans"','sans-serif'],
+        sans:    ['"Inter"','sans-serif'],
         mono:    ['"Noto Sans Mono"','monospace'],
       },
     }
@@ -50,15 +50,15 @@ tailwind.config = {
     --tx-info:   #75778A;
   }
 
-  body { font-family:'Noto Sans',sans-serif; background:var(--bg-page); color:var(--tx-main); }
+  body { font-family:'Inter',sans-serif; background:var(--bg-page); color:var(--tx-main); }
 
   /* Section cards */
   .section-card { background:var(--bg-card); border:1px solid var(--bd); border-radius:12px; overflow:hidden; }
   .section-header { background:var(--bg-sub); border-bottom:1px solid var(--bd); padding:13px 20px; display:flex; align-items:center; justify-content:space-between; }
-  .section-title { font-family:'Noto Sans',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.01em; color:var(--tx-main); }
+  .section-title { font-family:'Inter',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.01em; color:var(--tx-main); }
 
   /* Inputs & selects */
-  input, select, textarea { font-family:'Noto Sans',sans-serif; }
+  input, select, textarea { font-family:'Inter',sans-serif; }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width:4px; }
@@ -129,7 +129,7 @@ tailwind.config = {
 </head>
 <body class="text-gray-200 min-h-screen">
 <!-- Font primer -->
-<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Noto Sans';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
+<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Inter';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
 <div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
 
   <!-- HEADER -->
@@ -141,7 +141,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.23 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.31 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
     <div class="flex flex-col items-end gap-2">
       <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
@@ -155,10 +155,15 @@ tailwind.config = {
     <button onclick="switchTab('merge')" id="tab-merge" class="tab-pill tab-active">File Merger</button>
     <button onclick="switchTab('lineup')" id="tab-lineup" class="tab-pill">Players</button>
     <button onclick="switchTab('custom')" id="tab-custom" class="tab-pill">Custom</button>
+    <button onclick="switchTab('library')" id="tab-library" class="tab-pill">Library</button>
   </div>
 
   <!-- ══════════════ FILE MERGER ══════════════ -->
   <div id="tab-merge-content" class="pt-5 space-y-4">
+
+    <div class="info-box">
+      Upload one video or image file per display zone. All files are looped to the same duration and merged into a single stacked 1600×1200px MP4 compatible with the Sedna LED controller. Individual files per display are also exported.
+    </div>
 
     <!-- 01 Upload -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -317,6 +322,11 @@ tailwind.config = {
 
   <!-- ══════════════ PLAYER CARDS ══════════════ -->
   <div id="tab-lineup-content" class="pt-5 space-y-4 hidden">
+
+    <div class="info-box">
+      Generate a branded player introduction video using fixed Pixbo templates. Enter a player number and name — the number animates with a pop-wobble effect, then fades into the name. Uses Road Rage font on all displays. Exports a stacked file plus individual clips per display.<br><br>
+      Note that the player generation in this app might look slightly different compared to the current players. They are rendered in DaVinci Studio.
+    </div>
 
     <!-- 01 Background + Font -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -479,6 +489,10 @@ tailwind.config = {
 
   <!-- ══════════════ CUSTOM ══════════════ -->
   <div id="tab-custom-content" class="pt-5 space-y-4 hidden">
+
+    <div class="info-box">
+      Create custom text animations for each display zone independently. Choose a background, font, and up to 6 text slots per display — each with its own text and duration. Slots play sequentially and loop. Use LED Preview to check the result before exporting.
+    </div>
 
     <!-- 01 Background & Font -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -697,11 +711,51 @@ tailwind.config = {
     </div>
 
   </div><!-- /tab-custom -->
-</div>
+
+  <!-- ══════════════ LIBRARY ══════════════ -->
+  <div id="tab-library-content" class="pt-5 space-y-4 hidden">
+
+  <div class="info-box">
+    Stacked MP4 files ready for playback on the Sedna LED controller. Browse by category and download. Upload your own files (MP4 only) to any category.
+  </div>
+
+  {% set lib_cats = [('Event','Event'), ('General','General'), ('Special','Special'), ('Commercial','Commercial'), ('Starcamp','Starcamp'), ('SSL Players Men','SSL Players Men'), ('SSL Players Women','SSL Players Women'), ('JAS Men','JAS Men'), ('JAS Women','JAS Women'), ('Players Boys','Players Boys'), ('Players Girls','Players Girls')] %}
+  {% for cat_key, cat_label in lib_cats %}
+  <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+    <div class="section-header flex items-center justify-between">
+      <span class="section-title">{{ cat_label }}</span>
+      <label class="cursor-pointer">
+        <input type="file" accept=".mp4" class="hidden" onchange="libraryUpload('{{ cat_key }}', this)">
+        <span class="font-mono text-xs px-3 py-1 rounded-full border border-[#CC1020] text-[#CC1020] hover:bg-[#CC1020] hover:text-white transition-colors select-none">+ Upload</span>
+      </label>
+    </div>
+    <div class="p-4">
+      <div id="lib-list-{{ cat_key | replace('/','-') }}" class="space-y-1 min-h-[32px]">
+        <span class="font-mono text-xs text-[#555]">Loading…</span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  </div><!-- /tab-library -->
+</div><!-- /max-w-4xl -->
 
 <!-- Footer credit -->
 <div class="relative z-10 max-w-4xl mx-auto px-5 py-4 flex justify-end">
   <span class="font-mono text-xs" style="color:#1e1e1e;">Created by <a href="mailto:fredrik@planet4.se" style="color:#2a2a2a;text-decoration:none;" onmouseover="this.style.color='#CC1020'" onmouseout="this.style.color='#2a2a2a'">Fredrik@planet4.se</a></span>
+</div>
+
+<!-- LIBRARY VIDEO PREVIEW MODAL -->
+<div id="libPreviewModal" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4" onclick="closeLibPreview()">
+  <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl w-full max-w-2xl overflow-hidden" onclick="event.stopPropagation()">
+    <div class="section-header">
+      <span id="libPreviewTitle" class="section-title font-mono text-sm truncate"></span>
+      <button onclick="closeLibPreview()" class="font-mono text-[#888] hover:text-white text-lg leading-none">✕</button>
+    </div>
+    <div class="p-4">
+      <video id="libPreviewVideo" controls autoplay loop class="w-full rounded bg-black" style="max-height:60vh"></video>
+    </div>
+  </div>
 </div>
 
 <!-- ARENA LAYOUT MODAL -->
@@ -740,14 +794,14 @@ const VARIANTS_DIR_PREFIX = '/app/backgrounds/576_variants/';
 
 // ══ TABS ══
 function switchTab(name) {
-  ['merge','lineup','custom'].forEach(t => {
+  ['merge','lineup','custom','library'].forEach(t => {
     const a = t === name;
-    const btn = document.getElementById(`tab-${t}`);
-    btn.classList.toggle('tab-active', a);
+    document.getElementById(`tab-${t}`).classList.toggle('tab-active', a);
     document.getElementById(`tab-${t}-content`).classList.toggle('hidden', !a);
   });
   if (name === 'lineup') setTimeout(renderAllLuCanvases, 50);
   if (name === 'custom') setTimeout(renderAllCuCanvases, 50);
+  if (name === 'library') loadLibrary();
 }
 
 // ══ MODAL ══
@@ -1892,6 +1946,105 @@ loadCustomBgLibrary();
 loadCustom576Variants();
 loadCustomMedia192();
 [0,1,2,3,4].forEach(id => updateCustomTimeline(id));
+
+// ══ LIBRARY TAB ══
+const LIBRARY_CATS = ['Event','General','Special','Commercial','Starcamp','SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls'];
+const LIBRARY_CAT_LABELS = {'Event':'Event','General':'General','Special':'Special','Commercial':'Commercial','Starcamp':'Starcamp','SSL Players Men':'SSL Players Men','SSL Players Women':'SSL Players Women','JAS Men':'JAS Men','JAS Women':'JAS Women','Players Boys':'Players Boys','Players Girls':'Players Girls'};
+
+function _libCatOpts(current) {
+  return LIBRARY_CATS.map(c => `<option value="${c}"${c===current?' selected':''}>${LIBRARY_CAT_LABELS[c]}</option>`).join('');
+}
+
+async function loadLibrary() {
+  try {
+    const data = await (await fetch('/api/library')).json();
+    LIBRARY_CATS.forEach(cat => {
+      const id = 'lib-list-' + cat.replace('/', '-');
+      const el = document.getElementById(id);
+      if (!el) return;
+      const files = data[cat] || [];
+      if (!files.length) {
+        el.innerHTML = '<span class="font-mono text-xs text-[#555]">No files yet.</span>';
+        return;
+      }
+      el.innerHTML = files.map(f => `
+        <div class="py-2 border-b border-[#2E2E3A] last:border-0 space-y-1.5">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0">${f.name}</span>
+            ${f.duration != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${f.duration}s</span>` : ''}
+            <select onchange="libChangeCategory('${cat}','${f.name}',this)"
+              class="bg-[#1E2229] border border-[#333] rounded px-2 py-0.5 font-mono text-xs text-[var(--tx-main)] focus:outline-none focus:border-[#CC1020]">
+              ${_libCatOpts(cat)}
+            </select>
+            <button onclick="libPreview('${cat}','${f.name}')" class="font-mono text-xs px-3 py-0.5 rounded-full border border-[#444] text-[#888] hover:border-[#CC1020] hover:text-[#CC1020] transition-colors whitespace-nowrap">▶ Preview</button>
+            <button onclick="libDelete('${cat}','${f.name}',this)" class="font-mono text-xs px-3 py-0.5 rounded-full border border-[#444] text-[#666] hover:border-red-700 hover:text-red-500 transition-colors whitespace-nowrap">✕ Delete</button>
+            <a href="/api/library/download/${encodeURIComponent(cat)}/${encodeURIComponent(f.name)}"
+               class="font-mono text-xs px-3 py-0.5 rounded-full border border-[#444] text-[#888] hover:border-[#CC1020] hover:text-[#CC1020] transition-colors whitespace-nowrap" download>
+              ↓ Download
+            </a>
+          </div>
+          <input type="text" value="${f.description.replace(/"/g,'&quot;')}" placeholder="Add description…"
+            class="w-full bg-transparent border border-[#2E2E3A] rounded px-2 py-1 font-mono text-xs text-[var(--tx-muted)] placeholder-[#555] focus:outline-none focus:border-[#CC1020] focus:text-[var(--tx-main)]"
+            onblur="libSaveDesc('${cat}','${f.name}',this.value)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </div>`).join('');
+    });
+  } catch(e) { console.error('Library load error', e); }
+}
+
+function libPreview(cat, filename) {
+  const path = `/app/library/${cat}/${filename}`;
+  document.getElementById('libPreviewTitle').textContent = filename;
+  document.getElementById('libPreviewVideo').src = `/api/stream?path=${encodeURIComponent(path)}`;
+  document.getElementById('libPreviewModal').classList.remove('hidden');
+}
+function closeLibPreview() {
+  const v = document.getElementById('libPreviewVideo');
+  v.pause(); v.src = '';
+  document.getElementById('libPreviewModal').classList.add('hidden');
+}
+
+async function libSaveDesc(cat, filename, desc) {
+  await fetch('/api/library/update', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({category:cat, filename, description:desc})});
+}
+
+async function libChangeCategory(cat, filename, select) {
+  const newCat = select.value;
+  if (newCat === cat) return;
+  const desc = select.closest('div.py-2').querySelector('input').value;
+  await fetch('/api/library/update', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({category:cat, filename, description:desc, new_category:newCat})});
+  loadLibrary();
+}
+
+async function libDelete(cat, filename, btn) {
+  const pw = prompt(`Enter password to delete "${filename}":`);
+  if (pw === null) return;
+  if (pw !== 'Pixbo') { alert('Incorrect password.'); return; }
+  await fetch('/api/library/delete', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({category:cat, filename})});
+  loadLibrary();
+}
+
+async function libraryUpload(cat, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.mp4')) {
+    alert('Only .mp4 files are allowed.'); input.value = ''; return;
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('category', cat);
+  const id = 'lib-list-' + cat.replace('/', '-');
+  document.getElementById(id).innerHTML = '<span class="font-mono text-xs text-[#888]">Uploading…</span>';
+  try {
+    const r = await (await fetch('/api/library/upload', {method:'POST', body:fd})).json();
+    if (r.ok) { loadLibrary(); }
+    else { alert(r.error || 'Upload failed'); loadLibrary(); }
+  } catch(e) { alert('Upload failed'); loadLibrary(); }
+  input.value = '';
+}
 
 // ── Theme toggle ──
 function applyTheme(t) {

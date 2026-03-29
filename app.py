@@ -3,6 +3,7 @@ Sedna LED Rink Display Merger — Flask Web App
 """
 
 import os
+import json
 import uuid
 import shutil
 import tempfile
@@ -22,8 +23,26 @@ BG_DIR        = Path("/app/backgrounds")
 BG_DIR_1344   = Path("/app/backgrounds/1344")
 BG_DIR_1728   = Path("/app/backgrounds/1728")
 MEDIA192_DIR  = Path("/app/backgrounds/media_192")
+LIBRARY_DIR   = Path("/app/library")
+LIBRARY_CATEGORIES = ["Event", "General", "Special", "Commercial", "Starcamp", "SSL Players Men", "SSL Players Women", "JAS Men", "JAS Women", "Players Boys", "Players Girls"]
 for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, BG_DIR_1344, BG_DIR_1728, MEDIA192_DIR]:
     _d.mkdir(exist_ok=True)
+for _cat in LIBRARY_CATEGORIES:
+    (LIBRARY_DIR / _cat).mkdir(parents=True, exist_ok=True)
+
+# Daily cleanup of uploads and outputs at midnight
+import time as _time
+from datetime import datetime, timedelta
+def _daily_cleanup():
+    while True:
+        now = datetime.now()
+        next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        _time.sleep((next_midnight - now).total_seconds())
+        for _dir in [UPLOAD_DIR, OUTPUT_DIR]:
+            for _f in _dir.iterdir():
+                if _f.is_file():
+                    _f.unlink(missing_ok=True)
+threading.Thread(target=_daily_cleanup, daemon=True).start()
 
 DISPLAYS = [
     {"id": 0, "name": "Shortside",        "width": 1344, "height": 64},
@@ -546,7 +565,7 @@ def stream_file():
         abort(400)
     src = Path(path)
     # Security: only allow files inside UPLOAD_DIR or OUTPUT_DIR or VARIANTS_DIR
-    allowed = [UPLOAD_DIR.resolve(), OUTPUT_DIR.resolve(), VARIANTS_DIR.resolve(), BG_DIR.resolve(), BG_DIR_1344.resolve(), BG_DIR_1728.resolve(), MEDIA192_DIR.resolve()]
+    allowed = [UPLOAD_DIR.resolve(), OUTPUT_DIR.resolve(), VARIANTS_DIR.resolve(), BG_DIR.resolve(), BG_DIR_1344.resolve(), BG_DIR_1728.resolve(), MEDIA192_DIR.resolve(), LIBRARY_DIR.resolve()]
     if not any(src.resolve().is_relative_to(d) for d in allowed):
         abort(403)
     if not src.exists():
@@ -1319,6 +1338,116 @@ def custom_preview_render():
 
     threading.Thread(target=preview_worker, daemon=True).start()
     return jsonify({"job_id": job_id})
+
+
+LIBRARY_META = LIBRARY_DIR / "metadata.json"
+
+def _load_lib_meta():
+    if LIBRARY_META.exists():
+        try:
+            return json.loads(LIBRARY_META.read_text())
+        except Exception:
+            return {}
+    return {}
+
+def _save_lib_meta(meta):
+    LIBRARY_META.write_text(json.dumps(meta, indent=2))
+
+
+@app.route("/api/library")
+def list_library():
+    meta = _load_lib_meta()
+    result = {}
+    for cat in LIBRARY_CATEGORIES:
+        d = LIBRARY_DIR / cat
+        files = []
+        for f in sorted(d.iterdir()):
+            if f.suffix.lower() == ".mp4":
+                dur = None
+                try:
+                    r = subprocess.run(
+                        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                         "-of", "default=noprint_wrappers=1:nokey=1", str(f)],
+                        capture_output=True, text=True, timeout=5)
+                    dur = round(float(r.stdout.strip()))
+                except Exception:
+                    pass
+                files.append({
+                    "name": f.name,
+                    "description": meta.get(f"{cat}/{f.name}", {}).get("description", ""),
+                    "duration": dur,
+                })
+        result[cat] = files
+    return jsonify(result)
+
+
+@app.route("/api/library/upload", methods=["POST"])
+def library_upload():
+    f    = request.files.get("file")
+    cat  = request.form.get("category", "")
+    if not f:
+        return jsonify({"error": "No file"}), 400
+    if cat not in LIBRARY_CATEGORIES:
+        return jsonify({"error": "Invalid category"}), 400
+    if Path(f.filename).suffix.lower() != ".mp4":
+        return jsonify({"error": "Only .mp4 files allowed"}), 400
+    filename = Path(f.filename).name
+    dest = LIBRARY_DIR / cat / filename
+    f.save(str(dest))
+    return jsonify({"ok": True, "filename": filename})
+
+
+@app.route("/api/library/update", methods=["POST"])
+def library_update():
+    data     = request.json
+    cat      = data.get("category", "")
+    filename = data.get("filename", "")
+    desc     = data.get("description", "")
+    new_cat  = data.get("new_category", "")
+    if cat not in LIBRARY_CATEGORIES or not filename:
+        return jsonify({"error": "Invalid"}), 400
+    src = LIBRARY_DIR / cat / filename
+    if not src.exists():
+        return jsonify({"error": "File not found"}), 404
+    meta = _load_lib_meta()
+    old_key = f"{cat}/{filename}"
+    if new_cat and new_cat != cat and new_cat in LIBRARY_CATEGORIES:
+        dest = LIBRARY_DIR / new_cat / filename
+        src.rename(dest)
+        if old_key in meta:
+            meta[f"{new_cat}/{filename}"] = meta.pop(old_key)
+        cat = new_cat
+    key = f"{cat}/{filename}"
+    meta.setdefault(key, {})["description"] = desc
+    _save_lib_meta(meta)
+    return jsonify({"ok": True, "category": cat})
+
+
+@app.route("/api/library/delete", methods=["POST"])
+def library_delete():
+    data     = request.json
+    cat      = data.get("category", "")
+    filename = data.get("filename", "")
+    if cat not in LIBRARY_CATEGORIES or not filename:
+        return jsonify({"error": "Invalid"}), 400
+    target = LIBRARY_DIR / cat / filename
+    if not target.exists():
+        return jsonify({"error": "File not found"}), 404
+    target.unlink()
+    meta = _load_lib_meta()
+    meta.pop(f"{cat}/{filename}", None)
+    _save_lib_meta(meta)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/library/download/<path:filepath>")
+def library_download(filepath):
+    target = (LIBRARY_DIR / filepath).resolve()
+    if not target.is_relative_to(LIBRARY_DIR.resolve()):
+        abort(403)
+    if not target.exists():
+        abort(404)
+    return send_file(str(target), as_attachment=True, download_name=target.name)
 
 
 if __name__ == "__main__":

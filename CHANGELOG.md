@@ -6,6 +6,32 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.31] - 2026-03-29
+
+### Library improvements
+- Per-file editable description (saved in metadata.json)
+- Video duration shown in seconds next to filename
+- ▶ Preview button opens stacked file in a video modal
+- Category selector per file — moves file to new category on change
+- Delete requires password "Pixbo"
+- Categories expanded: Commercial, SSL Players Men/Women, JAS Men/Women, Players Boys/Girls
+- Tab info boxes added to all tabs
+- Email contact added to header
+
+---
+
+## [0.3] - 2026-03-29
+
+### Library tab
+- New Library tab for storing and sharing finished stacked MP4 files
+- Categories: Event, General, Special, Players — Men, Players — Women
+- Upload MP4 files per category directly from the browser
+- Download any file with one click
+- Library stored in `data/library/` (volume-mounted, survives rebuilds)
+- Daily cleanup: uploads and outputs are automatically deleted at midnight
+
+---
+
 ## [0.23] - 2026-03-28
 
 ### Background Directory Restructure
