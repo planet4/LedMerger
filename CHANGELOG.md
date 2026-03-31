@@ -6,6 +6,15 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.32] - 2026-03-31
+
+### Project files
+- Added `ROADMAP.md` with planned improvements and ideas
+- Added `davinciscripts/` folder with PowerShell crop script and README
+- Inter font replacing Noto Sans across the UI
+
+---
+
 ## [0.31] - 2026-03-29
 
 ### Library improvements

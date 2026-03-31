@@ -3,7 +3,7 @@
 ## What this project is
 A Flask/Docker web app for creating and merging LED rink content for Pixbo Floorball at Wallenstam Arena. It produces stacked MP4 files compatible with the Sedna LED controller.
 
-## Current version: 0.31
+## Current version: 0.32
 
 ## Critical — Export format
 The stacked export MUST always be exactly 1600×1200px, 50fps, h264/yuv420p.
@@ -96,3 +96,4 @@ rm -f data/uploads/*
 - **After every change, update CHANGELOG.md** — add a summarized entry under the current version (or bump the version if it's a meaningful release). Keep it brief: what changed and why, not line-by-line details.
 - **Version scheme:** `0.1` = initial, `0.11` / `0.12` = incremental updates to 0.1, `0.2` = next major change, `0.21` / `0.22` = incremental updates to 0.2, etc. Bump to the next major (e.g. `0.3`) only for significant rewrites or feature additions. Increment the sub-version (e.g. `0.21` → `0.22`) for smaller fixes and features.
 - **After bumping the version**, update both `CLAUDE.md` ("Current version") and the subtitle line in `templates/index.html` (format: `Pixbo LED Rink Content Creator v0.XX`).
+- **When implementing something from ROADMAP.md**, remove it from the roadmap after it's done.
