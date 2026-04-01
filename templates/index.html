@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<script>
-  (function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');if(t==='light')document.documentElement.classList.add('light');})();
-</script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixbo LED Merger</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <script>
 tailwind.config = {
   theme: {
@@ -18,7 +16,7 @@ tailwind.config = {
         neon: '#00ff88',
       },
       fontFamily: {
-        sans:    ['"Inter"','sans-serif'],
+        sans:    ['"Outfit"','sans-serif'],
         mono:    ['"Noto Sans Mono"','monospace'],
       },
     }
@@ -38,27 +36,16 @@ tailwind.config = {
     --tx-dim:    #5C6478;
     --tx-info:   #9096A8;
   }
-  html.light {
-    --bg-page:   #F0F2F7;
-    --bg-card:   #FFFFFF;
-    --bg-sub:    #EAECF2;
-    --bd:        #D2D5E0;
-    --bd-muted:  #BEC1CC;
-    --tx-main:   #1C1E2E;
-    --tx-muted:  #62648A;
-    --tx-dim:    #9698B0;
-    --tx-info:   #75778A;
-  }
 
-  body { font-family:'Inter',sans-serif; background:var(--bg-page); color:var(--tx-main); }
+  body { font-family:'Outfit',sans-serif; background:var(--bg-page); color:var(--tx-main); }
 
   /* Section cards */
   .section-card { background:var(--bg-card); border:1px solid var(--bd); border-radius:12px; overflow:hidden; }
   .section-header { background:var(--bg-sub); border-bottom:1px solid var(--bd); padding:13px 20px; display:flex; align-items:center; justify-content:space-between; }
-  .section-title { font-family:'Inter',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.01em; color:var(--tx-main); }
+  .section-title { font-family:'Outfit',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.01em; color:var(--tx-main); }
 
   /* Inputs & selects */
-  input, select, textarea { font-family:'Inter',sans-serif; }
+  input, select, textarea { font-family:'Outfit',sans-serif; }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width:4px; }
@@ -91,7 +78,15 @@ tailwind.config = {
   .tile-slot-thumb { width:100%; height:100%; object-fit:contain; background:#000; position:absolute; inset:0; border-radius:6px; }
 
   /* Info box */
-  .info-box { background:var(--bg-sub); border:1px solid var(--bd); border-left:3px solid #CC1020; border-radius:8px; padding:10px 14px; font-size:12px; color:var(--tx-info); line-height:1.6; }
+  .info-box, .warn-box { display:flex; gap:10px; align-items:flex-start; background:var(--bg-sub); border:1px solid var(--bd); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--tx-info); line-height:1.6; }
+  .info-box { border-left:3px solid #22a06b; }
+  .warn-box { border-left:3px solid #CC1020; }
+  .info-box .box-icon { color:#22a06b; font-size:16px !important; flex-shrink:0; margin-top:1px; }
+  .warn-box .box-icon { color:#CC1020; font-size:16px !important; flex-shrink:0; margin-top:1px; }
+  .icon-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; border:1px solid var(--bd); color:var(--tx-muted); background:transparent; cursor:pointer; transition:border-color .15s, color .15s; }
+  .icon-btn:hover { border-color:#CC1020; color:#CC1020; }
+  .icon-btn.danger:hover { border-color:#b91c1c; color:#ef4444; }
+  .icon-btn .material-icons-round { font-size:16px; }
 
   /* Red accent */
   .red-glow { text-shadow:0 0 30px rgba(204,16,32,0.4); }
@@ -104,8 +99,6 @@ tailwind.config = {
   .tab-pill.tab-active { background:var(--bg-card); color:var(--tx-main); box-shadow:0 1px 4px rgba(0,0,0,0.25); }
 
   /* Theme toggle */
-  #themeToggle { cursor:pointer; background:none; border:1px solid var(--bd); border-radius:8px; padding:5px 10px; color:var(--tx-muted); font-size:15px; transition:border-color .2s,color .2s; }
-  #themeToggle:hover { border-color:#CC1020; color:#CC1020; }
 
   /* ── Remap Tailwind inline hex classes to theme vars ── */
   .bg-\[\#22222A\]      { background:var(--bg-card) !important; }
@@ -121,15 +114,11 @@ tailwind.config = {
   .text-gray-300        { color:var(--tx-muted) !important; }
 
   /* Light-mode extras */
-  html.light input:not([type=color]):not([type=range]),
-  html.light select,
-  html.light textarea { background:var(--bg-sub) !important; color:var(--tx-main) !important; border-color:var(--bd) !important; }
-  html.light .hover\:bg-white\/\[0\.015\]:hover { background:rgba(0,0,0,0.025) !important; }
 </style>
 </head>
 <body class="text-gray-200 min-h-screen">
 <!-- Font primer -->
-<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Inter';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
+<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Outfit';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
 <div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
 
   <!-- HEADER -->
@@ -143,33 +132,31 @@ tailwind.config = {
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
       <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.32 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
-    <div class="flex flex-col items-end gap-2">
-      <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
-      <div class="font-mono text-xs text-[#555] uppercase tracking-widest">Fixed Output</div>
-      <div class="font-semibold text-xl text-[#CC1020]">50 FPS</div>
-    </div>
   </header>
 
   <!-- TABS -->
-  <div class="tab-bar">
-    <button onclick="switchTab('merge')" id="tab-merge" class="tab-pill tab-active">File Merger</button>
-    <button onclick="switchTab('lineup')" id="tab-lineup" class="tab-pill">Players</button>
-    <button onclick="switchTab('custom')" id="tab-custom" class="tab-pill">Custom</button>
-    <button onclick="switchTab('library')" id="tab-library" class="tab-pill">Library</button>
+  <div class="flex items-center justify-between mb-4">
+    <div class="tab-bar" style="margin-bottom:0">
+      <button onclick="switchTab('merge')" id="tab-merge" class="tab-pill tab-active">File Merger</button>
+      <button onclick="switchTab('lineup')" id="tab-lineup" class="tab-pill">Players</button>
+      <button onclick="switchTab('custom')" id="tab-custom" class="tab-pill">Custom</button>
+      <button onclick="switchTab('library')" id="tab-library" class="tab-pill">Library</button>
+    </div>
+    <button onclick="openLayoutModal()" class="font-mono text-xs text-[#555] hover:text-[#CC1020] transition-colors flex items-center gap-1"><span class="material-icons-round" style="font-size:15px">grid_on</span> Arena layout</button>
   </div>
 
   <!-- ══════════════ FILE MERGER ══════════════ -->
   <div id="tab-merge-content" class="pt-5 space-y-4">
 
     <div class="info-box">
-      Upload one video or image file per display zone. All files are looped to the same duration and merged into a single stacked 1600×1200px MP4 compatible with the Sedna LED controller. Individual files per display are also exported.
+      <span class="material-icons-round box-icon">info</span>
+      Upload one video or image file per display zone. All files are looped to the same duration and merged into a single stacked 1600×1200px MP4 compatible with the Sedna LED controller. Individual files per display are also exported. All files are exported as 50 FPS.
     </div>
 
     <!-- 01 Upload -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
       <div class="section-header">
         <span class="section-title">01 — Upload Display Files</span>
-        <button onclick="openLayoutModal()" class="font-mono text-xs text-[#888] hover:text-[#CC1020] transition-colors underline underline-offset-2">📐 View arena layout</button>
       </div>
 
       {% for d in displays %}
@@ -180,7 +167,7 @@ tailwind.config = {
             <div class="font-semibold font-semibold text-sm text-gray-100 uppercase tracking-wide">{{ d.name }}</div>
             <div class="font-mono text-xs text-[#CC1020] mt-0.5">{{ d.width }} × {{ d.height }} px</div>
           </div>
-          <div class="relative border-2 border-dashed border-[#3C3C3C] rounded-xl min-h-[42px] flex items-center px-3 cursor-pointer hover:border-[#CC1020]/60 hover:bg-[#CC1020]/5 transition-all"
+          <div class="relative border-2 border-dashed border-[#3C3C3C] rounded-md min-h-[42px] flex items-center px-3 cursor-pointer hover:border-[#CC1020]/60 hover:bg-[#CC1020]/5 transition-all"
                id="drop-{{ d.id }}"
                ondragover="event.preventDefault();this.classList.add('drop-active')"
                ondragleave="this.classList.remove('drop-active')"
@@ -229,8 +216,9 @@ tailwind.config = {
     </div>
 
     <!-- Info: 576 Left/Right warning -->
-    <div class="info-box">
-      ⚠&nbsp; It is recommended to use the same file for <strong style="color:#ddd">Longside Left</strong> and <strong style="color:#ddd">Longside Right</strong> in stacked exports. Using different files may result in a visible cut on the physical LED displays.
+    <div class="warn-box">
+      <span class="material-icons-round box-icon">warning</span>
+      It is recommended to use the same file for <strong style="color:#ddd">Longside Left</strong> and <strong style="color:#ddd">Longside Right</strong> in stacked exports. Using different files may result in a visible cut on the physical LED displays.
     </div>
     <!-- 02 Visual Layout -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -324,8 +312,9 @@ tailwind.config = {
   <div id="tab-lineup-content" class="pt-5 space-y-4 hidden">
 
     <div class="info-box">
+      <span class="material-icons-round box-icon">info</span>
       Generate a branded player introduction video using fixed Pixbo templates. Enter a player number and name — the number animates with a pop-wobble effect, then fades into the name. Uses Road Rage font on all displays. Exports a stacked file plus individual clips per display.<br><br>
-      Note that the player generation in this app might look slightly different compared to the current players. They are rendered in DaVinci Studio.
+      Note that the player generation in this app might look slightly different compared to the current players. They are rendered in DaVinci Studio. You can save the rendered files to the library when done.
     </div>
 
     <!-- 01 Background + Font -->
@@ -344,8 +333,9 @@ tailwind.config = {
       </div>
     </div>
     <!-- Info: timing note -->
-    <div class="info-box">
-      ℹ&nbsp; Default duration is the standard Pixbo player lineup time. Change only if needed.
+    <div class="warn-box">
+      <span class="material-icons-round box-icon">warning</span>
+      Default duration is the standard Pixbo player lineup time. Change only if needed. Same goes with font size.
     </div>
     <!-- 02 Player Info -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -357,25 +347,25 @@ tailwind.config = {
           <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Player Number</label>
           <input type="text" id="playerNumber" value="99" maxlength="3"
             oninput="updateTimeline();checkLineupReady()"
-            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
         <div class="space-y-1.5">
           <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Player Name</label>
           <input type="text" id="playerName" value="TED BORG"
             oninput="updateTimeline();checkLineupReady()"
-            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded text-gray-100 font-mono text-2xl px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
         <div class="space-y-1.5">
           <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Number shown (sec)</label>
           <input type="number" id="numDur" value="2.1" min="0.5" max="10" step="0.1"
             oninput="updateTimeline()"
-            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
         <div class="space-y-1.5">
           <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Total duration (sec)</label>
           <input type="number" id="totalDur" value="6" min="2" max="30" step="0.5"
             oninput="updateTimeline()"
-            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded-xl text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
+            class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
       </div>
     </div>
@@ -482,6 +472,16 @@ tailwind.config = {
           <div class="font-mono text-xs text-[#888] mt-0.5">Stacked export + 3 individual files</div>
         </div>
         <div class="ml-auto flex gap-2 flex-wrap" id="lineupDlButtons"></div>
+        <div class="w-full border-t border-[#2E2E3A] pt-3 flex items-center gap-2 flex-wrap">
+          <span class="font-mono text-xs text-[#888]">Save stacked to Library:</span>
+          <select id="lineupLibraryCat" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
+            {% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+          <button onclick="saveLineupToLibrary()" class="font-mono text-xs px-3 py-1 rounded bg-[#2A2A36] border border-[#3A3A4A] text-[#999] hover:border-[#CC1020] hover:text-white transition-colors">→ Save</button>
+          <span id="lineupLibrarySaveStatus" class="font-mono text-xs text-[#888]"></span>
+        </div>
       </div>
     </div>
 
@@ -491,6 +491,7 @@ tailwind.config = {
   <div id="tab-custom-content" class="pt-5 space-y-4 hidden">
 
     <div class="info-box">
+      <span class="material-icons-round box-icon">info</span>
       Create custom text animations for each display zone independently. Choose a background, font, and up to 6 text slots per display — each with its own text and duration. Slots play sequentially and loop. Use LED Preview to check the result before exporting.
     </div>
 
@@ -505,7 +506,7 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Longside Center (1728px):</span>
           <select id="cuBgLibrary2" onchange="selectCustomBg(2, this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— select background —</option>
           </select>
         </div>
@@ -513,7 +514,7 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Shortside (1344px):</span>
           <select id="cuBgLibrary0" onchange="selectCustomBg(0, this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— select background —</option>
           </select>
         </div>
@@ -521,7 +522,7 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Longside 576px (Left &amp; Right):</span>
           <select id="cuVariant576Left" onchange="selectCustom576Left(this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— black —</option>
           </select>
         </div>
@@ -530,7 +531,7 @@ tailwind.config = {
         <div class="flex items-center gap-2 border-t border-[#2E2E3A] pt-2">
           <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Media (192px):</span>
           <select id="cuMedia192Select" onchange="selectCustomMedia192(this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— black —</option>
           </select>
         </div>
@@ -538,18 +539,29 @@ tailwind.config = {
         <div class="flex items-center gap-3 flex-wrap border-t border-[#2E2E3A] pt-2">
           <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Font:</span>
           <select id="cuFontSelect" onchange="selectCustomFont(this.value)"
-            class="flex-1 min-w-[180px] bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 min-w-[180px] bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— loading… —</option>
           </select>
           <span class="font-mono text-xs" id="cuFontStatus"></span>
           <span class="font-mono text-xs text-[#888] whitespace-nowrap">Size:</span>
           <input type="number" id="cuFontSize" value="50" min="10" max="200" step="5"
             oninput="renderAllCuCanvases()"
-            class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded-xl font-mono text-xs text-gray-200 px-2 py-2 outline-none focus:border-[#CC1020] text-center">
+            class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-2 outline-none focus:border-[#CC1020] text-center">
           <span class="font-mono text-xs text-[#888]">%</span>
           <input type="color" id="cuTextColor" value="#ffffff"
             oninput="renderAllCuCanvases()"
             class="w-8 h-8 rounded cursor-pointer border border-[#2E2E3A] bg-transparent p-0.5">
+        </div>
+        <!-- Presets -->
+        <div class="flex items-center gap-2 flex-wrap border-t border-[#2E2E3A] pt-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Presets:</span>
+          <select id="cuPresetSelect" onchange="applyCuPresetFromDropdown(this.value)"
+            class="flex-1 min-w-[160px] bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1.5 outline-none focus:border-[#CC1020] cursor-pointer">
+            <option value="">— select preset —</option>
+          </select>
+          <button onclick="saveCuPreset()" class="icon-btn" title="Save current as preset"><span class="material-icons-round">bookmark_add</span></button>
+          <button onclick="deleteCuPreset()" class="icon-btn danger" title="Delete selected preset"><span class="material-icons-round">bookmark_remove</span></button>
+          <button onclick="clearCuPreset()" class="icon-btn" title="Clear all fields"><span class="material-icons-round">backspace</span></button>
         </div>
       </div>
     </div>
@@ -562,7 +574,7 @@ tailwind.config = {
           <div class="flex gap-1">
             {% for n in [1,2,3,4,5,6] %}
             <button onclick="setCuSlotCount({{ n }})" id="cu-slot-btn-{{ n }}"
-              class="w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all {% if n == 3 %}bg-[#CC1020] text-white{% else %}bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]{% endif %}">{{ n }}</button>
+              class="w-7 h-7 rounded font-mono text-xs font-semibold transition-all {% if n == 3 %}bg-[#CC1020] text-white{% else %}bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]{% endif %}">{{ n }}</button>
             {% endfor %}
           </div>
         </div>
@@ -707,6 +719,16 @@ tailwind.config = {
           <div class="font-mono text-xs text-[#888] mt-0.5">Stacked export + 5 individual files</div>
         </div>
         <div class="ml-auto flex gap-2 flex-wrap" id="customDlButtons"></div>
+        <div class="w-full border-t border-[#2E2E3A] pt-3 flex items-center gap-2 flex-wrap">
+          <span class="font-mono text-xs text-[#888]">Save stacked to Library:</span>
+          <select id="customLibraryCat" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
+            {% for cat in ['Event','General','Special','Commercial','Starcamp','SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls'] %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+          <button onclick="saveCustomToLibrary()" class="font-mono text-xs px-3 py-1 rounded bg-[#2A2A36] border border-[#3A3A4A] text-[#999] hover:border-[#CC1020] hover:text-white transition-colors">→ Save</button>
+          <span id="customLibrarySaveStatus" class="font-mono text-xs text-[#888]"></span>
+        </div>
       </div>
     </div>
 
@@ -716,6 +738,7 @@ tailwind.config = {
   <div id="tab-library-content" class="pt-5 space-y-4 hidden">
 
   <div class="info-box">
+    <span class="material-icons-round box-icon">info</span>
     Stacked MP4 files ready for playback on the Sedna LED controller. Browse by category and download. Upload your own files (MP4 only) to any category.
   </div>
 
@@ -726,7 +749,7 @@ tailwind.config = {
       <span class="section-title">{{ cat_label }}</span>
       <label class="cursor-pointer">
         <input type="file" accept=".mp4" class="hidden" onchange="libraryUpload('{{ cat_key }}', this)">
-        <span class="font-mono text-xs px-3 py-1 rounded-full border border-[#CC1020] text-[#CC1020] hover:bg-[#CC1020] hover:text-white transition-colors select-none">+ Upload</span>
+        <span class="icon-btn" title="Upload" style="border-color:#CC1020;color:#CC1020;"><span class="material-icons-round">upload</span></span>
       </label>
     </div>
     <div class="p-4">
@@ -848,7 +871,7 @@ function buildTileSlots(id, totalW, tiles) {
   for (let slot = 0; slot < tiles; slot++) {
     const tileW = Math.floor(totalW / tiles);
     const div = document.createElement('div');
-    div.className = 'relative tile-slot border-2 border-dashed border-[#3C3C3C] rounded-xl cursor-pointer hover:border-[#CC1020]/60 transition-all flex flex-col items-center justify-center gap-1';
+    div.className = 'relative tile-slot border-2 border-dashed border-[#3C3C3C] rounded-md cursor-pointer hover:border-[#CC1020]/60 transition-all flex flex-col items-center justify-center gap-1';
     div.style.cssText = `width:80px;height:48px;`;
     div.id = `tile-slot-${id}-${slot}`;
     if (tileSlotPaths[id][slot]) div.classList.add('uploaded');
@@ -1484,8 +1507,9 @@ async function startLineup() {
   pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', job => {
     const btns = document.getElementById('lineupDlButtons'); btns.innerHTML = '';
     const labels = ['↓ Stacked 1600×1200','↓ Longside 1728','↓ Shortside 1344','↓ Media 192','↓ 576 Left','↓ 576 Right'];
-    // Show all output files
     const outputs = (job.outputs||[]);
+    window._lineupStackedFile = outputs[0] || null;
+    document.getElementById('lineupLibrarySaveStatus').textContent = '';
     outputs.forEach((fname,i) => {
       const b = document.createElement('button');
       b.className = 'bg-[#00ff88] text-black font-semibold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
@@ -1496,6 +1520,38 @@ async function startLineup() {
     const c = document.getElementById('lineupDownload');
     c.classList.remove('hidden'); c.classList.add('flex');
   });
+}
+
+async function saveCustomToLibrary() {
+  const filename = window._customStackedFile;
+  const cat = document.getElementById('customLibraryCat').value;
+  const status = document.getElementById('customLibrarySaveStatus');
+  if (!filename) { status.textContent = '✗ No file to save.'; return; }
+  status.textContent = 'Saving…';
+  try {
+    const r = await (await fetch('/api/library/save-from-output', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({filename, category: cat})
+    })).json();
+    status.textContent = r.ok ? `✓ Saved as ${r.saved_as}` : `✗ ${r.error}`;
+    status.style.color = r.ok ? '#00ff88' : '#ff4444';
+  } catch(e) { status.textContent = '✗ Failed'; status.style.color = '#ff4444'; }
+}
+
+async function saveLineupToLibrary() {
+  const filename = window._lineupStackedFile;
+  const cat = document.getElementById('lineupLibraryCat').value;
+  const status = document.getElementById('lineupLibrarySaveStatus');
+  if (!filename) { status.textContent = '✗ No file to save.'; return; }
+  status.textContent = 'Saving…';
+  try {
+    const r = await (await fetch('/api/library/save-from-output', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({filename, category: cat})
+    })).json();
+    status.textContent = r.ok ? `✓ Saved as ${r.saved_as}` : `✗ ${r.error}`;
+    status.style.color = r.ok ? '#00ff88' : '#ff4444';
+  } catch(e) { status.textContent = '✗ Failed'; status.style.color = '#ff4444'; }
 }
 
 // ══ POLLING ══
@@ -1794,14 +1850,96 @@ function updateCustomTimeline(displayId) {
   labels.innerHTML = labHtml;
 }
 
+// ── Custom Presets ──
+async function loadCuPresets() {
+  try {
+    const presets = await (await fetch('/api/custom-presets')).json();
+    const sel = document.getElementById('cuPresetSelect');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— select preset —</option>' +
+      Object.keys(presets).map(n => `<option value="${n}">${n}</option>`).join('');
+    if (cur && presets[cur]) sel.value = cur;
+    else if (!cur) { const wk = Object.keys(presets).find(k => k.toLowerCase() === 'welcome'); if (wk) { sel.value = wk; _applyCuPresetData(presets[wk]); } }
+  } catch(e) {}
+}
+
+function _applyCuPresetData(p) {
+  if (!p) return;
+  setCuSlotCount(p.slotCount || 3);
+  document.getElementById('cuTextColor').value = p.color || '#ffffff';
+  document.getElementById('cuFontSize').value = p.fontSize || 50;
+  Object.entries(p.displays || {}).forEach(([did, cfg]) => {
+    (cfg.texts || []).forEach((t, si) => { const el = document.getElementById(`cu-text-${did}-${si}`); if (el) el.value = t; });
+    (cfg.durations || []).forEach((d, si) => { const el = document.getElementById(`cu-dur-${did}-${si}`); if (el) el.value = d; });
+    updateCustomTimeline(parseInt(did));
+  });
+  renderAllCuCanvases();
+}
+
+async function applyCuPresetFromDropdown(name) {
+  if (!name) return;
+  const presets = await (await fetch('/api/custom-presets')).json();
+  _applyCuPresetData(presets[name]);
+}
+
+function _gatherCuState() {
+  const slotCount = cuSlotCount || 3;
+  const displays = {};
+  [2,0,1,4].forEach(did => {
+    const texts = [], durations = [];
+    for (let si = 0; si < 6; si++) {
+      texts.push(document.getElementById(`cu-text-${did}-${si}`)?.value || '');
+      durations.push(parseFloat(document.getElementById(`cu-dur-${did}-${si}`)?.value) || 2);
+    }
+    displays[String(did)] = {texts, durations};
+  });
+  return { slotCount, color: document.getElementById('cuTextColor').value, fontSize: parseInt(document.getElementById('cuFontSize').value), displays };
+}
+
+async function saveCuPreset() {
+  const name = prompt('Save preset as:');
+  if (!name || !name.trim()) return;
+  const preset = _gatherCuState();
+  const r = await (await fetch('/api/custom-presets/save', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name: name.trim(), preset})
+  })).json();
+  if (r.ok) { await loadCuPresets(); document.getElementById('cuPresetSelect').value = name.trim(); }
+  else alert(r.error || 'Save failed');
+}
+
+async function deleteCuPreset() {
+  const name = document.getElementById('cuPresetSelect').value;
+  if (!name) { alert('Select a preset to delete.'); return; }
+  const pw = prompt(`Enter password to delete "${name}":`);
+  if (pw === null) return;
+  if (pw !== 'Pixbo') { alert('Incorrect password.'); return; }
+  await fetch('/api/custom-presets/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})});
+  loadCuPresets();
+}
+
+function clearCuPreset() {
+  [2,0,1,4].forEach(did => {
+    for (let si = 0; si < 6; si++) {
+      const t = document.getElementById(`cu-text-${did}-${si}`);
+      const d = document.getElementById(`cu-dur-${did}-${si}`);
+      if (t) t.value = '';
+      if (d) d.value = 2;
+    }
+    updateCustomTimeline(did);
+  });
+  document.getElementById('cuTextColor').value = '#ffffff';
+  document.getElementById('cuFontSize').value = 50;
+  renderAllCuCanvases();
+}
+
 function setCuSlotCount(n) {
   cuSlotCount = n;
   for (let i = 1; i <= 6; i++) {
     const btn = document.getElementById(`cu-slot-btn-${i}`);
     if (!btn) continue;
     btn.className = i === n
-      ? 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#CC1020] text-white'
-      : 'w-7 h-7 rounded-lg font-mono text-xs font-semibold transition-all bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]';
+      ? 'w-7 h-7 rounded font-mono text-xs font-semibold transition-all bg-[#CC1020] text-white'
+      : 'w-7 h-7 rounded font-mono text-xs font-semibold transition-all bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]';
   }
   [0, 1, 2, 4].forEach(did => {
     for (let si = 0; si < 6; si++) {
@@ -1928,7 +2066,10 @@ async function startCustom() {
   pollJob(res.job_id, 'customStatus', 'customProgress', 'customBtn', job => {
     const btns = document.getElementById('customDlButtons'); btns.innerHTML = '';
     const labels = ['↓ Stacked 1600×1200','↓ Shortside 1344','↓ 576 Left','↓ 1728 Center','↓ 576 Right','↓ Media 192'];
-    (job.outputs||[]).forEach((fname,i) => {
+    const outputs = job.outputs || [];
+    window._customStackedFile = outputs[0] || null;
+    document.getElementById('customLibrarySaveStatus').textContent = '';
+    outputs.forEach((fname,i) => {
       const b = document.createElement('button');
       b.className = 'bg-[#00ff88] text-black font-semibold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
       b.textContent = labels[i] || `↓ ${fname}`;
@@ -1943,6 +2084,7 @@ async function startCustom() {
 // Custom init
 loadCustomFonts();
 loadCustomBgLibrary();
+loadCuPresets();
 loadCustom576Variants();
 loadCustomMedia192();
 [0,1,2,3,4].forEach(id => updateCustomTimeline(id));
@@ -1972,16 +2114,15 @@ async function loadLibrary() {
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0">${f.name}</span>
             ${f.duration != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${f.duration}s</span>` : ''}
+            ${f.size != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${(f.size/1024/1024).toFixed(1)} MB</span>` : ''}
             <select onchange="libChangeCategory('${cat}','${f.name}',this)"
               class="bg-[#1E2229] border border-[#333] rounded px-2 py-0.5 font-mono text-xs text-[var(--tx-main)] focus:outline-none focus:border-[#CC1020]">
               ${_libCatOpts(cat)}
             </select>
-            <button onclick="libPreview('${cat}','${f.name}')" class="font-mono text-xs px-3 py-0.5 rounded-full border border-[#444] text-[#888] hover:border-[#CC1020] hover:text-[#CC1020] transition-colors whitespace-nowrap">▶ Preview</button>
-            <button onclick="libDelete('${cat}','${f.name}',this)" class="font-mono text-xs px-3 py-0.5 rounded-full border border-[#444] text-[#666] hover:border-red-700 hover:text-red-500 transition-colors whitespace-nowrap">✕ Delete</button>
-            <a href="/api/library/download/${encodeURIComponent(cat)}/${encodeURIComponent(f.name)}"
-               class="font-mono text-xs px-3 py-0.5 rounded-full border border-[#444] text-[#888] hover:border-[#CC1020] hover:text-[#CC1020] transition-colors whitespace-nowrap" download>
-              ↓ Download
-            </a>
+            <button onclick="libPreview('${cat}','${f.name}')" class="icon-btn" title="Preview"><span class="material-icons-round">play_arrow</span></button>
+            <a href="/api/library/download/${encodeURIComponent(cat)}/${encodeURIComponent(f.name)}" class="icon-btn" title="Download" download><span class="material-icons-round">download</span></a>
+            <button onclick="libRename('${cat}','${f.name}',this)" class="icon-btn" title="Rename"><span class="material-icons-round">edit</span></button>
+            <button onclick="libDelete('${cat}','${f.name}',this)" class="icon-btn danger" title="Delete"><span class="material-icons-round">delete</span></button>
           </div>
           <input type="text" value="${f.description.replace(/"/g,'&quot;')}" placeholder="Add description…"
             class="w-full bg-transparent border border-[#2E2E3A] rounded px-2 py-1 font-mono text-xs text-[var(--tx-muted)] placeholder-[#555] focus:outline-none focus:border-[#CC1020] focus:text-[var(--tx-main)]"
@@ -2002,6 +2143,18 @@ function closeLibPreview() {
   const v = document.getElementById('libPreviewVideo');
   v.pause(); v.src = '';
   document.getElementById('libPreviewModal').classList.add('hidden');
+}
+
+async function libRename(cat, filename, btn) {
+  const pw = prompt('Enter password to rename:');
+  if (pw !== 'Pixbo') { if (pw !== null) alert('Wrong password.'); return; }
+  const newName = prompt(`Rename "${filename}" to:`, filename.replace(/\.mp4$/i, ''));
+  if (!newName || newName.trim() === '') return;
+  const r = await (await fetch('/api/library/rename', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({category:cat, filename, new_filename: newName.trim()})
+  })).json();
+  if (r.ok) { loadLibrary(); }
+  else { alert(r.error || 'Rename failed'); }
 }
 
 async function libSaveDesc(cat, filename, desc) {
@@ -2046,23 +2199,6 @@ async function libraryUpload(cat, input) {
   input.value = '';
 }
 
-// ── Theme toggle ──
-function applyTheme(t) {
-  const light = t === 'light';
-  document.documentElement.classList.toggle('light', light);
-  const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = light ? '🌙' : '☀️';
-}
-function toggleTheme() {
-  const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
-  localStorage.setItem('theme', next);
-  applyTheme(next);
-}
-(function() {
-  const stored = localStorage.getItem('theme');
-  const pref = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-  applyTheme(pref);
-})();
 </script>
 </body>
 </html>

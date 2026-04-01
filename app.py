@@ -3,6 +3,7 @@ Sedna LED Rink Display Merger — Flask Web App
 """
 
 import os
+import re
 import json
 import uuid
 import shutil
@@ -752,7 +753,8 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
         c576r  = loop_to(clip_576_right, tmp / "l_576_right.mp4",  max_dur)
 
         # Build 1600x1200 stacked export matching AE/ledventure layout
-        out_stacked = OUTPUT_DIR / f"lineup_stacked_{job_id[:8]}.mp4"
+        safe_name = re.sub(r'[\\/*?:"<>|]', '', f"{number}-{name.upper()}").strip()
+        out_stacked = OUTPUT_DIR / f"{safe_name}.mp4"
         build_stacked_export(c1344, c576l, c1728, c576r, c192, out_stacked, fps_val, tmp)
 
         jobs[job_id]["status"]   = "done"
@@ -1340,7 +1342,40 @@ def custom_preview_render():
     return jsonify({"job_id": job_id})
 
 
-LIBRARY_META = LIBRARY_DIR / "metadata.json"
+LIBRARY_META    = LIBRARY_DIR / "metadata.json"
+PRESETS_FILE    = LIBRARY_DIR / "custom_presets.json"
+_DEFAULT_PRESETS = {
+    "Event Score": {
+        "slotCount": 2, "color": "#ffffff", "fontSize": 60,
+        "displays": {
+            "2": {"texts": ["PIXBO FC", "VS OPPONENT", "", "", "", ""], "durations": [3, 3, 2, 2, 2, 2]},
+            "0": {"texts": ["PIXBO FC", "VS OPPONENT", "", "", "", ""], "durations": [3, 3, 2, 2, 2, 2]},
+            "1": {"texts": ["MATCH DAY", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
+            "4": {"texts": ["LIVE", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
+        }
+    },
+    "Welcome": {
+        "slotCount": 2, "color": "#ffcc00", "fontSize": 55,
+        "displays": {
+            "2": {"texts": ["VÄLKOMMEN TILL", "WALLENSTAM ARENA", "", "", "", ""], "durations": [3, 3, 2, 2, 2, 2]},
+            "0": {"texts": ["VÄLKOMMEN", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
+            "1": {"texts": ["PIXBO", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
+            "4": {"texts": ["HEJ!", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
+        }
+    },
+}
+
+def _load_presets():
+    if PRESETS_FILE.exists():
+        try:
+            return json.loads(PRESETS_FILE.read_text())
+        except Exception:
+            pass
+    PRESETS_FILE.write_text(json.dumps(_DEFAULT_PRESETS, indent=2))
+    return dict(_DEFAULT_PRESETS)
+
+def _save_presets(data):
+    PRESETS_FILE.write_text(json.dumps(data, indent=2))
 
 def _load_lib_meta():
     if LIBRARY_META.exists():
@@ -1352,6 +1387,33 @@ def _load_lib_meta():
 
 def _save_lib_meta(meta):
     LIBRARY_META.write_text(json.dumps(meta, indent=2))
+
+
+@app.route("/api/custom-presets")
+def get_custom_presets():
+    return jsonify(_load_presets())
+
+@app.route("/api/custom-presets/save", methods=["POST"])
+def save_custom_preset():
+    data = request.json
+    name = data.get("name", "").strip()
+    preset = data.get("preset")
+    if not name or not preset:
+        return jsonify({"error": "Invalid"}), 400
+    presets = _load_presets()
+    presets[name] = preset
+    _save_presets(presets)
+    return jsonify({"ok": True})
+
+@app.route("/api/custom-presets/delete", methods=["POST"])
+def delete_custom_preset():
+    name = request.json.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Invalid"}), 400
+    presets = _load_presets()
+    presets.pop(name, None)
+    _save_presets(presets)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/library")
@@ -1376,6 +1438,7 @@ def list_library():
                     "name": f.name,
                     "description": meta.get(f"{cat}/{f.name}", {}).get("description", ""),
                     "duration": dur,
+                    "size": f.stat().st_size,
                 })
         result[cat] = files
     return jsonify(result)
@@ -1395,6 +1458,52 @@ def library_upload():
     dest = LIBRARY_DIR / cat / filename
     f.save(str(dest))
     return jsonify({"ok": True, "filename": filename})
+
+
+@app.route("/api/library/rename", methods=["POST"])
+def library_rename():
+    data         = request.json
+    cat          = data.get("category", "")
+    filename     = data.get("filename", "")
+    new_filename = data.get("new_filename", "").strip()
+    if cat not in LIBRARY_CATEGORIES or not filename or not new_filename:
+        return jsonify({"error": "Invalid"}), 400
+    if not new_filename.lower().endswith(".mp4"):
+        new_filename += ".mp4"
+    new_filename = re.sub(r'[\\/*?:"<>|]', '', new_filename)
+    src  = LIBRARY_DIR / cat / filename
+    dest = LIBRARY_DIR / cat / new_filename
+    if not src.exists():
+        return jsonify({"error": "File not found"}), 404
+    if dest.exists():
+        return jsonify({"error": "A file with that name already exists"}), 409
+    src.rename(dest)
+    meta = _load_lib_meta()
+    old_key = f"{cat}/{filename}"
+    if old_key in meta:
+        meta[f"{cat}/{new_filename}"] = meta.pop(old_key)
+        _save_lib_meta(meta)
+    return jsonify({"ok": True, "new_filename": new_filename})
+
+
+@app.route("/api/library/save-from-output", methods=["POST"])
+def library_save_from_output():
+    data     = request.json
+    filename = data.get("filename", "")
+    cat      = data.get("category", "")
+    if cat not in LIBRARY_CATEGORIES or not filename:
+        return jsonify({"error": "Invalid"}), 400
+    src = OUTPUT_DIR / filename
+    if not src.exists():
+        return jsonify({"error": "File not found"}), 404
+    stem = Path(filename).stem
+    dest = LIBRARY_DIR / cat / filename
+    counter = 1
+    while dest.exists():
+        dest = LIBRARY_DIR / cat / f"{stem} ({counter}).mp4"
+        counter += 1
+    shutil.copy2(str(src), str(dest))
+    return jsonify({"ok": True, "saved_as": dest.name})
 
 
 @app.route("/api/library/update", methods=["POST"])
