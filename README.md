@@ -1,12 +1,13 @@
-# LedMerger — Pixbo LED Rink Content Creator
+# LedMerger — Pixbo LED Rink Content Creator v0.34
 
 A web-based tool for creating and merging LED rink content for Wallenstam Arena (Pixbo Floorball). Produces stacked MP4 files compatible with the Sedna LED controller.
 
 ## What it does
 
 - **File Merger** — Upload individual video/image files for each display zone and merge them into one stacked 1600×1200px MP4
-- **Players** — Generate branded player introduction videos using fixed Pixbo templates with Road Rage font and pop-wobble animation
-- **Custom** — Create custom text animations for any display zone with configurable backgrounds and timing
+- **Players** — Generate branded player introduction videos using fixed Pixbo templates with Road Rage font and pop-wobble animation. Supports batch import and single player mode.
+- **Custom** — Create custom text animations for any display zone with configurable backgrounds, fonts, colors, and timing
+- **Library** — Store and share finished stacked MP4 files, organized by category
 
 All tabs produce a stacked 1600×1200px export matching the After Effects / ledventure.org reference layout, plus individual files per display.
 
@@ -96,3 +97,5 @@ MP4, MOV, AVI, GIF, PNG, JPG/JPEG
 - Longside Left and Right should use the same source file in stacked exports to avoid visible cuts on the physical displays
 - The Players tab uses Road Rage font and white text — fixed and not configurable
 - Default player timing is 2.1s number + 3.9s name = 6s total (standard Pixbo lineup time)
+- Road Rage font does not render the digit 0 well — use the letter O instead in player numbers
+- Output files in all tabs include preview, download, rename, and save-to-library actions

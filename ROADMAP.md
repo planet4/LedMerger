@@ -17,7 +17,6 @@ Ideas and planned improvements for LedMerger. No fixed timeline — just a place
 ## General
 
 - **Mobile layout** — the UI is desktop-only; a basic responsive layout for tablet use in the arena
-- **UI polish** — replace text labels on action buttons with icons where it makes sense, to reduce visual clutter
 - **Button style consistency** — review and unify button styles; reduce overuse of pill/rounded shapes in favour of a cleaner, more consistent look
 
 ## DaVinci Scripts
