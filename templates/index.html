@@ -123,14 +123,14 @@ tailwind.config = {
 
   <!-- HEADER -->
   <header class="flex items-center gap-4 pb-5 mb-6 border-b border-[#2E2E3A]">
-    <div class="w-14 h-14 flex-shrink-0 bg-[#22222A] rounded-xl red-box flex items-center justify-center p-1.5">
+    <div class="w-14 h-14 flex-shrink-0 bg-[#22222A] rounded-xl flex items-center justify-center p-1.5">
       <img src="https://sportality.cdn.s8y.se/team-logos/pix1_pix.svg" alt="Pixbo" class="w-full h-full object-contain"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <div style="display:none" class="w-full h-full items-center justify-center font-bold text-2xl text-[#CC1020]">P</div>
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.32 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.33 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -218,7 +218,7 @@ tailwind.config = {
     <!-- Info: 576 Left/Right warning -->
     <div class="warn-box">
       <span class="material-icons-round box-icon">warning</span>
-      It is recommended to use the same file for <strong style="color:#ddd">Longside Left</strong> and <strong style="color:#ddd">Longside Right</strong> in stacked exports. Using different files may result in a visible cut on the physical LED displays.
+      It is recommended to use the same file for Longside Left and Longside Right in stacked exports. Using different files may result in a visible cut on the physical LED displays.
     </div>
     <!-- 02 Visual Layout -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -314,7 +314,7 @@ tailwind.config = {
     <div class="info-box">
       <span class="material-icons-round box-icon">info</span>
       Generate a branded player introduction video using fixed Pixbo templates. Enter a player number and name — the number animates with a pop-wobble effect, then fades into the name. Uses Road Rage font on all displays. Exports a stacked file plus individual clips per display.<br><br>
-      Note that the player generation in this app might look slightly different compared to the current players. They are rendered in DaVinci Studio. You can save the rendered files to the library when done.
+      Note that the player generation in this app might look slightly different compared to the current players. They are rendered in DaVinci Studio. You can save the rendered files to the library when done. The Road Rage font does not like 0 (zero) — use the letter O instead in numbers.
     </div>
 
     <!-- 01 Background + Font -->
@@ -342,7 +342,7 @@ tailwind.config = {
       <div class="section-header">
         <span class="section-title">02 — Player Info</span>
       </div>
-      <div class="p-5 grid grid-cols-2 gap-4">
+      <div class="p-5 grid grid-cols-2 gap-4" id="singlePlayerInputs">
         <div class="space-y-1.5">
           <label class="font-mono text-xs uppercase tracking-widest text-[#888]">Player Number</label>
           <input type="text" id="playerNumber" value="99" maxlength="3"
@@ -368,6 +368,34 @@ tailwind.config = {
             class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
       </div>
+      <!-- Batch import -->
+      <div class="border-t border-[#2E2E3A] px-5 py-3 flex items-center gap-3 flex-wrap">
+        <span class="font-mono text-xs text-[#888]">Batch import:</span>
+        <input type="file" id="batchFile" accept=".txt" class="hidden" onchange="parseBatchFile(this)">
+        <button onclick="document.getElementById('batchFile').click()" class="icon-btn" title="Import player list (.txt)">
+          <span class="material-icons-round">upload_file</span>
+        </button>
+        <span id="batchStatus" class="font-mono text-xs text-[#888]">One player per line: <em>number name</em></span>
+        <a href="https://stats.innebandy.se/sok" target="_blank" class="icon-btn" title="Find Pixbo players on stats.innebandy.se"><span class="material-icons-round">manage_search</span></a>
+        <button id="batchClearBtn" onclick="clearBatch()" class="icon-btn hidden" title="Clear batch">
+          <span class="material-icons-round">close</span>
+        </button>
+        <div id="batchToggle" class="hidden items-center gap-3 w-full pt-1">
+          <span class="font-mono text-xs text-[#888]">Output:</span>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="batchMode" value="individual">
+            <span class="font-mono text-xs text-gray-200">One file per player</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="batchMode" value="combined" checked>
+            <span class="font-mono text-xs text-gray-200">All players as one file</span>
+          </label>
+        </div>
+        <div id="batchInfo" class="hidden w-full pt-2">
+          <p class="font-mono text-xs text-[#888]">Format: NUMBER FIRSTNAME — one player per line. For "All players as one file" you can add the team on the first row, e.g. PIXBO P11, followed by the players.</p>
+        </div>
+      </div>
+      <div id="batchPlayerList" class="hidden px-5 pb-3 space-y-1 max-h-40 overflow-y-auto border-t border-[#2E2E3A]"></div>
     </div>
 
     <!-- 03 Visual Layout Preview -->
@@ -468,20 +496,10 @@ tailwind.config = {
       <div class="hidden mx-5 mb-5 items-center gap-4 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="lineupDownload">
         <span class="text-3xl">🎬</span>
         <div>
-          <div class="font-semibold text-[#00ff88] text-lg uppercase">Player video ready!</div>
-          <div class="font-mono text-xs text-[#888] mt-0.5">Stacked export + 3 individual files</div>
+          <div class="font-semibold text-[#00ff88] text-lg uppercase" id="lineupReadyTitle">Player video ready!</div>
+          <div class="font-mono text-xs text-[#888] mt-0.5" id="lineupReadySubtitle">Stacked export + individual files</div>
         </div>
-        <div class="ml-auto flex gap-2 flex-wrap" id="lineupDlButtons"></div>
-        <div class="w-full border-t border-[#2E2E3A] pt-3 flex items-center gap-2 flex-wrap">
-          <span class="font-mono text-xs text-[#888]">Save stacked to Library:</span>
-          <select id="lineupLibraryCat" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
-            {% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}
-            <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-          </select>
-          <button onclick="saveLineupToLibrary()" class="font-mono text-xs px-3 py-1 rounded bg-[#2A2A36] border border-[#3A3A4A] text-[#999] hover:border-[#CC1020] hover:text-white transition-colors">→ Save</button>
-          <span id="lineupLibrarySaveStatus" class="font-mono text-xs text-[#888]"></span>
-        </div>
+        <div class="w-full" id="lineupDlButtons"></div>
       </div>
     </div>
 
@@ -745,16 +763,24 @@ tailwind.config = {
   {% set lib_cats = [('Event','Event'), ('General','General'), ('Special','Special'), ('Commercial','Commercial'), ('Starcamp','Starcamp'), ('SSL Players Men','SSL Players Men'), ('SSL Players Women','SSL Players Women'), ('JAS Men','JAS Men'), ('JAS Women','JAS Women'), ('Players Boys','Players Boys'), ('Players Girls','Players Girls')] %}
   {% for cat_key, cat_label in lib_cats %}
   <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
-    <div class="section-header flex items-center justify-between">
-      <span class="section-title">{{ cat_label }}</span>
-      <label class="cursor-pointer">
-        <input type="file" accept=".mp4" class="hidden" onchange="libraryUpload('{{ cat_key }}', this)">
-        <span class="icon-btn" title="Upload" style="border-color:#CC1020;color:#CC1020;"><span class="material-icons-round">upload</span></span>
-      </label>
+    <div class="section-header flex items-center justify-between cursor-pointer select-none" onclick="toggleLibCat('{{ cat_key }}')">
+      <div class="flex items-center gap-2">
+        <span class="section-title">{{ cat_label }}</span>
+        <span id="lib-count-{{ cat_key }}" class="font-mono text-xs text-[#555]"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="cursor-pointer" onclick="event.stopPropagation()">
+          <input type="file" accept=".mp4" class="hidden" onchange="libraryUpload('{{ cat_key }}', this)">
+          <span class="icon-btn" title="Upload" style="border-color:#CC1020;color:#CC1020;"><span class="material-icons-round">upload</span></span>
+        </label>
+        <span class="material-icons-round text-[#555] transition-transform duration-200" id="lib-chevron-{{ cat_key }}">expand_more</span>
+      </div>
     </div>
-    <div class="p-4">
-      <div id="lib-list-{{ cat_key | replace('/','-') }}" class="space-y-1 min-h-[32px]">
-        <span class="font-mono text-xs text-[#555]">Loading…</span>
+    <div id="lib-body-{{ cat_key }}" class="hidden">
+      <div class="p-4">
+        <div id="lib-list-{{ cat_key | replace('/','-') }}" class="space-y-1 min-h-[32px]">
+          <span class="font-mono text-xs text-[#555]">Loading…</span>
+        </div>
       </div>
     </div>
   </div>
@@ -1076,9 +1102,10 @@ function updateDiagramPreview(id) {
 window.addEventListener('resize', renderAllMgCanvases);
 
 async function openLineupLedPreview() {
+  const isBatch = _batchPlayers.length > 0;
   const number = document.getElementById('playerNumber').value.trim();
   const name   = document.getElementById('playerName').value.trim();
-  if (!number || !name) {
+  if (!isBatch && (!number || !name)) {
     document.getElementById('lineupStatus').textContent = 'Enter player number and name first.';
     return;
   }
@@ -1093,9 +1120,13 @@ async function openLineupLedPreview() {
   const totalDur = parseFloat(document.getElementById('totalDur').value) || 6.0;
 
   try {
-    const r = await fetch('/api/lineup/preview-render', {
+    const endpoint = isBatch ? '/api/lineup/batch-preview-render' : '/api/lineup/preview-render';
+    const body     = isBatch
+      ? { players: _batchPlayers, num_dur: numDur, total_dur: totalDur }
+      : { number, name, num_dur: numDur, total_dur: totalDur, fps: FPS };
+    const r = await fetch(endpoint, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ number, name, num_dur:numDur, total_dur:totalDur, fps:FPS }),
+      body: JSON.stringify(body),
     });
     const res = await r.json();
     if (res.error) {
@@ -1347,14 +1378,83 @@ function updateTimeline() {
   document.getElementById('tlEnd').textContent  = `${totalDur}s`;
 }
 
+let _batchPlayers = [];
+
+function parseBatchFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l);
+    _batchPlayers = [];
+    for (const line of lines) {
+      const m = line.match(/^(\S+)\s+(.+)$/);
+      if (m) _batchPlayers.push({number: m[1], name: m[2].trim().toUpperCase()});
+    }
+    const status = document.getElementById('batchStatus');
+    const toggle = document.getElementById('batchToggle');
+    const list   = document.getElementById('batchPlayerList');
+    const clearBtn = document.getElementById('batchClearBtn');
+    if (_batchPlayers.length === 0) {
+      status.textContent = 'No valid players found. Format: number name';
+      toggle.classList.add('hidden'); toggle.classList.remove('flex');
+      document.getElementById('batchInfo').classList.add('hidden');
+      list.classList.add('hidden');
+      clearBtn.classList.add('hidden');
+    } else {
+      status.textContent = `${_batchPlayers.length} player(s) loaded`;
+      toggle.classList.remove('hidden'); toggle.classList.add('flex');
+      document.getElementById('batchInfo').classList.remove('hidden');
+      list.classList.remove('hidden');
+      clearBtn.classList.remove('hidden');
+      list.innerHTML = '<div class="pt-2"></div>' + _batchPlayers.map((p, i) =>
+        `<div class="font-mono text-xs flex gap-3 py-0.5">
+          <span class="text-[#555] w-5 text-right">${i+1}.</span>
+          <span class="text-[#CC1020]">${/^\d+$/.test(p.number) ? '#' : ''}${p.number}</span>
+          <span class="text-gray-200">${p.name}</span>
+        </div>`
+      ).join('');
+      document.getElementById('singlePlayerInputs').classList.add('opacity-40', 'pointer-events-none');
+      // Update preview with first player
+      document.getElementById('playerNumber').value = _batchPlayers[0].number;
+      document.getElementById('playerName').value   = _batchPlayers[0].name;
+      updateTimeline();
+      renderAllLuCanvases();
+    }
+    checkLineupReady();
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function clearBatch() {
+  _batchPlayers = [];
+  document.getElementById('batchStatus').textContent = 'One player per line: number name';
+  document.getElementById('batchToggle').classList.add('hidden');
+  document.getElementById('batchToggle').classList.remove('flex');
+  document.getElementById('batchInfo').classList.add('hidden');
+  document.getElementById('batchPlayerList').classList.add('hidden');
+  document.getElementById('batchClearBtn').classList.add('hidden');
+  document.getElementById('singlePlayerInputs').classList.remove('opacity-40', 'pointer-events-none');
+  checkLineupReady();
+}
+
 function checkLineupReady() {
+  const isBatch = _batchPlayers.length > 0;
   const num  = document.getElementById('playerNumber').value.trim();
   const name = document.getElementById('playerName').value.trim();
-  const ok   = !!(num && name);
-  document.getElementById('lineupBtn').disabled = !ok;
+  const ok   = isBatch ? true : !!(num && name);
+  const btn  = document.getElementById('lineupBtn');
+  btn.disabled = !ok;
   const s = document.getElementById('lineupStatus');
-  if (!num||!name) s.textContent = 'Enter player number and name.';
-  else             s.textContent = 'Ready — click Generate Player!';
+  if (isBatch) {
+    btn.textContent = `▶ GENERATE ${_batchPlayers.length} PLAYERS`;
+    s.textContent   = `${_batchPlayers.length} players ready.`;
+  } else {
+    btn.textContent = '▶ GENERATE PLAYER';
+    if (!num||!name) s.textContent = 'Enter player number and name.';
+    else             s.textContent = 'Ready — click Generate Player!';
+  }
 }
 
 // ── Lineup canvas preview ──────────────────────────────────────────────────
@@ -1419,10 +1519,10 @@ function renderLuCanvas(cfg) {
     ctx.font      = fontStr;
     ctx.fillStyle = luColor;
     ctx.textAlign = 'center';
-    ctx.fillText(`#${number}`, W / 2, H / 2);
+    ctx.fillText(`${/^\d+$/.test(number) ? '#' : ''}${number}`, W / 2, H / 2);
   } else {
     // Wide — show  "# NUM  |  NAME"
-    const numText  = `#${number}`;
+    const numText  = `${/^\d+$/.test(number) ? '#' : ''}${number}`;
     const sep      = '  ·  ';
     const nameText = name;
     ctx.font = fontStr;
@@ -1485,17 +1585,19 @@ function updateLineupDiagram576Right(filename) {
 }
 
 async function startLineup() {
-  const number   = document.getElementById('playerNumber').value.trim();
-  const name     = document.getElementById('playerName').value.trim();
-  const numDur   = parseFloat(document.getElementById('numDur').value) || 2.1;
-  const totalDur = parseFloat(document.getElementById('totalDur').value) || 6;
+  if (_batchPlayers.length > 0) { await startBatchLineup(); return; }
+  const number      = document.getElementById('playerNumber').value.trim();
+  const name        = document.getElementById('playerName').value.trim();
+  const numDur      = parseFloat(document.getElementById('numDur').value) || 2.1;
+  const totalDur    = parseFloat(document.getElementById('totalDur').value) || 6;
+  const fontSizePct = parseFloat(document.getElementById('luFontSize').value) || 50;
   document.getElementById('lineupBtn').disabled = true;
   document.getElementById('lineupDownload').classList.add('hidden');
   document.getElementById('lineupProgress').classList.remove('hidden');
   document.getElementById('lineupStatus').textContent = 'Starting…';
   const r = await fetch('/api/lineup/generate', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ number, name, fps:FPS, num_dur:numDur, total_dur:totalDur }),
+    body: JSON.stringify({ number, name, fps:FPS, num_dur:numDur, total_dur:totalDur, font_size_pct:fontSizePct }),
   });
   const res = await r.json();
   if (res.error) {
@@ -1504,22 +1606,143 @@ async function startLineup() {
     document.getElementById('lineupProgress').classList.add('hidden');
     return;
   }
-  pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', job => {
+  pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', async job => {
     const btns = document.getElementById('lineupDlButtons'); btns.innerHTML = '';
-    const labels = ['↓ Stacked 1600×1200','↓ Longside 1728','↓ Shortside 1344','↓ Media 192','↓ 576 Left','↓ 576 Right'];
     const outputs = (job.outputs||[]);
     window._lineupStackedFile = outputs[0] || null;
-    document.getElementById('lineupLibrarySaveStatus').textContent = '';
-    outputs.forEach((fname,i) => {
-      const b = document.createElement('button');
-      b.className = 'bg-[#00ff88] text-black font-semibold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
-      b.textContent = labels[i]||`↓ ${fname}`;
-      b.onclick = () => window.location.href = `/api/download/${fname}`;
-      btns.appendChild(b);
-    });
+    document.getElementById('lineupReadyTitle').textContent = 'Player video ready!';
+    document.getElementById('lineupReadySubtitle').textContent = 'Stacked export + individual files';
+    const labels = ['Stacked 1600×1200','Longside 1728','Shortside 1344','576 Left','576 Right','Media 192'];
+    for (let i = 0; i < outputs.length; i++) {
+      const row = await buildOutputFileRow(outputs[i], labels[i], i === 0);
+      btns.appendChild(row);
+    }
     const c = document.getElementById('lineupDownload');
     c.classList.remove('hidden'); c.classList.add('flex');
   });
+}
+
+async function startBatchLineup() {
+  const combine  = document.querySelector('input[name="batchMode"]:checked').value === 'combined';
+  const numDur   = parseFloat(document.getElementById('numDur').value) || 2.1;
+  const totalDur = parseFloat(document.getElementById('totalDur').value) || 6;
+  document.getElementById('lineupBtn').disabled = true;
+  document.getElementById('lineupDownload').classList.add('hidden');
+  document.getElementById('lineupProgress').classList.remove('hidden');
+  document.getElementById('lineupStatus').textContent = 'Starting batch…';
+  const r = await fetch('/api/lineup/batch', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({players: _batchPlayers, fps: FPS, num_dur: numDur, total_dur: totalDur, combine, font_size_pct: parseFloat(document.getElementById('luFontSize').value)||50}),
+  });
+  const res = await r.json();
+  if (res.error) {
+    document.getElementById('lineupStatus').textContent = '✗ '+res.error;
+    document.getElementById('lineupBtn').disabled = false;
+    document.getElementById('lineupProgress').classList.add('hidden');
+    return;
+  }
+  pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', async job => {
+    const btns = document.getElementById('lineupDlButtons');
+    btns.innerHTML = '';
+    if (job.combine) {
+      const fname = (job.outputs||[])[0];
+      window._lineupStackedFile = fname || null;
+      document.getElementById('lineupReadyTitle').textContent = `${_batchPlayers.length} Players ready!`;
+      document.getElementById('lineupReadySubtitle').textContent = 'All players combined into one stacked file';
+      if (fname) btns.appendChild(await buildOutputFileRow(fname, 'Combined', true));
+    } else {
+      window._lineupStackedFile = null;
+      const results = job.batch_results || [];
+      document.getElementById('lineupReadyTitle').textContent = `${results.length} Players ready!`;
+      document.getElementById('lineupReadySubtitle').textContent = `${results.length} stacked exports generated`;
+      for (let pi = 0; pi < results.length; pi++) {
+        const pl    = results[pi];
+        const fname = (pl.outputs||[])[0];
+        if (!fname) continue;
+        const row = await buildOutputFileRow(fname, `${/^\d+$/.test(pl.number) ? '#' : ''}${pl.number} ${pl.name}`, true);
+        btns.appendChild(row);
+      }
+    }
+    const c = document.getElementById('lineupDownload');
+    c.classList.remove('hidden'); c.classList.add('flex');
+  });
+}
+
+const _outputCatOpts = `{% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}`;
+
+async function buildOutputFileRow(fname, label, showSave) {
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2 flex-wrap w-full py-2 border-t border-[#2E2E3A] first:border-0';
+
+  // Fetch size + duration
+  let durTxt = '', sizeTxt = '';
+  try {
+    const info = await (await fetch(`/api/output-info/${encodeURIComponent(fname)}`)).json();
+    if (info.duration != null) durTxt = `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${info.duration}s</span>`;
+    if (info.size    != null) sizeTxt = `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${(info.size/1024/1024).toFixed(1)} MB</span>`;
+  } catch(e) {}
+
+  const uid    = Math.random().toString(36).slice(2,8);
+  const catId  = `outCat_${uid}`;
+  const statId = `outStat_${uid}`;
+
+  row.innerHTML = `
+    <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0" id="outLabel_${uid}">${label}</span>
+    ${durTxt}${sizeTxt}
+    ${showSave ? `<select id="${catId}" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">${_outputCatOpts}</select>` : ''}
+    <button class="icon-btn" title="Preview" onclick="previewOutputFile('${fname}')"><span class="material-icons-round">play_arrow</span></button>
+    <a href="/api/download/${encodeURIComponent(fname)}" download class="icon-btn" title="Download"><span class="material-icons-round">download</span></a>
+    <button class="icon-btn" title="Rename" onclick="renameOutputFile('${fname}','outLabel_${uid}',this)"><span class="material-icons-round">edit</span></button>
+    ${showSave ? `<button class="icon-btn" title="Save to Library" onclick="saveOutputToLibrary('${fname}','${catId}','${statId}',this)"><span class="material-icons-round">save</span></button>` : ''}
+    <span id="${statId}" class="font-mono text-xs text-[#888]"></span>`;
+  return row;
+}
+
+function previewOutputFile(fname) {
+  const path = `/app/outputs/${fname}`;
+  document.getElementById('libPreviewTitle').textContent = fname;
+  document.getElementById('libPreviewVideo').src = `/api/stream?path=${encodeURIComponent(path)}`;
+  document.getElementById('libPreviewModal').classList.remove('hidden');
+}
+
+async function renameOutputFile(fname, labelId, btn) {
+  const newName = prompt(`Rename "${fname}" to:`, fname.replace(/\.mp4$/i,''));
+  if (!newName || !newName.trim()) return;
+  const r = await (await fetch('/api/rename-output', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({filename: fname, new_name: newName.trim()})
+  })).json();
+  if (r.ok) {
+    // Update references
+    btn.onclick = () => renameOutputFile(r.new_name, labelId, btn);
+    const anchor = btn.parentElement.querySelector('a[download]');
+    if (anchor) { anchor.href = `/api/download/${encodeURIComponent(r.new_name)}`; anchor.download = r.new_name; }
+    const lbl = document.getElementById(labelId);
+    if (lbl && lbl.textContent === fname) lbl.textContent = r.new_name;
+    // update save button reference if present
+    const saveBtn = btn.nextElementSibling?.nextElementSibling;
+    if (saveBtn && saveBtn.tagName === 'BUTTON') {
+      const oldOnclick = saveBtn.getAttribute('onclick') || '';
+      saveBtn.setAttribute('onclick', oldOnclick.replace(fname, r.new_name));
+    }
+    if (window._lineupStackedFile === fname) window._lineupStackedFile = r.new_name;
+  } else {
+    alert(r.error || 'Rename failed');
+  }
+}
+
+async function saveOutputToLibrary(fname, catId, statId, btn) {
+  const cat    = document.getElementById(catId)?.value;
+  const status = document.getElementById(statId);
+  if (!fname || !cat) return;
+  if (status) status.textContent = 'Saving…';
+  try {
+    const r = await (await fetch('/api/library/save-from-output', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({filename: fname, category: cat})
+    })).json();
+    if (status) { status.textContent = r.ok ? `✓ ${r.saved_as}` : `✗ ${r.error}`; status.style.color = r.ok ? '#00ff88' : '#ff4444'; }
+  } catch(e) { if (status) { status.textContent = '✗ Failed'; status.style.color = '#ff4444'; } }
 }
 
 async function saveCustomToLibrary() {
@@ -1538,21 +1761,6 @@ async function saveCustomToLibrary() {
   } catch(e) { status.textContent = '✗ Failed'; status.style.color = '#ff4444'; }
 }
 
-async function saveLineupToLibrary() {
-  const filename = window._lineupStackedFile;
-  const cat = document.getElementById('lineupLibraryCat').value;
-  const status = document.getElementById('lineupLibrarySaveStatus');
-  if (!filename) { status.textContent = '✗ No file to save.'; return; }
-  status.textContent = 'Saving…';
-  try {
-    const r = await (await fetch('/api/library/save-from-output', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({filename, category: cat})
-    })).json();
-    status.textContent = r.ok ? `✓ Saved as ${r.saved_as}` : `✗ ${r.error}`;
-    status.style.color = r.ok ? '#00ff88' : '#ff4444';
-  } catch(e) { status.textContent = '✗ Failed'; status.style.color = '#ff4444'; }
-}
 
 // ══ POLLING ══
 function pollJob(job_id, statusId, progressId, btnId, onDone) {
@@ -2097,6 +2305,14 @@ function _libCatOpts(current) {
   return LIBRARY_CATS.map(c => `<option value="${c}"${c===current?' selected':''}>${LIBRARY_CAT_LABELS[c]}</option>`).join('');
 }
 
+function toggleLibCat(cat) {
+  const body = document.getElementById('lib-body-' + cat);
+  const chevron = document.getElementById('lib-chevron-' + cat);
+  const opening = body.classList.contains('hidden');
+  body.classList.toggle('hidden', !opening);
+  chevron.style.transform = opening ? 'rotate(180deg)' : '';
+}
+
 async function loadLibrary() {
   try {
     const data = await (await fetch('/api/library')).json();
@@ -2105,6 +2321,8 @@ async function loadLibrary() {
       const el = document.getElementById(id);
       if (!el) return;
       const files = data[cat] || [];
+      const countEl = document.getElementById('lib-count-' + cat);
+      if (countEl) countEl.textContent = files.length ? `(${files.length})` : '';
       if (!files.length) {
         el.innerHTML = '<span class="font-mono text-xs text-[#555]">No files yet.</span>';
         return;

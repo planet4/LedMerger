@@ -6,6 +6,32 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.33] - 2026-04-02
+
+### Players tab
+- Fixed letter clipping (A, S, E) — Road Rage has negative left bearing; fixed by wrapping text with invisible `|||` padding characters
+- Fixed `y` clipping at top — used `max(0,(h-text_h)/2)` to prevent text rendering above frame edge during wobble peak
+- Font size % slider now actually applied to render (was only affecting canvas preview)
+- Player number is now optional to skip number phase; batch import skips `#` prefix for non-numeric "numbers" (e.g. team name PIXBO)
+- Batch LED preview now shows all players concatenated, not just the first
+- Output file rows now show duration, MB, and icon buttons (preview, download, rename, save to library)
+- Library-style save added to individual batch player outputs
+
+### Custom tab
+- Same `|||` invisible padding fix applied to prevent letter clipping
+
+### Library tab
+- Categories collapsed by default with chevron toggle
+- File count shown per category when collapsed
+
+### UI / info boxes
+- Added batch import format info text (shown after file load)
+- Added stats.innebandy.se link button next to batch import
+- Added Road Rage zero tip to Players info box
+- Replaced batch info box with plain text to fix layout breaking
+
+---
+
 ## [0.32] - 2026-03-31
 
 ### Project files

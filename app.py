@@ -58,6 +58,15 @@ jobs = {}
 
 _font_size_cache: dict = {}
 
+def esc_drawtext(s: str) -> str:
+    """Escape a string for use inside ffmpeg drawtext text='...' value."""
+    s = s.replace("\\", "\\\\")
+    s = s.replace("'",  "\u2019")   # replace apostrophe with right single quotation mark (visually identical)
+    s = s.replace(":",  "\\:")
+    s = s.replace("%",  "\\%")
+    return s
+
+
 def font_size_for_height(font_path: Path, panel_h: int, target_ratio: float = 0.9) -> int:
     """Return the ffmpeg fontsize so the rendered cap height ≈ target_ratio * panel_h."""
     cache_key = (str(font_path), panel_h, target_ratio)
@@ -558,6 +567,43 @@ def download(filename):
     return send_file(str(path), as_attachment=True)
 
 
+@app.route("/api/output-info/<filename>")
+def output_info(filename):
+    path = OUTPUT_DIR / filename
+    if not path.exists():
+        return jsonify({"error": "Not found"}), 404
+    size = path.stat().st_size
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+            capture_output=True, text=True)
+        duration = round(float(r.stdout.strip()), 1)
+    except:
+        duration = None
+    return jsonify({"size": size, "duration": duration})
+
+
+@app.route("/api/rename-output", methods=["POST"])
+def rename_output():
+    data     = request.json
+    filename = data.get("filename", "").strip()
+    new_name = data.get("new_name", "").strip()
+    if not filename or not new_name:
+        return jsonify({"error": "Missing fields"}), 400
+    new_name = re.sub(r'[\\/*?:"<>|]', '', new_name)
+    if not new_name.lower().endswith(".mp4"):
+        new_name += ".mp4"
+    src = OUTPUT_DIR / filename
+    dst = OUTPUT_DIR / new_name
+    if not src.exists():
+        return jsonify({"error": "File not found"}), 404
+    if dst.exists():
+        return jsonify({"error": "Name already in use"}), 409
+    src.rename(dst)
+    return jsonify({"ok": True, "new_name": new_name})
+
+
 @app.route("/api/stream")
 def stream_file():
     """Stream an uploaded file by server path for in-browser preview."""
@@ -609,7 +655,7 @@ PLAYERS_BG_576   = VARIANTS_DIR / "players-template-576.mp4"
 PLAYERS_BG_192   = MEDIA192_DIR / "players-template-192.mp4"
 
 
-def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, bg_1344_override=None):
+def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path, number, name, fps_val, fade_dur, num_dur, total_dur, bg_1344_override=None, font_size_pct=50):
     tmp = Path(tempfile.mkdtemp(prefix="lineup_"))
     try:
         jobs[job_id]["status"] = "running"
@@ -627,26 +673,37 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
             max_chars      = max(len(f"# {number}"), len(name))
             max_px_per_char = w / max(1, max_chars) * 1.8  # Road Rage is wide
             base_size      = min(base_size, int(max_px_per_char))
-            base_size      = max(8, base_size)
-            number_text    = f"# {number}"
-            name_text      = name.upper()
-            # Pop wobble: text pops in large then springs to normal size
-            # Number: wobble starts at t=0
-            # Name: wobble starts at t=num_dur
-            wobble_num  = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+            base_size      = max(8, int(base_size * 0.62))  # headroom for Road Rage ascenders + wobble peak
+            base_size      = max(8, int(base_size * font_size_pct / 50))
+            # ||| is invisible in Road Rage (zero-height glyph) but has advance width,
+            # creating a left-bearing buffer that prevents A/S/E from being clipped.
+            name_text   = esc_drawtext(f"|||{name.upper()}|||")
             wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
-            txt_number = (
-                f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
-                f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
-                f"alpha='if(lt(t,{fade_out_start}),1,"
-                f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
-            )
-            txt_name = (
-                f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
-                f"alpha='if(lt(t,{num_dur}),0,"
-                f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
-            )
+            if number:
+                number_text = esc_drawtext(f"|||# {number}|||" if number.isdigit() else f"|||{number}|||")
+                wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
+                txt_number = (
+                    f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
+                    f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"alpha='if(lt(t,{fade_out_start}),1,"
+                    f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
+                )
+                txt_name = (
+                    f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
+                    f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"alpha='if(lt(t,{num_dur}),0,"
+                    f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
+                )
+                drawtext_vf = f"{txt_number},{txt_name}"
+            else:
+                # No number — show name only with wobble from t=0
+                wobble_name0 = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                txt_name = (
+                    f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
+                    f"fontsize='{wobble_name0}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"alpha='if(lt(t,{fade_dur}),t/{fade_dur},1)'"
+                )
+                drawtext_vf = txt_name
             run_cmd([
                 "ffmpeg", "-y",
                 *(  ["-loop","1"] if src_override and src_override.suffix.lower() in (".png",".jpg",".jpeg")
@@ -655,7 +712,9 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
                 "-i", str(src_override if src_override else bg_path),
                 "-t", str(total_dur),
                 "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,"
-                       f"crop={w}:{h},{txt_number},{txt_name}",
+                       f"crop={w}:{h},pad={w*2}:{h}:{w//2}:0:black,"
+                       f"{drawtext_vf},"
+                       f"crop={w}:{h}:{w//2}:0",
                 "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
                 str(out_path),
             ])
@@ -775,6 +834,201 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path,
+                        players, fps_val, fade_dur, num_dur, total_dur, combine=False, bg_1344_override=None, font_size_pct=50):
+    tmp = Path(tempfile.mkdtemp(prefix="lineup_batch_"))
+    try:
+        jobs[job_id]["status"] = "running"
+        total = len(players)
+        stacked_files = []
+        batch_results = []
+
+        for i, player in enumerate(players):
+            number = str(player.get("number", "")).strip()
+            name   = str(player.get("name",   "")).strip()
+            if not number or not name:
+                continue
+
+            jobs[job_id]["progress"] = f"Player {i+1}/{total}: #{number} {name}…"
+            ptmp = tmp / f"p{i}"
+            ptmp.mkdir()
+
+            chosen_font = FONT_PATH
+            font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+            fc          = "0xFFFFFF"
+
+            def render_text_clip(w, h, out_path, src_override=None, _n=number, _nm=name):
+                fade_out_start = num_dur - fade_dur
+                fade_in_end    = num_dur + fade_dur
+                base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                max_chars      = max(len(f"# {_n}"), len(_nm))
+                max_px_per_char = w / max(1, max_chars) * 1.8
+                base_size      = min(base_size, int(max_px_per_char))
+                base_size      = max(8, int(base_size * 0.62))  # headroom for Road Rage ascenders + wobble peak
+                base_size      = max(8, int(base_size * font_size_pct / 50))
+                name_text   = esc_drawtext(f"|||{_nm.upper()}|||")
+                wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
+                if _n:
+                    number_text = esc_drawtext(f"|||# {_n}|||" if _n.isdigit() else f"|||{_n}|||")
+                    wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
+                    txt_number = (
+                        f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
+                        f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"alpha='if(lt(t,{fade_out_start}),1,"
+                        f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
+                    )
+                    txt_name = (
+                        f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
+                        f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"alpha='if(lt(t,{num_dur}),0,"
+                        f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
+                    )
+                    drawtext_vf = f"{txt_number},{txt_name}"
+                else:
+                    wobble_name0 = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                    txt_name = (
+                        f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
+                        f"fontsize='{wobble_name0}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"alpha='if(lt(t,{fade_dur}),t/{fade_dur},1)'"
+                    )
+                    drawtext_vf = txt_name
+                run_cmd([
+                    "ffmpeg", "-y",
+                    *(  ["-loop","1"] if src_override and src_override.suffix.lower() in (".png",".jpg",".jpeg")
+                        else ["-stream_loop","-1"]
+                       ),
+                    "-i", str(src_override if src_override else bg_path),
+                    "-t", str(total_dur),
+                    "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+                           f"crop={w}:{h},pad={w*2}:{h}:{w//2}:0:black,"
+                           f"{drawtext_vf},"
+                           f"crop={w}:{h}:{w//2}:0",
+                    "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
+                    str(out_path),
+                ])
+
+            def render_576_clip(out_path, src_path):
+                if src_path and Path(src_path).exists():
+                    src = Path(src_path)
+                    ext = src.suffix.lower()
+                    loop_arg = ["-loop", "1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop", "-1"]
+                    run_cmd([
+                        "ffmpeg", "-y", *loop_arg, "-i", str(src),
+                        "-t", str(total_dur),
+                        "-vf", "scale=576:64:force_original_aspect_ratio=increase,crop=576:64",
+                        "-r", str(fps_val), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
+                        str(out_path),
+                    ])
+                else:
+                    run_cmd([
+                        "ffmpeg", "-y",
+                        "-f", "lavfi", "-i", f"color=black:size=576x64:rate={fps_val}",
+                        "-t", str(total_dur), "-c:v", "libx264", "-pix_fmt", "yuv420p", str(out_path),
+                    ])
+
+            clip_1728 = ptmp / "clip_1728.mp4"
+            render_text_clip(1728, 64, clip_1728)
+            clip_1344 = ptmp / "clip_1344.mp4"
+            src_1344  = Path(bg_1344_override) if bg_1344_override and Path(bg_1344_override).exists() else None
+            render_text_clip(1344, 64, clip_1344, src_override=src_1344)
+            clip_192 = ptmp / "clip_192.mp4"
+            src_192  = Path(media_192_path) if media_192_path and Path(media_192_path).exists() else None
+            render_text_clip(192, 64, clip_192, src_override=src_192)
+            clip_576_left  = ptmp / "clip_576_left.mp4"
+            clip_576_right = ptmp / "clip_576_right.mp4"
+            render_576_clip(clip_576_left,  variant_576_left_path)
+            render_576_clip(clip_576_right, variant_576_right_path)
+
+            def probe_dur(p):
+                r = subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                     "-of", "default=noprint_wrappers=1:nokey=1", str(p)],
+                    capture_output=True, text=True)
+                try:    return float(r.stdout.strip())
+                except: return total_dur
+
+            def loop_to(src, dst, target_dur):
+                d = probe_dur(src)
+                if d < target_dur - 0.05:
+                    run_cmd(["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(src),
+                             "-t", str(target_dur), "-c:v", "libx264", "-pix_fmt", "yuv420p", str(dst)])
+                    return dst
+                return src
+
+            max_dur = max(probe_dur(clip_1728), probe_dur(clip_1344),
+                          probe_dur(clip_192), probe_dur(clip_576_left), probe_dur(clip_576_right))
+            c1728 = loop_to(clip_1728,      ptmp / "l_1728.mp4",      max_dur)
+            c1344 = loop_to(clip_1344,      ptmp / "l_1344.mp4",      max_dur)
+            c192  = loop_to(clip_192,       ptmp / "l_192.mp4",       max_dur)
+            c576l = loop_to(clip_576_left,  ptmp / "l_576_left.mp4",  max_dur)
+            c576r = loop_to(clip_576_right, ptmp / "l_576_right.mp4", max_dur)
+
+            safe_name   = re.sub(r'[\\/*?:"<>|]', '', f"{number}-{name.upper()}").strip()
+            out_stacked = OUTPUT_DIR / f"{safe_name}.mp4"
+            build_stacked_export(c1344, c576l, c1728, c576r, c192, out_stacked, fps_val, ptmp)
+            stacked_files.append(out_stacked)
+
+            if not combine:
+                batch_results.append({"number": number, "name": name, "outputs": [out_stacked.name]})
+
+        if combine:
+            jobs[job_id]["progress"] = "Concatenating all players…"
+            concat_list = tmp / "concat.txt"
+            with open(concat_list, "w") as f:
+                for sf in stacked_files:
+                    f.write(f"file '{sf}'\n")
+            combined = OUTPUT_DIR / f"batch_lineup_{job_id[:8]}.mp4"
+            run_cmd(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                     "-i", str(concat_list), "-c", "copy", str(combined)])
+            jobs[job_id]["status"]   = "done"
+            jobs[job_id]["progress"] = "Complete!"
+            jobs[job_id]["outputs"]  = [combined.name]
+            jobs[job_id]["combine"]  = True
+        else:
+            jobs[job_id]["status"]       = "done"
+            jobs[job_id]["progress"]     = "Complete!"
+            jobs[job_id]["batch_results"] = batch_results
+            jobs[job_id]["combine"]      = False
+
+    except Exception as e:
+        jobs[job_id]["status"]   = "error"
+        jobs[job_id]["progress"] = str(e)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@app.route("/api/lineup/batch", methods=["POST"])
+def lineup_batch():
+    data          = request.json
+    players       = data.get("players", [])
+    fps_val       = int(data.get("fps", 50))
+    num_dur       = float(data.get("num_dur", 2.1))
+    total_dur     = float(data.get("total_dur", 6.0))
+    combine       = bool(data.get("combine", False))
+    font_size_pct = float(data.get("font_size_pct", 50))
+    fade_dur      = 0.3
+
+    if not players:
+        return jsonify({"error": "No players provided"}), 400
+    if not PLAYERS_BG_1728.exists():
+        return jsonify({"error": "players-template-1728.mp4 not found"}), 400
+
+    bg_path = PLAYERS_BG_1728
+    bg_1344 = PLAYERS_BG_1344 if PLAYERS_BG_1344.exists() else PLAYERS_BG_1728
+
+    job_id = uuid.uuid4().hex
+    jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": [], "combine": combine}
+    t = threading.Thread(
+        target=lineup_batch_worker,
+        args=(job_id, bg_path, str(PLAYERS_BG_576), str(PLAYERS_BG_576), str(PLAYERS_BG_192),
+              players, fps_val, fade_dur, num_dur, total_dur, combine),
+        kwargs={"bg_1344_override": bg_1344, "font_size_pct": font_size_pct},
+        daemon=True,
+    )
+    t.start()
+    return jsonify({"job_id": job_id})
+
+
 @app.route("/api/lineup/upload-bg", methods=["POST"])
 def lineup_upload_bg():
     f = request.files.get("file")
@@ -860,13 +1114,14 @@ def lineup_upload_font():
 
 @app.route("/api/lineup/generate", methods=["POST"])
 def lineup_generate():
-    data      = request.json
-    number    = str(data.get("number", "")).strip()
-    name      = str(data.get("name", "")).strip()
-    fps_val   = int(data.get("fps", 50))
-    num_dur   = float(data.get("num_dur", 2.1))
-    total_dur = float(data.get("total_dur", 6.0))
-    fade_dur  = 0.3
+    data           = request.json
+    number         = str(data.get("number", "")).strip()
+    name           = str(data.get("name", "")).strip()
+    fps_val        = int(data.get("fps", 50))
+    num_dur        = float(data.get("num_dur", 2.1))
+    total_dur      = float(data.get("total_dur", 6.0))
+    font_size_pct  = float(data.get("font_size_pct", 50))
+    fade_dur       = 0.3
 
     if not number:
         return jsonify({"error": "Player number required"}), 400
@@ -891,7 +1146,7 @@ def lineup_generate():
     t = threading.Thread(
         target=lineup_worker,
         args=(job_id, bg_path, str(PLAYERS_BG_576), str(PLAYERS_BG_576), str(PLAYERS_BG_192), number, name, fps_val, fade_dur, num_dur, total_dur),
-        kwargs={"bg_1344_override": bg_1344},
+        kwargs={"bg_1344_override": bg_1344, "font_size_pct": font_size_pct},
         daemon=True,
     )
     t.start()
@@ -936,21 +1191,21 @@ def lineup_preview_render():
                 base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                 max_chars      = max(len(f"# {number}"), len(name))
                 max_px_per_char = w / max(1, max_chars) * 1.8
-                base_size      = max(8, min(base_size, int(max_px_per_char)))
-                num_txt  = f"# {number}"
-                name_txt = name.upper()
-                wobble_num  = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                base_size      = max(8, int(min(base_size, int(max_px_per_char)) * 0.75))
+                num_txt  = esc_drawtext(f"|||# {number}|||" if number.isdigit() else f"|||{number}|||")
+                name_txt = esc_drawtext(f"|||{name.upper()}|||")
+                wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                 txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
-                         f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                         f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                          f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
                 txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
-                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                           f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
                 ext = Path(src).suffix.lower()
                 loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
                 run_cmd(["ffmpeg","-y",*loop,"-i",str(src),"-t",str(total_dur),
-                         "-vf",f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},{txt_n},{txt_nm}",
+                         "-vf",f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},pad={w*2}:{h}:{w//2}:0:black,{txt_n},{txt_nm},crop={w}:{h}:{w//2}:0",
                          "-r",str(fps_val),"-c:v","libx264","-pix_fmt","yuv420p","-an",str(out_path)])
 
             jobs[job_id]["progress"] = "Rendering Longside Center…"
@@ -989,6 +1244,107 @@ def lineup_preview_render():
             shutil.rmtree(tmp, ignore_errors=True)
 
     threading.Thread(target=preview_worker, daemon=True).start()
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/lineup/batch-preview-render", methods=["POST"])
+def lineup_batch_preview_render():
+    """Render per-display clips for all batch players, concatenated, for LED preview."""
+    data      = request.json
+    players   = data.get("players", [])
+    num_dur   = float(data.get("num_dur",   2.1))
+    total_dur = float(data.get("total_dur", 6.0))
+    fps_val   = 25
+    fade_dur  = 0.3
+
+    if not players:
+        return jsonify({"error": "No players"}), 400
+    if not PLAYERS_BG_1728.exists():
+        return jsonify({"error": "players-template-1728.mp4 not found"}), 400
+
+    bg_path = PLAYERS_BG_1728
+    bg_1344 = PLAYERS_BG_1344 if PLAYERS_BG_1344.exists() else PLAYERS_BG_1728
+
+    job_id = uuid.uuid4().hex
+    jobs[job_id] = {"status": "queued", "progress": "Queued…", "outputs": []}
+
+    def batch_preview_worker():
+        tmp = Path(tempfile.mkdtemp(prefix="bprev_"))
+        try:
+            jobs[job_id]["status"] = "running"
+            chosen_font = FONT_PATH
+            font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+            fc          = "0xFFFFFF"
+
+            clips_1728, clips_1344, clips_576, clips_192 = [], [], [], []
+
+            for i, pl in enumerate(players):
+                number = str(pl.get("number", "")).strip()
+                name   = str(pl.get("name",   "")).strip().upper()
+                if not number or not name:
+                    continue
+                jobs[job_id]["progress"] = f"Rendering player {i+1}/{len(players)}: #{number} {name}…"
+                ptmp = tmp / f"p{i}"
+                ptmp.mkdir()
+
+                def render_clip(w, h, out_path, src, _n=number, _nm=name):
+                    fade_out_start = num_dur - fade_dur
+                    fade_in_end    = num_dur + fade_dur
+                    base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                    max_chars      = max(len(f"# {_n}"), len(_nm))
+                    max_px_per_char = w / max(1, max_chars) * 1.8
+                    base_size      = max(8, int(min(base_size, int(max_px_per_char)) * 0.75))
+                    num_txt  = esc_drawtext(f"|||# {_n}|||" if _n.isdigit() else f"|||{_n}|||")
+                    name_txt = esc_drawtext(f"|||{_nm.upper()}|||")
+                    wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
+                    wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
+                    txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
+                             f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                             f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
+                    txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
+                              f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                              f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
+                    ext = Path(src).suffix.lower()
+                    loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
+                    run_cmd(["ffmpeg","-y",*loop,"-i",str(src),"-t",str(total_dur),
+                             "-vf",f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},pad={w*2}:{h}:{w//2}:0:black,{txt_n},{txt_nm},crop={w}:{h}:{w//2}:0",
+                             "-r",str(fps_val),"-c:v","libx264","-pix_fmt","yuv420p","-an",str(out_path)])
+
+                c1728 = ptmp / "c1728.mp4"; render_clip(1728, 64, c1728, bg_path)
+                c1344 = ptmp / "c1344.mp4"; render_clip(1344, 64, c1344, bg_1344)
+                c192  = ptmp / "c192.mp4";  render_clip(192,  64, c192,  PLAYERS_BG_192 if PLAYERS_BG_192.exists() else bg_path)
+                c576  = ptmp / "c576.mp4"
+                ext576 = PLAYERS_BG_576.suffix.lower()
+                loop576 = ["-loop","1"] if ext576 in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
+                run_cmd(["ffmpeg","-y",*loop576,"-i",str(PLAYERS_BG_576),"-t",str(total_dur),
+                         "-vf","scale=576:64:force_original_aspect_ratio=increase,crop=576:64",
+                         "-r",str(fps_val),"-c:v","libx264","-pix_fmt","yuv420p","-an",str(c576)])
+                clips_1728.append(c1728); clips_1344.append(c1344)
+                clips_576.append(c576);   clips_192.append(c192)
+
+            def concat(clips, out):
+                lst = tmp / f"concat_{out.stem}.txt"
+                with open(lst, "w") as f:
+                    for c in clips:
+                        f.write(f"file '{c}'\n")
+                run_cmd(["ffmpeg","-y","-f","concat","-safe","0","-i",str(lst),"-c","copy",str(out)])
+
+            jobs[job_id]["progress"] = "Concatenating…"
+            o1728 = OUTPUT_DIR / f"bprev_1728_{job_id[:8]}.mp4"; concat(clips_1728, o1728)
+            o1344 = OUTPUT_DIR / f"bprev_1344_{job_id[:8]}.mp4"; concat(clips_1344, o1344)
+            o576  = OUTPUT_DIR / f"bprev_576_{job_id[:8]}.mp4";  concat(clips_576,  o576)
+            o192  = OUTPUT_DIR / f"bprev_192_{job_id[:8]}.mp4";  concat(clips_192,  o192)
+
+            jobs[job_id]["status"]   = "done"
+            jobs[job_id]["progress"] = "Ready!"
+            jobs[job_id]["outputs"]  = {"1728": o1728.name, "1344": o1344.name, "576": o576.name, "192": o192.name}
+        except Exception as e:
+            jobs[job_id]["status"]   = "error"
+            jobs[job_id]["progress"] = str(e)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    threading.Thread(target=batch_preview_worker, daemon=True).start()
     return jsonify({"job_id": job_id})
 
 
@@ -1047,12 +1403,15 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                 slot_out = tmp / f"cu_{display_id}_s{si}.mp4"
 
                 def _text_vf(base_vf, esc, font_size):
-                    wobble = f"{font_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                    wobble = f"{font_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     alpha  = f"if(lt(t,0.2),t/0.2,1)"
-                    return (f"{base_vf},"
-                            f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                            f"fontsize='{wobble}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
-                            f"alpha='{alpha}'")
+                    dt = (f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
+                          f"fontsize='{wobble}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                          f"alpha='{alpha}'")
+                    pad_vf = f"pad={w*2}:{h}:{w//2}:0:black"
+                    crop_vf = f"crop={w}:{h}:{w//2}:0"
+                    prefix = f"{base_vf}," if base_vf else ""
+                    return f"{prefix}{pad_vf},{dt},{crop_vf}"
 
                 if bg_path:
                     ext = bg_path.suffix.lower()
@@ -1060,7 +1419,7 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                                  else ["-stream_loop", "-1"])
                     scale_vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
                     if text.strip():
-                        esc = _esc_dt(text)
+                        esc = _esc_dt(f"|||{text}|||")
                         font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                         font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
                         vf = _text_vf(scale_vf, esc, font_size)
@@ -1076,7 +1435,7 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                 else:
                     # Black frame + optional text
                     if text.strip():
-                        esc = _esc_dt(text)
+                        esc = _esc_dt(f"|||{text}|||")
                         font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                         font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
                         vf = _text_vf("", esc, font_size).lstrip(",")
@@ -1265,12 +1624,15 @@ def custom_preview_render():
                     slot_out = tmp / f"cuprev_{display_id}_s{si}.mp4"
 
                     def _prev_text_vf(base_vf, esc, font_size):
-                        wobble = f"{font_size}*(1+0.35*exp(-8*t)*cos(12*t))"
+                        wobble = f"{font_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                         alpha  = f"if(lt(t,0.2),t/0.2,1)"
-                        return (f"{base_vf},"
-                                f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                                f"fontsize='{wobble}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
-                                f"alpha='{alpha}'")
+                        dt = (f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
+                              f"fontsize='{wobble}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                              f"alpha='{alpha}'")
+                        pad_vf  = f"pad={w+200}:{h}:100:0:black"
+                        crop_vf = f"crop={w}:{h}:{w//2}:0"
+                        prefix  = f"{base_vf}," if base_vf else ""
+                        return f"{prefix}{pad_vf},{dt},{crop_vf}"
 
                     if bg_path:
                         ext       = bg_path.suffix.lower()
@@ -1278,7 +1640,7 @@ def custom_preview_render():
                                      else ["-stream_loop", "-1"])
                         scale_vf  = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
                         if text.strip():
-                            esc       = _esc_dt(text)
+                            esc       = _esc_dt(f"|||{text}|||")
                             font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                             font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
                             vf = _prev_text_vf(scale_vf, esc, font_size)
@@ -1290,7 +1652,7 @@ def custom_preview_render():
                                  str(slot_out)])
                     else:
                         if text.strip():
-                            esc       = _esc_dt(text)
+                            esc       = _esc_dt(f"|||{text}|||")
                             font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                             font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
                             vf = _prev_text_vf("", esc, font_size).lstrip(",")
