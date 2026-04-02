@@ -6,6 +6,29 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.34] - 2026-04-02
+
+### Players tab
+- Removed font size slider — hidden from UI, hardcoded to 50% (not user-configurable)
+- Removed `* 0.62` size reduction that was added during troubleshooting — preview and render now use same sizing
+- Fixed text centering on 192px display — `x` position was using `max(w/2, ...)` which pushed text right; now `max(0, (w-text_w)/2)`
+- Reduced font size cap on 192px display (coefficient 1.8 → 1.3) to reduce overflow on long names
+
+### Custom tab
+- Output rows now use icon-based UI (preview, download, rename, save to library) — same as Players tab
+- Fixed font selection being ignored in render — was hardcoded to Road Rage regardless of chosen font
+- `|||` padding now only applied when font is Road Rage (pipe character is visible in other fonts)
+- Font size % now sent to backend and applied in both render and LED preview (was canvas-only)
+- Font size max capped at 100% to prevent layout misplacement
+
+### File Merger tab
+- Output row now uses icon-based UI (preview, download, rename, save to library)
+
+### LED Preview
+- Reordered display rows: Row 1 = 1344+576L, Row 2 = 1728+576R, Row 3 = 192 Media (was previously mixed)
+
+---
+
 ## [0.33] - 2026-04-02
 
 ### Players tab

@@ -130,7 +130,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.33 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.34 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -295,13 +295,15 @@ tailwind.config = {
         </div>
         <div class="font-mono text-sm text-[#888]" id="mergeStatus">Upload all 5 files to begin.</div>
       </div>
-      <div class="hidden mx-5 mb-5 items-center gap-4 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4" id="mergeDownload">
-        <span class="text-3xl">📥</span>
-        <div>
-          <div class="font-semibold text-[#00ff88] text-lg uppercase">Output ready!</div>
-          <div class="font-mono text-xs text-[#888] mt-0.5" id="mergeDlName"></div>
+      <div class="hidden mx-5 mb-5 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4" id="mergeDownload">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-2xl">📥</span>
+          <div>
+            <div class="font-semibold text-[#00ff88] text-sm uppercase">Output ready!</div>
+            <div class="font-mono text-xs text-[#888]">Stacked 1600×1200</div>
+          </div>
         </div>
-        <button id="mergeDlBtn" class="ml-auto bg-[#00ff88] text-black font-semibold px-5 py-2.5 rounded-xl hover:opacity-80 transition-opacity uppercase tracking-wide">Download MP4</button>
+        <div id="mergeDlButtons" class="space-y-1"></div>
       </div>
     </div>
 
@@ -323,19 +325,13 @@ tailwind.config = {
         <span class="section-title">01 — Settings</span>
       </div>
       <div class="px-5 py-4">
-        <div class="flex items-center gap-3 flex-wrap">
-          <span class="font-mono text-xs text-[#888]">Font size:</span>
-          <input type="number" id="luFontSize" value="50" min="10" max="200" step="5"
-            oninput="renderAllLuCanvases()"
-            class="w-14 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020] text-center">
-          <span class="font-mono text-xs text-[#888]">%</span>
-        </div>
+        <input type="hidden" id="luFontSize" value="50">
       </div>
     </div>
     <!-- Info: timing note -->
     <div class="warn-box">
       <span class="material-icons-round box-icon">warning</span>
-      Default duration is the standard Pixbo player lineup time. Change only if needed. Same goes with font size.
+      Default duration is the standard Pixbo player lineup time. Change only if needed.
     </div>
     <!-- 02 Player Info -->
     <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
@@ -562,7 +558,7 @@ tailwind.config = {
           </select>
           <span class="font-mono text-xs" id="cuFontStatus"></span>
           <span class="font-mono text-xs text-[#888] whitespace-nowrap">Size:</span>
-          <input type="number" id="cuFontSize" value="50" min="10" max="200" step="5"
+          <input type="number" id="cuFontSize" value="50" min="10" max="100" step="5"
             oninput="renderAllCuCanvases()"
             class="w-16 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-2 outline-none focus:border-[#CC1020] text-center">
           <span class="font-mono text-xs text-[#888]">%</span>
@@ -730,23 +726,15 @@ tailwind.config = {
         </div>
         <div class="font-mono text-sm text-[#888]" id="customStatus">Configure screens above, then generate.</div>
       </div>
-      <div class="hidden mx-5 mb-5 items-center gap-4 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4 flex-wrap" id="customDownload">
-        <span class="text-3xl">🎬</span>
-        <div>
-          <div class="font-semibold text-[#00ff88] text-lg uppercase">Custom video ready!</div>
-          <div class="font-mono text-xs text-[#888] mt-0.5">Stacked export + 5 individual files</div>
+      <div class="hidden mx-5 mb-5 bg-[#00ff88]/5 border border-neon/30 rounded-xl px-5 py-4" id="customDownload">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-2xl">🎬</span>
+          <div>
+            <div class="font-semibold text-[#00ff88] text-sm uppercase">Custom video ready!</div>
+            <div class="font-mono text-xs text-[#888]">Stacked export + 5 individual files</div>
+          </div>
         </div>
-        <div class="ml-auto flex gap-2 flex-wrap" id="customDlButtons"></div>
-        <div class="w-full border-t border-[#2E2E3A] pt-3 flex items-center gap-2 flex-wrap">
-          <span class="font-mono text-xs text-[#888]">Save stacked to Library:</span>
-          <select id="customLibraryCat" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">
-            {% for cat in ['Event','General','Special','Commercial','Starcamp','SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls'] %}
-            <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-          </select>
-          <button onclick="saveCustomToLibrary()" class="font-mono text-xs px-3 py-1 rounded bg-[#2A2A36] border border-[#3A3A4A] text-[#999] hover:border-[#CC1020] hover:text-white transition-colors">→ Save</button>
-          <span id="customLibrarySaveStatus" class="font-mono text-xs text-[#888]"></span>
-        </div>
+        <div id="customDlButtons" class="space-y-1"></div>
       </div>
     </div>
 
@@ -1228,11 +1216,13 @@ async function startMerge() {
     body: JSON.stringify({files, tile_configs:tileConfigs, mode:'stacked', fps:FPS}),
   });
   const {job_id} = await r.json();
-  pollJob(job_id, 'mergeStatus', 'mergeProgress', 'mergeBtn', job => {
-    document.getElementById('mergeDlName').textContent = job.output;
-    document.getElementById('mergeDlBtn').onclick = () => window.location.href = `/api/download/${job.output}`;
+  pollJob(job_id, 'mergeStatus', 'mergeProgress', 'mergeBtn', async job => {
+    const btns = document.getElementById('mergeDlButtons');
+    btns.innerHTML = '';
+    const row = await buildOutputFileRow(job.output, 'Stacked 1600×1200', true);
+    btns.appendChild(row);
     const c = document.getElementById('mergeDownload');
-    c.classList.remove('hidden'); c.classList.add('flex');
+    c.classList.remove('hidden');
   });
 }
 
@@ -2190,6 +2180,7 @@ async function openCustomLedPreview() {
         screen_configs,
         font_name:  cuFont || '',
         font_color: document.getElementById('cuTextColor')?.value || '#ffffff',
+        font_size_pct: parseFloat(document.getElementById('cuFontSize')?.value) || 50,
       }),
     });
     const res = await r.json();
@@ -2262,7 +2253,7 @@ async function startCustom() {
 
   const r = await fetch('/api/custom/generate', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ screen_configs, font_name: cuFont || '', font_color: document.getElementById('cuTextColor')?.value||'#ffffff', fps: FPS }),
+    body: JSON.stringify({ screen_configs, font_name: cuFont || '', font_color: document.getElementById('cuTextColor')?.value||'#ffffff', font_size_pct: parseFloat(document.getElementById('cuFontSize')?.value)||50, fps: FPS }),
   });
   const res = await r.json();
   if (res.error) {
@@ -2271,21 +2262,17 @@ async function startCustom() {
     document.getElementById('customProgress').classList.add('hidden');
     return;
   }
-  pollJob(res.job_id, 'customStatus', 'customProgress', 'customBtn', job => {
+  pollJob(res.job_id, 'customStatus', 'customProgress', 'customBtn', async job => {
     const btns = document.getElementById('customDlButtons'); btns.innerHTML = '';
-    const labels = ['↓ Stacked 1600×1200','↓ Shortside 1344','↓ 576 Left','↓ 1728 Center','↓ 576 Right','↓ Media 192'];
+    const labels = ['Stacked 1600×1200','Shortside 1344','576 Left','1728 Center','576 Right','Media 192'];
     const outputs = job.outputs || [];
     window._customStackedFile = outputs[0] || null;
-    document.getElementById('customLibrarySaveStatus').textContent = '';
-    outputs.forEach((fname,i) => {
-      const b = document.createElement('button');
-      b.className = 'bg-[#00ff88] text-black font-semibold px-4 py-2 rounded-xl hover:opacity-80 text-sm uppercase';
-      b.textContent = labels[i] || `↓ ${fname}`;
-      b.onclick = () => window.location.href = `/api/download/${fname}`;
-      btns.appendChild(b);
-    });
+    for (let i = 0; i < outputs.length; i++) {
+      const row = await buildOutputFileRow(outputs[i], labels[i], i === 0);
+      btns.appendChild(row);
+    }
     const c = document.getElementById('customDownload');
-    c.classList.remove('hidden'); c.classList.add('flex');
+    c.classList.remove('hidden');
   });
 }
 

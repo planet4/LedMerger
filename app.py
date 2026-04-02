@@ -671,9 +671,8 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
             # Scale font down for narrow displays so text fits
             # At 192px wide, full name would overflow — cap proportionally
             max_chars      = max(len(f"# {number}"), len(name))
-            max_px_per_char = w / max(1, max_chars) * 1.8  # Road Rage is wide
-            base_size      = min(base_size, int(max_px_per_char))
-            base_size      = max(8, int(base_size * 0.62))  # headroom for Road Rage ascenders + wobble peak
+            max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)  # Road Rage is wide
+            base_size      = max(8, min(base_size, int(max_px_per_char)))
             base_size      = max(8, int(base_size * font_size_pct / 50))
             # ||| is invisible in Road Rage (zero-height glyph) but has advance width,
             # creating a left-bearing buffer that prevents A/S/E from being clipped.
@@ -684,13 +683,13 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
                 wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 txt_number = (
                     f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
-                    f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                     f"alpha='if(lt(t,{fade_out_start}),1,"
                     f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
                 )
                 txt_name = (
                     f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                    f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                     f"alpha='if(lt(t,{num_dur}),0,"
                     f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
                 )
@@ -700,7 +699,7 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
                 wobble_name0 = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
                 txt_name = (
                     f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                    f"fontsize='{wobble_name0}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"fontsize='{wobble_name0}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                     f"alpha='if(lt(t,{fade_dur}),t/{fade_dur},1)'"
                 )
                 drawtext_vf = txt_name
@@ -862,9 +861,8 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
                 fade_in_end    = num_dur + fade_dur
                 base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                 max_chars      = max(len(f"# {_n}"), len(_nm))
-                max_px_per_char = w / max(1, max_chars) * 1.8
-                base_size      = min(base_size, int(max_px_per_char))
-                base_size      = max(8, int(base_size * 0.62))  # headroom for Road Rage ascenders + wobble peak
+                max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
+                base_size      = max(8, min(base_size, int(max_px_per_char)))
                 base_size      = max(8, int(base_size * font_size_pct / 50))
                 name_text   = esc_drawtext(f"|||{_nm.upper()}|||")
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
@@ -873,13 +871,13 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
                     wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     txt_number = (
                         f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
-                        f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                         f"alpha='if(lt(t,{fade_out_start}),1,"
                         f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
                     )
                     txt_name = (
                         f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                        f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                         f"alpha='if(lt(t,{num_dur}),0,"
                         f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
                     )
@@ -888,7 +886,7 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
                     wobble_name0 = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
                     txt_name = (
                         f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                        f"fontsize='{wobble_name0}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"fontsize='{wobble_name0}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                         f"alpha='if(lt(t,{fade_dur}),t/{fade_dur},1)'"
                     )
                     drawtext_vf = txt_name
@@ -1190,17 +1188,17 @@ def lineup_preview_render():
                 fade_in_end    = num_dur + fade_dur
                 base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                 max_chars      = max(len(f"# {number}"), len(name))
-                max_px_per_char = w / max(1, max_chars) * 1.8
-                base_size      = max(8, int(min(base_size, int(max_px_per_char)) * 0.75))
+                max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
+                base_size      = max(8, min(base_size, int(max_px_per_char)))
                 num_txt  = esc_drawtext(f"|||# {number}|||" if number.isdigit() else f"|||{number}|||")
                 name_txt = esc_drawtext(f"|||{name.upper()}|||")
                 wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                 txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
-                         f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                         f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                          f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
                 txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
-                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                           f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
                 ext = Path(src).suffix.lower()
                 loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
@@ -1292,17 +1290,17 @@ def lineup_batch_preview_render():
                     fade_in_end    = num_dur + fade_dur
                     base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                     max_chars      = max(len(f"# {_n}"), len(_nm))
-                    max_px_per_char = w / max(1, max_chars) * 1.8
-                    base_size      = max(8, int(min(base_size, int(max_px_per_char)) * 0.75))
+                    max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
+                    base_size      = max(8, min(base_size, int(max_px_per_char)))
                     num_txt  = esc_drawtext(f"|||# {_n}|||" if _n.isdigit() else f"|||{_n}|||")
                     name_txt = esc_drawtext(f"|||{_nm.upper()}|||")
                     wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                     txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
-                             f"fontsize='{wobble_num}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                             f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                              f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
                     txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
-                              f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                              f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                               f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
                     ext = Path(src).suffix.lower()
                     loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
@@ -1356,7 +1354,7 @@ def _esc_dt(text):
     return text
 
 
-def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#ffffff"):
+def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#ffffff", font_size_pct=50):
     """
     screen_configs: list of dicts:
       {"display_id": int, "bg_path": str|None, "texts": [t0,t1,t2], "durations": [d0,d1,d2]}
@@ -1367,9 +1365,14 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
     try:
         jobs[job_id]["status"] = "running"
 
-        chosen_font = FONT_PATH  # always Road Rage
+        chosen_font = FONT_DIR / font_name if font_name else FONT_PATH
+        if not chosen_font.exists():
+            chosen_font = FONT_PATH
         font_arg    = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
-        fc          = "0xFFFFFF"  # always white
+        is_road_rage = chosen_font == FONT_PATH
+        r_hex = font_color.lstrip("#")
+        r, g, b = int(r_hex[0:2],16), int(r_hex[2:4],16), int(r_hex[4:6],16)
+        fc = f"0x{r:02X}{g:02X}{b:02X}"
 
         # Build a lookup by display_id
         cfg_by_id = {c["display_id"]: c for c in screen_configs}
@@ -1406,7 +1409,7 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                     wobble = f"{font_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     alpha  = f"if(lt(t,0.2),t/0.2,1)"
                     dt = (f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                          f"fontsize='{wobble}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                          f"fontsize='{wobble}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                           f"alpha='{alpha}'")
                     pad_vf = f"pad={w*2}:{h}:{w//2}:0:black"
                     crop_vf = f"crop={w}:{h}:{w//2}:0"
@@ -1419,8 +1422,9 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                                  else ["-stream_loop", "-1"])
                     scale_vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
                     if text.strip():
-                        esc = _esc_dt(f"|||{text}|||")
+                        esc = _esc_dt(f"|||{text}|||" if is_road_rage else text)
                         font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                        font_size = max(8, int(font_size * font_size_pct / 100))
                         font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
                         vf = _text_vf(scale_vf, esc, font_size)
                     else:
@@ -1435,8 +1439,9 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                 else:
                     # Black frame + optional text
                     if text.strip():
-                        esc = _esc_dt(f"|||{text}|||")
+                        esc = _esc_dt(f"|||{text}|||" if is_road_rage else text)
                         font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                        font_size = max(8, int(font_size * font_size_pct / 100))
                         font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
                         vf = _text_vf("", esc, font_size).lstrip(",")
                         run_cmd([
@@ -1560,6 +1565,7 @@ def custom_generate():
     screen_configs = data.get("screen_configs", [])
     font_name      = data.get("font_name", "")
     font_color     = data.get("font_color", "#ffffff")
+    font_size_pct  = float(data.get("font_size_pct", 50))
     fps_val        = int(data.get("fps", 50))
 
     job_id = uuid.uuid4().hex
@@ -1567,6 +1573,7 @@ def custom_generate():
     t = threading.Thread(
         target=custom_worker,
         args=(job_id, screen_configs, font_name, fps_val, font_color),
+        kwargs={"font_size_pct": font_size_pct},
         daemon=True,
     )
     t.start()
@@ -1580,6 +1587,7 @@ def custom_preview_render():
     screen_configs = data.get("screen_configs", [])
     font_name      = str(data.get("font_name", "")).strip()
     font_color     = str(data.get("font_color", "#ffffff")).strip()
+    font_size_pct  = float(data.get("font_size_pct", 50))
     fps_val        = 25  # lower fps for faster preview
 
     job_id = uuid.uuid4().hex
@@ -1594,6 +1602,7 @@ def custom_preview_render():
             if not chosen_font.exists():
                 chosen_font = FONT_PATH
             font_arg = f"fontfile={chosen_font}:" if chosen_font.exists() else ""
+            is_road_rage = chosen_font == FONT_PATH
 
             r_hex = font_color.lstrip("#")
             fc = f"0x{r_hex.upper()}" if r_hex else "0xFFFFFF"
@@ -1627,7 +1636,7 @@ def custom_preview_render():
                         wobble = f"{font_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                         alpha  = f"if(lt(t,0.2),t/0.2,1)"
                         dt = (f"drawtext={font_arg}text='{esc}':fontcolor={fc}:"
-                              f"fontsize='{wobble}':x='max({w//2},(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                              f"fontsize='{wobble}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
                               f"alpha='{alpha}'")
                         pad_vf  = f"pad={w+200}:{h}:100:0:black"
                         crop_vf = f"crop={w}:{h}:{w//2}:0"
@@ -1640,9 +1649,10 @@ def custom_preview_render():
                                      else ["-stream_loop", "-1"])
                         scale_vf  = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
                         if text.strip():
-                            esc       = _esc_dt(f"|||{text}|||")
+                            esc       = _esc_dt(f"|||{text}|||" if is_road_rage else text)
                             font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                             font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
+                            font_size = max(8, int(font_size * font_size_pct / 100))
                             vf = _prev_text_vf(scale_vf, esc, font_size)
                         else:
                             vf = scale_vf
@@ -1652,9 +1662,10 @@ def custom_preview_render():
                                  str(slot_out)])
                     else:
                         if text.strip():
-                            esc       = _esc_dt(f"|||{text}|||")
+                            esc       = _esc_dt(f"|||{text}|||" if is_road_rage else text)
                             font_size = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
                             font_size = max(8, min(font_size, int(w / max(1, len(text)) * 1.6)))
+                            font_size = max(8, int(font_size * font_size_pct / 100))
                             vf = _prev_text_vf("", esc, font_size).lstrip(",")
                             run_cmd(["ffmpeg", "-y",
                                      "-f", "lavfi", "-i", f"color=black:size={w}x{h}:rate={fps_val}",
