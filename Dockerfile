@@ -7,9 +7,10 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Install Python deps
+# Install Python deps + Playwright system deps
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    playwright install chromium --with-deps
 
 # Copy app
 COPY app.py .

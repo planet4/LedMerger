@@ -130,7 +130,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.34 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.35 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -315,8 +315,15 @@ tailwind.config = {
 
     <div class="info-box">
       <span class="material-icons-round box-icon">info</span>
-      Generate a branded player introduction video using fixed Pixbo templates. Enter a player number and name — the number animates with a pop-wobble effect, then fades into the name. Uses Road Rage font on all displays. Exports a stacked file plus individual clips per display.<br><br>
-      Note that the player generation in this app might look slightly different compared to the current players. They are rendered in DaVinci Studio. You can save the rendered files to the library when done. The Road Rage font does not like 0 (zero) — use the letter O instead in numbers.
+      <div>
+        Generate a branded player introduction video using fixed Pixbo templates. Exports a stacked file plus individual clips per display.<br><br>
+        Note that the player generation in this app might look slightly different compared to the current SSL players lineup. They are rendered in DaVinci Studio. You can save the rendered files to the library when done. The Road Rage font does not like 0 (zero) — use the letter O instead in numbers.<br><br>
+        There are three ways of generating players:<br>
+        1. Just enter a name and generate<br>
+        2. Auto Batch import. Uses the auto fetch to find all team members. Find the team via the link. And import the link.<br>
+        3. Batch import. Via a text file.<br><br>
+        When batch is used a line with team is added first. Remove this if you do not want it.
+      </div>
     </div>
 
     <!-- 01 Background + Font -->
@@ -364,6 +371,15 @@ tailwind.config = {
             class="w-full bg-[#1E1E26] border-2 border-[#2E2E3A] rounded text-gray-100 font-mono text-base px-4 py-2.5 outline-none focus:border-[#CC1020] transition-colors">
         </div>
       </div>
+      <!-- Auto batch hint -->
+      <div class="border-t border-[#2E2E3A] px-5 py-3">
+        <p class="font-mono text-xs text-[#888] leading-relaxed">
+          Auto Batch import: First find your team at
+          <a href="https://stats.innebandy.se/sok" target="_blank" class="icon-btn inline-flex align-middle mx-1" title="Find Pixbo players on stats.innebandy.se"><span class="material-icons-round" style="font-size:16px">manage_search</span></a>
+          After that paste your team link here
+          <button onclick="promptScrapeUrl()" class="icon-btn inline-flex align-middle mx-1" title="Paste team URL from stats.innebandy.se"><span class="material-icons-round" style="font-size:16px">link</span></button>
+        </p>
+      </div>
       <!-- Batch import -->
       <div class="border-t border-[#2E2E3A] px-5 py-3 flex items-center gap-3 flex-wrap">
         <span class="font-mono text-xs text-[#888]">Batch import:</span>
@@ -388,10 +404,10 @@ tailwind.config = {
           </label>
         </div>
         <div id="batchInfo" class="hidden w-full pt-2">
-          <p class="font-mono text-xs text-[#888]">Format: NUMBER FIRSTNAME — one player per line. For "All players as one file" you can add the team on the first row, e.g. PIXBO P11, followed by the players.</p>
+          <p class="font-mono text-xs text-[#888]">Format: NUMBER FIRSTNAME — one player per line.</p>
         </div>
       </div>
-      <div id="batchPlayerList" class="hidden px-5 pb-3 space-y-1 max-h-40 overflow-y-auto border-t border-[#2E2E3A]"></div>
+      <div id="batchPlayerList" class="hidden px-5 pb-3 space-y-1 max-h-64 overflow-y-auto border-t border-[#2E2E3A]"></div>
     </div>
 
     <!-- 03 Visual Layout Preview -->
@@ -1381,40 +1397,139 @@ function parseBatchFile(input) {
       const m = line.match(/^(\S+)\s+(.+)$/);
       if (m) _batchPlayers.push({number: m[1], name: m[2].trim().toUpperCase()});
     }
-    const status = document.getElementById('batchStatus');
-    const toggle = document.getElementById('batchToggle');
-    const list   = document.getElementById('batchPlayerList');
-    const clearBtn = document.getElementById('batchClearBtn');
-    if (_batchPlayers.length === 0) {
-      status.textContent = 'No valid players found. Format: number name';
-      toggle.classList.add('hidden'); toggle.classList.remove('flex');
-      document.getElementById('batchInfo').classList.add('hidden');
-      list.classList.add('hidden');
-      clearBtn.classList.add('hidden');
-    } else {
-      status.textContent = `${_batchPlayers.length} player(s) loaded`;
-      toggle.classList.remove('hidden'); toggle.classList.add('flex');
-      document.getElementById('batchInfo').classList.remove('hidden');
-      list.classList.remove('hidden');
-      clearBtn.classList.remove('hidden');
-      list.innerHTML = '<div class="pt-2"></div>' + _batchPlayers.map((p, i) =>
-        `<div class="font-mono text-xs flex gap-3 py-0.5">
-          <span class="text-[#555] w-5 text-right">${i+1}.</span>
-          <span class="text-[#CC1020]">${/^\d+$/.test(p.number) ? '#' : ''}${p.number}</span>
-          <span class="text-gray-200">${p.name}</span>
-        </div>`
-      ).join('');
-      document.getElementById('singlePlayerInputs').classList.add('opacity-40', 'pointer-events-none');
-      // Update preview with first player
-      document.getElementById('playerNumber').value = _batchPlayers[0].number;
-      document.getElementById('playerName').value   = _batchPlayers[0].name;
-      updateTimeline();
-      renderAllLuCanvases();
-    }
-    checkLineupReady();
+    _batchPlayers.unshift({number: 'PIXBO', name: 'TEAMNAME'});
+    applyBatchPlayers();
   };
   reader.readAsText(file);
   input.value = '';
+}
+
+function applyBatchPlayers() {
+  const status   = document.getElementById('batchStatus');
+  const toggle   = document.getElementById('batchToggle');
+  const list     = document.getElementById('batchPlayerList');
+  const clearBtn = document.getElementById('batchClearBtn');
+  if (_batchPlayers.length === 0) {
+    status.textContent = 'No valid players found.';
+    toggle.classList.add('hidden'); toggle.classList.remove('flex');
+    document.getElementById('batchInfo').classList.add('hidden');
+    list.classList.add('hidden');
+    clearBtn.classList.add('hidden');
+  } else {
+    toggle.classList.remove('hidden'); toggle.classList.add('flex');
+    document.getElementById('batchInfo').classList.remove('hidden');
+    list.classList.remove('hidden');
+    clearBtn.classList.remove('hidden');
+    renderBatchList();
+    document.getElementById('singlePlayerInputs').classList.add('opacity-40', 'pointer-events-none');
+    document.getElementById('playerNumber').value = _batchPlayers[0].number;
+    document.getElementById('playerName').value   = _batchPlayers[0].name;
+    updateTimeline();
+    renderAllLuCanvases();
+  }
+  checkLineupReady();
+}
+
+async function promptScrapeUrl() {
+  const url = prompt('Paste team URL from stats.innebandy.se:');
+  if (!url) return;
+  const status = document.getElementById('batchStatus');
+  status.textContent = 'Fetching roster…';
+  try {
+    const res = await fetch('/api/scrape-roster', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      status.textContent = data.error || 'Failed to fetch roster.';
+      return;
+    }
+    _batchPlayers = data.players.map(p => ({
+      number: String(p.number),
+      name: p.name.toUpperCase()
+    }));
+    const teamName = data.team_name ? data.team_name.toUpperCase() : 'TEAMNAME';
+    _batchPlayers.unshift({number: 'PIXBO', name: teamName});
+    applyBatchPlayers();
+  } catch(e) {
+    status.textContent = 'Network error: ' + e.message;
+  }
+}
+
+function renderBatchList() {
+  const list = document.getElementById('batchPlayerList');
+  const status = document.getElementById('batchStatus');
+  status.textContent = `${_batchPlayers.length} player(s) loaded`;
+  list.innerHTML = '';
+
+  const pt = document.createElement('div'); pt.className = 'pt-2'; list.appendChild(pt);
+
+  _batchPlayers.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'font-mono text-xs flex gap-2 items-center py-0.5';
+    const isNumeric = /^\d+$/.test(p.number);
+    row.innerHTML = `
+      <span class="text-[#555] w-5 text-right shrink-0">${i+1}.</span>
+      <input class="batch-num bg-transparent border border-[#2E2E3A] rounded px-1 w-14 text-[#CC1020] focus:outline-none focus:border-[#CC1020]"
+             value="${isNumeric ? '#' : ''}${p.number}" data-i="${i}">
+      <input class="batch-name bg-transparent border border-[#2E2E3A] rounded px-1 flex-1 text-gray-200 focus:outline-none focus:border-[#CC1020]"
+             value="${p.name}" data-i="${i}">
+      <button class="shrink-0 text-[#555] hover:text-[#CC1020] px-1" title="Remove" onclick="removeBatchPlayer(${i})">✕</button>`;
+    list.appendChild(row);
+  });
+
+  // Add player row
+  const addRow = document.createElement('div');
+  addRow.className = 'flex gap-2 items-center pt-1';
+  addRow.innerHTML = `
+    <input id="batchAddNum"  placeholder="#" class="bg-transparent border border-dashed border-[#2E2E3A] rounded px-1 w-14 font-mono text-xs text-[#CC1020] focus:outline-none focus:border-[#CC1020]">
+    <input id="batchAddName" placeholder="NAME" class="bg-transparent border border-dashed border-[#2E2E3A] rounded px-1 flex-1 font-mono text-xs text-gray-400 focus:outline-none focus:border-[#CC1020]">
+    <button onclick="addBatchPlayer()" class="shrink-0 text-[#555] hover:text-[#00ff88] px-1 font-mono text-xs" title="Add player">＋</button>`;
+  list.appendChild(addRow);
+
+  // Wire edit handlers
+  list.querySelectorAll('.batch-num').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const idx = +inp.dataset.i;
+      let v = inp.value.trim().replace(/^#/, '');
+      _batchPlayers[idx].number = v || _batchPlayers[idx].number;
+      inp.value = (/^\d+$/.test(_batchPlayers[idx].number) ? '#' : '') + _batchPlayers[idx].number;
+      checkLineupReady();
+    });
+  });
+  list.querySelectorAll('.batch-name').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const idx = +inp.dataset.i;
+      const v = inp.value.trim().toUpperCase();
+      if (v) { _batchPlayers[idx].name = v; inp.value = v; }
+      checkLineupReady();
+    });
+  });
+
+  // Allow Enter on add inputs
+  document.getElementById('batchAddName').addEventListener('keydown', e => { if (e.key === 'Enter') addBatchPlayer(); });
+  document.getElementById('batchAddNum').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('batchAddName').focus(); });
+}
+
+function removeBatchPlayer(i) {
+  _batchPlayers.splice(i, 1);
+  if (_batchPlayers.length === 0) { clearBatch(); return; }
+  renderBatchList();
+  checkLineupReady();
+}
+
+function addBatchPlayer() {
+  const numInp  = document.getElementById('batchAddNum');
+  const nameInp = document.getElementById('batchAddName');
+  const num  = numInp.value.trim().replace(/^#/, '');
+  const name = nameInp.value.trim().toUpperCase();
+  if (!name) return;
+  _batchPlayers.push({ number: num || '', name });
+  numInp.value = ''; nameInp.value = '';
+  renderBatchList();
+  checkLineupReady();
 }
 
 function clearBatch() {

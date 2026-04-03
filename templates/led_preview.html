@@ -296,16 +296,15 @@ document.addEventListener('keydown',e=>{
 let arenaMode = false;
 let arenaImg = null;
 
-// Approximate positions of each display in the layout.png (1920x1080)
-// These are the rink board strip positions - flat overlays near each board
+// Arena zones: 4 corners [TL, TR, BR, BL] as fractions of 1920×1080
+// Tune these coordinates if strips need repositioning
 const ARENA_ZONES = [
-  // id, label, x, y, w, h  (percentages of layout image)
-  // 1728 = full far board width, 1344 = 77.8% of that
-  { id:2, label:'Longside Center', x:0.13, y:0.440, w:0.75, h:0.020 },  // far board — full width
-  { id:0, label:'Shortside',       x:0.22, y:0.462, w:0.58, h:0.020 },  // far board — shorter
-  { id:1, label:'L-Left',          x:0.02, y:0.435, w:0.09, h:0.020 },  // left board
-  { id:3, label:'L-Right',         x:0.90, y:0.435, w:0.09, h:0.020 },  // right board
-  { id:4, label:'Media',           x:0.02, y:0.595, w:0.12, h:0.038 },  // media screen bottom left
+  // pts: [TL, TR, BR, BL] as fractions of 1920×1080
+  { id:0, label:'Shortside',       w:1344, pts:[[0.00365,0.53148],[0.28438,0.48981],[0.28594,0.50833],[0.00260,0.55556]] },
+  { id:1, label:'L-Left',          w:576,  pts:[[0.33125,0.48704],[0.39688,0.50000],[0.39583,0.51852],[0.33177,0.50370]] },
+  { id:2, label:'Longside Center', w:1728, pts:[[0.42448,0.50463],[0.73698,0.55833],[0.73594,0.58426],[0.42396,0.52222]] },
+  { id:3, label:'L-Right',         w:576,  pts:[[0.80469,0.56852],[0.99635,0.60370],[0.99427,0.63889],[0.80417,0.59815]] },
+  { id:4, label:'Media',           w:192,  pts:[[0.04740,0.83241],[0.14844,0.83704],[0.14948,0.88796],[0.04427,0.88519]] },
 ];
 
 function drawArenaView() {
@@ -314,7 +313,6 @@ function drawArenaView() {
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
 
-  // Draw arena background
   if (arenaImg && arenaImg.complete) {
     // Fit image to canvas
     const imgAr = arenaImg.naturalWidth / arenaImg.naturalHeight;
@@ -324,29 +322,29 @@ function drawArenaView() {
     else { dh=H; dw=H*imgAr; dy=0; dx=(W-dw)/2; }
     ctx.drawImage(arenaImg, dx, dy, dw, dh);
 
-    // Draw video previews at each zone
     ARENA_ZONES.forEach(zone => {
       const v = vids[zone.id];
       if (!v) return;
       if (v._isImage) { if (!v.complete || !v.naturalWidth) return; }
       else { if (v.readyState < 2) return; }
 
-      // Zone rect in canvas coords
-      const zx = dx + zone.x * dw;
-      const zy = dy + zone.y * dh;
-      const zw = zone.w * dw;
-      const zh = zone.h * dh;
+      // Convert fractional corners to canvas coords
+      const pts = zone.pts.map(([fx,fy]) => [dx + fx*dw, dy + fy*dh]);
 
-      // Draw semi-transparent dark overlay on the actual board position
+      // Expand 5% outward from quad centre to ensure full coverage
+      const cx = pts.reduce((s,p)=>s+p[0],0)/4;
+      const cy = pts.reduce((s,p)=>s+p[1],0)/4;
+      const [TL,TR,,BL] = pts.map(([px,py]) => [cx+(px-cx)*1.05, cy+(py-cy)*1.05]);
+
+      // Affine transform: maps source rect (0,0,w,64) onto the angled quad
+      const a=(TR[0]-TL[0])/zone.w, b=(TR[1]-TL[1])/zone.w;
+      const c=(BL[0]-TL[0])/64,     d=(BL[1]-TL[1])/64;
+
       ctx.save();
-      ctx.globalAlpha = 0.85;
-      ctx.drawImage(v, zx, zy, zw, zh);
+      ctx.globalAlpha = 0.92;
+      ctx.setTransform(a, b, c, d, TL[0], TL[1]);
+      ctx.drawImage(v, 0, 0, zone.w, 64);
       ctx.restore();
-
-      // Thin colored border
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(zx, zy, zw, zh);
     });
   } else {
     ctx.fillStyle = '#111';

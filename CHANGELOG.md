@@ -6,6 +6,18 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.35] - 2026-04-03
+
+### Players tab
+- Batch import: editable player list after import — inline edit number/name, remove rows with ✕, add new rows with ＋ at the bottom
+- Batch import: new "Paste team URL" button (link icon) — paste a stats.innebandy.se team URL to fetch the roster automatically via Playwright/Chromium headless scrape
+- New backend route `/api/scrape-roster` using Playwright; Playwright + Chromium added to Docker image
+
+### Arena view (LED Preview)
+- Strip coordinates updated to match schematic pixel measurements — much more accurate placement on arena photo
+
+---
+
 ## [0.34] - 2026-04-02
 
 ### Players tab

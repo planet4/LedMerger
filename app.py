@@ -445,6 +445,45 @@ def layout_image():
     abort(404)
 
 
+@app.route("/api/scrape-roster", methods=["POST"])
+def scrape_roster():
+    data = request.get_json(force=True)
+    url  = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+    try:
+        from playwright.sync_api import sync_playwright
+        import re as _re
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(url, timeout=15000)
+            page.wait_for_selector("table", timeout=10000)
+            team_name = ""
+            for sel in ["h1", "h2", ".team-name", ".lag-name", "title"]:
+                el = page.query_selector(sel)
+                if el:
+                    t = el.inner_text().strip()
+                    if t and t != "Svensk Innebandy":
+                        team_name = t
+                        break
+            players = []
+            for row in page.query_selector_all("table tr"):
+                cells = row.query_selector_all("td")
+                if len(cells) < 2:
+                    continue
+                num  = cells[0].inner_text().strip()
+                name = cells[1].inner_text().strip()
+                if _re.match(r'^\d+$', num) and name:
+                    players.append({"number": int(num), "name": name})
+            browser.close()
+        if not players:
+            return jsonify({"error": "No players found — page structure may have changed."}), 404
+        return jsonify({"team_name": team_name, "players": players})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/assets/fonts")
 def list_fonts():
     exts = {".ttf", ".otf"}

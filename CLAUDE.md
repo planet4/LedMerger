@@ -3,7 +3,7 @@
 ## What this project is
 A Flask/Docker web app for creating and merging LED rink content for Pixbo Floorball at Wallenstam Arena. It produces stacked MP4 files compatible with the Sedna LED controller.
 
-## Current version: 0.34
+## Current version: 0.35
 
 ## Critical — Export format
 The stacked export MUST always be exactly 1600×1200px, 50fps, h264/yuv420p.
