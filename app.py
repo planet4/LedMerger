@@ -25,7 +25,7 @@ BG_DIR_1344   = Path("/app/backgrounds/1344")
 BG_DIR_1728   = Path("/app/backgrounds/1728")
 MEDIA192_DIR  = Path("/app/backgrounds/media_192")
 LIBRARY_DIR   = Path("/app/library")
-LIBRARY_CATEGORIES = ["Event", "General", "Special", "Commercial", "Starcamp", "SSL Players Men", "SSL Players Women", "JAS Men", "JAS Women", "Players Boys", "Players Girls"]
+LIBRARY_CATEGORIES = ["Event", "General", "Special", "Commercial", "Starcamp", "SSL Players Men", "SSL Players Women", "JAS Men", "JAS Women", "Players Boys", "Players Girls", "Non Stacked"]
 for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, BG_DIR_1344, BG_DIR_1728, MEDIA192_DIR]:
     _d.mkdir(exist_ok=True)
 for _cat in LIBRARY_CATEGORIES:

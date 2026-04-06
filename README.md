@@ -2,6 +2,15 @@
 
 A web-based tool for creating and merging LED rink content for Wallenstam Arena (Pixbo Floorball). Produces stacked MP4 files compatible with the Sedna LED controller.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![File Merger](screenshots/merger.png) | ![Players](screenshots/player.png) |
+| *File Merger* | *Players* |
+| ![Custom](screenshots/custom.png) | ![Library](screenshots/library.png) |
+| *Custom* | *Library* |
+
 ## What it does
 
 - **File Merger** — Upload individual video/image files for each display zone and merge them into one stacked 1600×1200px MP4

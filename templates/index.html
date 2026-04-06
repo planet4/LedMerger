@@ -764,7 +764,7 @@ tailwind.config = {
     Stacked MP4 files ready for playback on the Sedna LED controller. Browse by category and download. Upload your own files (MP4 only) to any category.
   </div>
 
-  {% set lib_cats = [('Event','Event'), ('General','General'), ('Special','Special'), ('Commercial','Commercial'), ('Starcamp','Starcamp'), ('SSL Players Men','SSL Players Men'), ('SSL Players Women','SSL Players Women'), ('JAS Men','JAS Men'), ('JAS Women','JAS Women'), ('Players Boys','Players Boys'), ('Players Girls','Players Girls')] %}
+  {% set lib_cats = [('Event','Event'), ('General','General'), ('Special','Special'), ('Commercial','Commercial'), ('Starcamp','Starcamp'), ('SSL Players Men','SSL Players Men'), ('SSL Players Women','SSL Players Women'), ('JAS Men','JAS Men'), ('JAS Women','JAS Women'), ('Players Boys','Players Boys'), ('Players Girls','Players Girls'), ('Non Stacked','Non Stacked')] %}
   {% for cat_key, cat_label in lib_cats %}
   <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
     <div class="section-header flex items-center justify-between cursor-pointer select-none" onclick="toggleLibCat('{{ cat_key }}')">
@@ -2186,6 +2186,11 @@ function _applyCuPresetData(p) {
     (cfg.durations || []).forEach((d, si) => { const el = document.getElementById(`cu-dur-${did}-${si}`); if (el) el.value = d; });
     updateCustomTimeline(parseInt(did));
   });
+  const bg = p.backgrounds || {};
+  if (bg.bg1728  !== undefined) { document.getElementById('cuBgLibrary2').value    = bg.bg1728;  selectCustomBg(2, bg.bg1728); }
+  if (bg.bg1344  !== undefined) { document.getElementById('cuBgLibrary0').value    = bg.bg1344;  selectCustomBg(0, bg.bg1344); }
+  if (bg.bg576   !== undefined) { document.getElementById('cuVariant576Left').value = bg.bg576;  selectCustom576Left(bg.bg576); }
+  if (bg.bgMedia !== undefined) { document.getElementById('cuMedia192Select').value = bg.bgMedia; selectCustomMedia192(bg.bgMedia); }
   renderAllCuCanvases();
 }
 
@@ -2206,7 +2211,13 @@ function _gatherCuState() {
     }
     displays[String(did)] = {texts, durations};
   });
-  return { slotCount, color: document.getElementById('cuTextColor').value, fontSize: parseInt(document.getElementById('cuFontSize').value), displays };
+  const backgrounds = {
+    bg1728:   document.getElementById('cuBgLibrary2')?.value    || '',
+    bg1344:   document.getElementById('cuBgLibrary0')?.value    || '',
+    bg576:    document.getElementById('cuVariant576Left')?.value || '',
+    bgMedia:  document.getElementById('cuMedia192Select')?.value || '',
+  };
+  return { slotCount, color: document.getElementById('cuTextColor').value, fontSize: parseInt(document.getElementById('cuFontSize').value), displays, backgrounds };
 }
 
 async function saveCuPreset() {
@@ -2400,8 +2411,8 @@ loadCustomMedia192();
 [0,1,2,3,4].forEach(id => updateCustomTimeline(id));
 
 // ══ LIBRARY TAB ══
-const LIBRARY_CATS = ['Event','General','Special','Commercial','Starcamp','SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls'];
-const LIBRARY_CAT_LABELS = {'Event':'Event','General':'General','Special':'Special','Commercial':'Commercial','Starcamp':'Starcamp','SSL Players Men':'SSL Players Men','SSL Players Women':'SSL Players Women','JAS Men':'JAS Men','JAS Women':'JAS Women','Players Boys':'Players Boys','Players Girls':'Players Girls'};
+const LIBRARY_CATS = ['Event','General','Special','Commercial','Starcamp','SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Non Stacked'];
+const LIBRARY_CAT_LABELS = {'Event':'Event','General':'General','Special':'Special','Commercial':'Commercial','Starcamp':'Starcamp','SSL Players Men':'SSL Players Men','SSL Players Women':'SSL Players Women','JAS Men':'JAS Men','JAS Women':'JAS Women','Players Boys':'Players Boys','Players Girls':'Players Girls','Non Stacked':'Non Stacked'};
 
 function _libCatOpts(current) {
   return LIBRARY_CATS.map(c => `<option value="${c}"${c===current?' selected':''}>${LIBRARY_CAT_LABELS[c]}</option>`).join('');
@@ -2433,7 +2444,7 @@ async function loadLibrary() {
         <div class="py-2 border-b border-[#2E2E3A] last:border-0 space-y-1.5">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0">${f.name}</span>
-            ${f.duration != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${f.duration}s</span>` : ''}
+            ${f.duration != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${Math.floor(f.duration/60)}:${String(f.duration%60).padStart(2,'0')}</span>` : ''}
             ${f.size != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${(f.size/1024/1024).toFixed(1)} MB</span>` : ''}
             <select onchange="libChangeCategory('${cat}','${f.name}',this)"
               class="bg-[#1E2229] border border-[#333] rounded px-2 py-0.5 font-mono text-xs text-[var(--tx-main)] focus:outline-none focus:border-[#CC1020]">
