@@ -1437,7 +1437,7 @@ def custom_worker(job_id, screen_configs, font_name, fps_val, font_color="#fffff
                 bg_path = None
 
             slot_clips = []
-            for si in range(3):
+            for si in range(len(texts)):
                 dur = float(durations[si]) if si < len(durations) else 0
                 if dur <= 0:
                     continue
@@ -1664,7 +1664,7 @@ def custom_preview_render():
                 bg_path = Path(bg) if bg and Path(bg).exists() else None
 
                 slot_clips = []
-                for si in range(3):
+                for si in range(len(texts)):
                     dur  = float(durations[si]) if si < len(durations) else 0
                     if dur <= 0:
                         continue
@@ -1766,6 +1766,30 @@ _DEFAULT_PRESETS = {
             "4": {"texts": ["LIVE", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
         }
     },
+    "Kommande matcher - SSL Dam Autofetch": {
+        "slotCount": 7, "color": "#ffffff", "fontSize": 55,
+        "fontName": "Road_Rage.otf",
+        "autofetch_url": "http://172.17.0.1:5020/schedule/3294.json",
+        "backgrounds": {"bg1728": "red clouds.mp4", "bg1344": "redclouds-1344.mp4", "bg576": "", "bgMedia": ""},
+        "displays": {
+            "2": {"texts": ["", "", "", "", "", "", ""], "durations": [5, 5, 5, 5, 5, 5, 5]},
+            "0": {"texts": ["", "", "", "", "", "", ""], "durations": [5, 5, 5, 5, 5, 5, 5]},
+            "1": {"texts": ["", "", "", "", "", "", ""], "durations": [5, 5, 5, 5, 5, 5, 5]},
+            "4": {"texts": ["", "", "", "", "", "", ""], "durations": [5, 5, 5, 5, 5, 5, 5]},
+        }
+    },
+    "Kommande matcher - Pixbo Damakademi Autofetch": {
+        "slotCount": 7, "color": "#ffffff", "fontSize": 55,
+        "fontName": "Road_Rage.otf",
+        "autofetch_url": "http://192.168.0.140:5020/schedule/2813.json",
+        "backgrounds": {"bg1728": "red clouds.mp4", "bg1344": "redclouds-1344.mp4", "bg576": "", "bgMedia": ""},
+        "displays": {
+            "2": {"texts": ["","","","","","",""], "durations": [5,5,5,5,5,5,5]},
+            "0": {"texts": ["","","","","","",""], "durations": [5,5,5,5,5,5,5]},
+            "1": {"texts": ["","","","","","",""], "durations": [5,5,5,5,5,5,5]},
+            "4": {"texts": ["","","","","","",""], "durations": [5,5,5,5,5,5,5]},
+        }
+    },
     "Welcome": {
         "slotCount": 2, "color": "#ffcc00", "fontSize": 55,
         "displays": {
@@ -1799,6 +1823,20 @@ def _load_lib_meta():
 
 def _save_lib_meta(meta):
     LIBRARY_META.write_text(json.dumps(meta, indent=2))
+
+
+@app.route("/api/fetch-schedule")
+def fetch_schedule():
+    import urllib.request as _ur
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+    try:
+        with _ur.urlopen(url, timeout=5) as r:
+            data = json.loads(r.read().decode())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/custom-presets")

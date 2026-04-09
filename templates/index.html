@@ -602,7 +602,7 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <span class="font-mono text-xs text-[#888]">Slots:</span>
           <div class="flex gap-1">
-            {% for n in [1,2,3,4,5,6] %}
+            {% for n in [1,2,3,4,5,6,7] %}
             <button onclick="setCuSlotCount({{ n }})" id="cu-slot-btn-{{ n }}"
               class="w-7 h-7 rounded font-mono text-xs font-semibold transition-all {% if n == 3 %}bg-[#CC1020] text-white{% else %}bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]{% endif %}">{{ n }}</button>
             {% endfor %}
@@ -616,7 +616,7 @@ tailwind.config = {
         <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
           <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">{{ dlabel }}</div>
           <div id="cu-slots-grid-{{ did }}" class="grid grid-cols-3 gap-px bg-[#2E2E3A]">
-            {% for si in range(6) %}
+            {% for si in range(7) %}
             <div id="cu-slot-col-{{ did }}-{{ si }}" class="bg-[#22222A] p-3 space-y-1.5{% if si >= 3 %} hidden{% endif %}">
               <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
               <input type="text" id="cu-text-{{ did }}-{{ si }}" placeholder="Text…"
@@ -2172,12 +2172,42 @@ async function loadCuPresets() {
     sel.innerHTML = '<option value="">— select preset —</option>' +
       Object.keys(presets).map(n => `<option value="${n}">${n}</option>`).join('');
     if (cur && presets[cur]) sel.value = cur;
-    else if (!cur) { const wk = Object.keys(presets).find(k => k.toLowerCase() === 'welcome'); if (wk) { sel.value = wk; _applyCuPresetData(presets[wk]); } }
+    else if (!cur) { const wk = Object.keys(presets).find(k => k.toLowerCase() === 'welcome'); if (wk) { sel.value = wk; await _applyCuPresetData(presets[wk]); } }
   } catch(e) {}
 }
 
-function _applyCuPresetData(p) {
+function _autoFmtSchedule(data) {
+  // Returns 7 slot texts from schedule JSON: slot 1 static, then pairs of teams/date per match
+  const fix = s => s.toUpperCase().replace(/0/g, 'O');
+  const stripVenue = d => { const m = d.match(/^(\d+\s+\S+\s+\d+:\d+)/); return m ? fix(m[1]) : fix(d); };
+  const texts = ['KOMMANDE HEMMAMATCHER'];
+  (data.matches || []).slice(0, 3).forEach(m => {
+    texts.push(fix(`${m.home} VS ${m.away}`));
+    texts.push(stripVenue(m.date));
+  });
+  while (texts.length < 7) texts.push('');
+  return texts;
+}
+
+async function _applyCuPresetData(p) {
   if (!p) return;
+
+  // Autofetch — only for presets that carry autofetch_url
+  if (p.autofetch_url) {
+    const statusEl = document.getElementById('cuPresetSelect');
+    try {
+      const res = await fetch(`/api/fetch-schedule?url=${encodeURIComponent(p.autofetch_url)}`);
+      const data = await res.json();
+      if (!data.error) {
+        const texts = _autoFmtSchedule(data);
+        p = JSON.parse(JSON.stringify(p)); // clone so we don't mutate the cached preset
+        [2, 0].forEach(did => {
+          p.displays[String(did)].texts = [...texts];
+        });
+      }
+    } catch(e) { console.warn('Autofetch failed:', e); }
+  }
+
   setCuSlotCount(p.slotCount || 3);
   document.getElementById('cuTextColor').value = p.color || '#ffffff';
   document.getElementById('cuFontSize').value = p.fontSize || 50;
@@ -2191,13 +2221,14 @@ function _applyCuPresetData(p) {
   if (bg.bg1344  !== undefined) { document.getElementById('cuBgLibrary0').value    = bg.bg1344;  selectCustomBg(0, bg.bg1344); }
   if (bg.bg576   !== undefined) { document.getElementById('cuVariant576Left').value = bg.bg576;  selectCustom576Left(bg.bg576); }
   if (bg.bgMedia !== undefined) { document.getElementById('cuMedia192Select').value = bg.bgMedia; selectCustomMedia192(bg.bgMedia); }
+  if (p.fontName !== undefined) { document.getElementById('cuFontSelect').value = p.fontName; await selectCustomFont(p.fontName); }
   renderAllCuCanvases();
 }
 
 async function applyCuPresetFromDropdown(name) {
   if (!name) return;
   const presets = await (await fetch('/api/custom-presets')).json();
-  _applyCuPresetData(presets[name]);
+  await _applyCuPresetData(presets[name]);
 }
 
 function _gatherCuState() {
@@ -2205,7 +2236,7 @@ function _gatherCuState() {
   const displays = {};
   [2,0,1,4].forEach(did => {
     const texts = [], durations = [];
-    for (let si = 0; si < 6; si++) {
+    for (let si = 0; si < 7; si++) {
       texts.push(document.getElementById(`cu-text-${did}-${si}`)?.value || '');
       durations.push(parseFloat(document.getElementById(`cu-dur-${did}-${si}`)?.value) || 2);
     }
@@ -2217,7 +2248,7 @@ function _gatherCuState() {
     bg576:    document.getElementById('cuVariant576Left')?.value || '',
     bgMedia:  document.getElementById('cuMedia192Select')?.value || '',
   };
-  return { slotCount, color: document.getElementById('cuTextColor').value, fontSize: parseInt(document.getElementById('cuFontSize').value), displays, backgrounds };
+  return { slotCount, color: document.getElementById('cuTextColor').value, fontSize: parseInt(document.getElementById('cuFontSize').value), fontName: cuFont || '', displays, backgrounds };
 }
 
 async function saveCuPreset() {
@@ -2243,7 +2274,7 @@ async function deleteCuPreset() {
 
 function clearCuPreset() {
   [2,0,1,4].forEach(did => {
-    for (let si = 0; si < 6; si++) {
+    for (let si = 0; si < 7; si++) {
       const t = document.getElementById(`cu-text-${did}-${si}`);
       const d = document.getElementById(`cu-dur-${did}-${si}`);
       if (t) t.value = '';
@@ -2258,7 +2289,7 @@ function clearCuPreset() {
 
 function setCuSlotCount(n) {
   cuSlotCount = n;
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     const btn = document.getElementById(`cu-slot-btn-${i}`);
     if (!btn) continue;
     btn.className = i === n
@@ -2266,7 +2297,7 @@ function setCuSlotCount(n) {
       : 'w-7 h-7 rounded font-mono text-xs font-semibold transition-all bg-[#1E1E26] border border-[#2E2E3A] text-[#888] hover:text-white hover:border-[#CC1020]';
   }
   [0, 1, 2, 4].forEach(did => {
-    for (let si = 0; si < 6; si++) {
+    for (let si = 0; si < 7; si++) {
       const col = document.getElementById(`cu-slot-col-${did}-${si}`);
       if (!col) continue;
       const visible = si < n;
@@ -2292,7 +2323,7 @@ async function openCustomLedPreview() {
   const screen_configs = [0,1,2,3,4].map(displayId => {
     const srcId = displayId === 3 ? 1 : displayId;
     const texts = [], durations = [];
-    for (let si = 0; si < 6; si++) {
+    for (let si = 0; si < cuSlotCount; si++) {
       texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
       durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
     }
@@ -2370,7 +2401,7 @@ async function startCustom() {
     // display_id 3 (Longside Right) mirrors display_id 1 (Longside Left)
     const srcId = displayId === 3 ? 1 : displayId;
     const texts = [], durations = [];
-    for (let si = 0; si < 6; si++) {
+    for (let si = 0; si < cuSlotCount; si++) {
       texts.push(document.getElementById(`cu-text-${srcId}-${si}`)?.value || '');
       durations.push(parseFloat(document.getElementById(`cu-dur-${srcId}-${si}`)?.value) || 2);
     }
