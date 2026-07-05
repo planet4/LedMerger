@@ -11,6 +11,7 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 ### Auth
 - Password changed (set via `APP_PASSWORD` in docker-compose)
 - Removed the extra password prompt when renaming library files — the login session already covers it; delete still asks for the password
+- Password moved out of the repo (it's public) into a gitignored `.env` file; docker-compose reads `${APP_PASSWORD}` from it — see `.env.example`
 
 ---
 

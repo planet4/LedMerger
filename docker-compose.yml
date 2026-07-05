@@ -14,4 +14,4 @@ services:
     environment:
       - FLASK_ENV=production
       - TEAMSCRAPER_BASE=http://192.168.0.140:5020
-      - APP_PASSWORD=Pixbop11
+      - APP_PASSWORD=${APP_PASSWORD:?set in .env}
