@@ -6,6 +6,14 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.366] - 2026-07-05
+
+### Auth
+- Password changed (set via `APP_PASSWORD` in docker-compose)
+- Removed the extra password prompt when renaming library files — the login session already covers it; delete still asks for the password
+
+---
+
 ## [0.365] - 2026-07-05
 
 ### Security — server-side authentication
