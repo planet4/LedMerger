@@ -6,6 +6,13 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.364] - 2026-07-05
+
+### Library / Login
+- Password prompts (login, rename, delete) now accept the password case-insensitively and ignore surrounding whitespace — "Wrong password" no longer triggers on e.g. lowercase input
+
+---
+
 ## [0.363] - 2026-07-05
 
 ### LED Preview — Arena view alignment
