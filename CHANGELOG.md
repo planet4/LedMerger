@@ -6,6 +6,14 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.368] - 2026-07-05
+
+### Players tab — Pick team
+- "Pick team" now lists the stored **roster** files (`/roster-scheduler/files`) instead of the schedule feed (`/scheduler/files`) — the dropdown shows the actual up-to-date rosters kept in teamscraper (Pixbo IBF DJ/DV/Damakademi/F11/…), so a new season's rosters appear automatically
+- Rosters with no jersey number (`number: null`) now import with a blank number (skips the number phase) instead of the literal text "null"
+
+---
+
 ## [0.367] - 2026-07-05
 
 ### Fixed — public site outage (Cloudflare 520/521)

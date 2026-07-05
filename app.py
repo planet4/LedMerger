@@ -483,9 +483,11 @@ TEAMSCRAPER_BASE = os.environ.get("TEAMSCRAPER_BASE", "http://192.168.0.140:5020
 
 @app.route("/api/scheduler-teams")
 def scheduler_teams():
+    # Lists the stored roster files (roster_*.json) — these are the up-to-date
+    # rosters, not the schedule feed. Each item has team_id / team_name / url.
     import urllib.request as _ur
     try:
-        with _ur.urlopen(f"{TEAMSCRAPER_BASE}/scheduler/files", timeout=5) as r:
+        with _ur.urlopen(f"{TEAMSCRAPER_BASE}/roster-scheduler/files", timeout=5) as r:
             return jsonify(json.loads(r.read().decode()))
     except Exception as e:
         return jsonify({"error": str(e)}), 500

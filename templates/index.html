@@ -161,7 +161,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.367 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.368 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -1534,7 +1534,7 @@ async function loadTeamRoster(teamId, teamName, btn) {
     const data = await res.json();
     if (data.error) { status.textContent = data.error; return; }
     _batchPlayers = (data.players || []).map(p => ({
-      number: String(p.number),
+      number: (p.number === null || p.number === undefined) ? '' : String(p.number),
       name: p.name.toUpperCase()
     }));
     _batchPlayers.unshift({number: 'PIXBO', name: teamName.toUpperCase()});
