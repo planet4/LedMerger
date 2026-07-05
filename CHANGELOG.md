@@ -6,6 +6,15 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.367] - 2026-07-05
+
+### Fixed — public site outage (Cloudflare 520/521)
+- The auth added in 0.365 made logged-out page loads fire six 401 API calls, which swag's fail2ban read as an attack — it banned Cloudflare edge IPs, taking the public site down while LAN access kept working
+- Frontend now skips all data loading until logged in (page reloads with a session after login), so logged-out visits produce zero 401s
+- Infra (outside repo): unbanned the Cloudflare IPs and added Cloudflare's published IPv4 ranges to fail2ban's `ignoreip` in swag, so edge IPs can never be banned again
+
+---
+
 ## [0.366] - 2026-07-05
 
 ### Auth
