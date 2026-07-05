@@ -300,11 +300,12 @@ let arenaImg = null;
 // Tune these coordinates if strips need repositioning
 const ARENA_ZONES = [
   // pts: [TL, TR, BR, BL] as fractions of 1920×1080
-  { id:0, label:'Shortside',       w:1344, pts:[[0.00365,0.53148],[0.28438,0.48981],[0.28594,0.50833],[0.00260,0.55556]] },
-  { id:1, label:'L-Left',          w:576,  pts:[[0.33125,0.48704],[0.39688,0.50000],[0.39583,0.51852],[0.33177,0.50370]] },
-  { id:2, label:'Longside Center', w:1728, pts:[[0.42448,0.50463],[0.73698,0.55833],[0.73594,0.58426],[0.42396,0.52222]] },
-  { id:3, label:'L-Right',         w:576,  pts:[[0.80469,0.56852],[0.99635,0.60370],[0.99427,0.63889],[0.80417,0.59815]] },
-  { id:4, label:'Media',           w:192,  pts:[[0.04740,0.83241],[0.14844,0.83704],[0.14948,0.88796],[0.04427,0.88519]] },
+  // Measured from the painted strip colors in layout.png — keep in sync if the photo is repainted
+  { id:0, label:'Shortside',       w:1344, pts:[[0.00260,0.53148],[0.28646,0.49167],[0.28646,0.50926],[0.00260,0.55741]] },
+  { id:1, label:'L-Left',          w:576,  pts:[[0.33229,0.48889],[0.39635,0.50000],[0.39635,0.51667],[0.33229,0.50463]] },
+  { id:2, label:'Longside Center', w:1728, pts:[[0.42396,0.50556],[0.73698,0.55833],[0.73698,0.58426],[0.42396,0.52222]] },
+  { id:3, label:'L-Right',         w:576,  pts:[[0.80469,0.57222],[0.99635,0.60370],[0.99635,0.63796],[0.80469,0.59815]] },
+  { id:4, label:'Media',           w:192,  pts:[[0.04531,0.83241],[0.15260,0.83704],[0.15260,0.88981],[0.04531,0.88796]] },
 ];
 
 function drawArenaView() {
@@ -331,19 +332,30 @@ function drawArenaView() {
       // Convert fractional corners to canvas coords
       const pts = zone.pts.map(([fx,fy]) => [dx + fx*dw, dy + fy*dh]);
 
-      // Expand 5% outward from quad centre to ensure full coverage
+      // Expand 2% outward from quad centre so the painted strip never peeks out
       const cx = pts.reduce((s,p)=>s+p[0],0)/4;
       const cy = pts.reduce((s,p)=>s+p[1],0)/4;
-      const [TL,TR,,BL] = pts.map(([px,py]) => [cx+(px-cx)*1.05, cy+(py-cy)*1.05]);
+      const [TL,TR,BR,BL] = pts.map(([px,py]) => [cx+(px-cx)*1.02, cy+(py-cy)*1.02]);
 
-      // Affine transform: maps source rect (0,0,w,64) onto the angled quad
-      const a=(TR[0]-TL[0])/zone.w, b=(TR[1]-TL[1])/zone.w;
-      const c=(BL[0]-TL[0])/64,     d=(BL[1]-TL[1])/64;
-
+      // The quads are perspective trapezoids, not parallelograms, so a single
+      // affine transform can't hit all 4 corners (BR ends up off the strip).
+      // Draw in vertical slices, interpolating top and bottom edges — this
+      // pins all 4 corners exactly.
+      const N = Math.max(8, Math.round(zone.w / 96));
+      const lerp = (P,Q,t) => [P[0]+(Q[0]-P[0])*t, P[1]+(Q[1]-P[1])*t];
       ctx.save();
-      ctx.globalAlpha = 0.92;
-      ctx.setTransform(a, b, c, d, TL[0], TL[1]);
-      ctx.drawImage(v, 0, 0, zone.w, 64);
+      for (let i = 0; i < N; i++) {
+        const t0=i/N, t1=(i+1)/N;
+        const T0=lerp(TL,TR,t0), T1=lerp(TL,TR,t1);
+        const B0=lerp(BL,BR,t0);
+        const sx = t0*zone.w, sw = (t1-t0)*zone.w;
+        const a=(T1[0]-T0[0])/sw, b=(T1[1]-T0[1])/sw;
+        const c=(B0[0]-T0[0])/64, d=(B0[1]-T0[1])/64;
+        ctx.setTransform(a, b, c, d, T0[0], T0[1]);
+        // +1px source overlap on all but the last slice to avoid seams
+        const ov = i < N-1 ? 1 : 0;
+        ctx.drawImage(v, sx, 0, sw+ov, 64, 0, 0, sw+ov, 64);
+      }
       ctx.restore();
     });
   } else {

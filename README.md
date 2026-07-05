@@ -1,4 +1,4 @@
-# LedMerger — Pixbo LED Rink Content Creator v0.362
+# LedMerger — Pixbo LED Rink Content Creator v0.363
 
 A web-based tool for creating and merging LED rink content for Wallenstam Arena (Pixbo Floorball). Produces stacked MP4 files compatible with the Sedna LED controller.
 

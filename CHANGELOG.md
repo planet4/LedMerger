@@ -6,6 +6,15 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.363] - 2026-07-05
+
+### LED Preview — Arena view alignment
+- Zone coordinates re-measured pixel-exactly from the painted strip colors in layout.png
+- Videos are now drawn with a 4-corner perspective mapping (sliced affine) instead of a single affine transform — the old method could not hit the bottom-right corner of the trapezoid zones (Media was ~34px off)
+- Outward expansion reduced 5% → 2% and overlay opacity 0.92 → 1.0, so content covers the painted strips exactly without tint bleed
+
+---
+
 ## [0.362] - 2026-07-05
 
 ### Removed
