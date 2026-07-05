@@ -119,6 +119,7 @@ tailwind.config = {
 <body class="text-gray-200 min-h-screen">
 
 <!-- ══════════════ LOGIN OVERLAY ══════════════ -->
+{% if not authed %}
 <div id="loginOverlay" style="position:fixed;inset:0;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;z-index:9999;background:#1B1E26;display:flex;align-items:center;justify-content:center;">
   <div class="w-full max-w-sm px-8 py-10 rounded-2xl border border-[#2E2E3A]" style="background:#22222A;">
     <!-- Logo + title -->
@@ -145,6 +146,7 @@ tailwind.config = {
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- Font primer -->
 <span style="position:absolute;opacity:0;pointer-events:none;font-family:'Outfit';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
@@ -159,7 +161,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.364 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.365 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -880,16 +882,30 @@ const DISPLAYS = {{ displays | tojson }};
 const VARIANTS_DIR_PREFIX = '/app/backgrounds/576_variants/';
 
 // ══ TABS ══
-function doLogin() {
+async function doLogin() {
   const pw = document.getElementById('loginPassword').value;
-  if (pw.trim().toLowerCase() === 'pixbo') {
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('loginPassword').value = '';
+  const r = await (await fetch('/api/login', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: pw })
+  })).json();
+  if (r.ok) {
+    // Reload so all assets/API calls run with the authenticated session
+    location.reload();
   } else {
     document.getElementById('loginError').classList.remove('hidden');
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginPassword').focus();
   }
+}
+
+// Validates a prompted password against the server (also refreshes the session)
+async function checkPassword(pw) {
+  if (pw === null) return null;
+  const r = await (await fetch('/api/login', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: pw })
+  })).json();
+  return r.ok === true;
 }
 
 function switchTab(name) {
@@ -2560,7 +2576,7 @@ function closeLibPreview() {
 async function libRename(cat, filename, btn) {
   const pw = prompt('Enter password to rename:');
   if (pw === null) return;
-  if (pw.trim().toLowerCase() !== 'pixbo') { alert('Wrong password.'); return; }
+  if (!await checkPassword(pw)) { alert('Wrong password.'); return; }
   const newName = prompt(`Rename "${filename}" to:`, filename.replace(/\.mp4$/i, ''));
   if (!newName || newName.trim() === '') return;
   const r = await (await fetch('/api/library/rename', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -2587,7 +2603,7 @@ async function libChangeCategory(cat, filename, select) {
 async function libDelete(cat, filename, btn) {
   const pw = prompt(`Enter password to delete "${filename}":`);
   if (pw === null) return;
-  if (pw.trim().toLowerCase() !== 'pixbo') { alert('Incorrect password.'); return; }
+  if (!await checkPassword(pw)) { alert('Incorrect password.'); return; }
   await fetch('/api/library/delete', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({category:cat, filename})});
   loadLibrary();

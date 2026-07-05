@@ -11,7 +11,7 @@ import tempfile
 import subprocess
 import threading
 from pathlib import Path
-from flask import Flask, request, jsonify, render_template, send_file, abort
+from flask import Flask, request, jsonify, render_template, send_file, abort, session
 from PIL import ImageFont
 
 app = Flask(__name__)
@@ -30,6 +30,40 @@ for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, BG_DIR_1344, BG_DIR_1728, M
     _d.mkdir(exist_ok=True)
 for _cat in LIBRARY_CATEGORIES:
     (LIBRARY_DIR / _cat).mkdir(parents=True, exist_ok=True)
+
+# ── Authentication ────────────────────────────────────────────────────────────
+# The app is reachable from the internet — every route except / and /api/login
+# requires a logged-in session. Password and secret key come from the
+# environment; the secret key falls back to a generated file in the library
+# volume so sessions survive container rebuilds.
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "Pixbo")
+_key_file = LIBRARY_DIR / ".secret_key"
+if os.environ.get("SECRET_KEY"):
+    app.secret_key = os.environ["SECRET_KEY"]
+else:
+    import secrets as _secrets
+    if not _key_file.exists():
+        _key_file.write_text(_secrets.token_hex(32))
+    app.secret_key = _key_file.read_text().strip()
+
+from datetime import timedelta as _timedelta
+app.permanent_session_lifetime = _timedelta(days=90)
+
+@app.before_request
+def _require_login():
+    if request.path in ("/", "/api/login"):
+        return
+    if not session.get("authed"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    pw = (request.get_json(silent=True) or {}).get("password", "")
+    if pw.strip().lower() == APP_PASSWORD.strip().lower():
+        session.permanent = True
+        session["authed"] = True
+        return jsonify({"ok": True})
+    return jsonify({"error": "Wrong password"}), 403
 
 # Daily cleanup of uploads and outputs at midnight
 import time as _time
@@ -328,7 +362,7 @@ def merge_worker(job_id, file_paths, tile_configs, mode, fps, output_path):
 
 @app.route("/")
 def index():
-    return render_template("index.html", displays=DISPLAYS)
+    return render_template("index.html", displays=DISPLAYS, authed=bool(session.get("authed")))
 
 
 @app.route("/api/displays")

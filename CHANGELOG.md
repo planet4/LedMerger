@@ -6,6 +6,16 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.365] - 2026-07-05
+
+### Security — server-side authentication
+- All routes except `/` and `/api/login` now require a logged-in Flask session — previously every API endpoint (including library delete and uploads) was open; only the browser checked the password, which was unsafe with the app exposed at ledmerger.planet4.nu
+- New `/api/login` endpoint sets a 90-day session cookie; login overlay now authenticates against the server and no longer contains the password in page source
+- Password configurable via `APP_PASSWORD` env var (docker-compose); session secret from `SECRET_KEY` env var or auto-generated key persisted in the library volume
+- Rename/delete password prompts now validate against the server instead of a hardcoded string
+
+---
+
 ## [0.364] - 2026-07-05
 
 ### Library / Login
