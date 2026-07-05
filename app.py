@@ -445,41 +445,23 @@ def layout_image():
     abort(404)
 
 
-@app.route("/api/scrape-roster", methods=["POST"])
-def scrape_roster():
-    data = request.get_json(force=True)
-    url  = (data.get("url") or "").strip()
-    if not url:
-        return jsonify({"error": "No URL provided"}), 400
+TEAMSCRAPER_BASE = os.environ.get("TEAMSCRAPER_BASE", "http://192.168.0.140:5020")
+
+@app.route("/api/scheduler-teams")
+def scheduler_teams():
+    import urllib.request as _ur
     try:
-        from playwright.sync_api import sync_playwright
-        import re as _re
-        with sync_playwright() as pw:
-            browser = pw.chromium.launch()
-            page = browser.new_page()
-            page.goto(url, timeout=15000)
-            page.wait_for_selector("table", timeout=10000)
-            team_name = ""
-            for sel in ["h1", "h2", ".team-name", ".lag-name", "title"]:
-                el = page.query_selector(sel)
-                if el:
-                    t = el.inner_text().strip()
-                    if t and t != "Svensk Innebandy":
-                        team_name = t
-                        break
-            players = []
-            for row in page.query_selector_all("table tr"):
-                cells = row.query_selector_all("td")
-                if len(cells) < 2:
-                    continue
-                num  = cells[0].inner_text().strip()
-                name = cells[1].inner_text().strip()
-                if _re.match(r'^\d+$', num) and name:
-                    players.append({"number": int(num), "name": name})
-            browser.close()
-        if not players:
-            return jsonify({"error": "No players found — page structure may have changed."}), 404
-        return jsonify({"team_name": team_name, "players": players})
+        with _ur.urlopen(f"{TEAMSCRAPER_BASE}/scheduler/files", timeout=5) as r:
+            return jsonify(json.loads(r.read().decode()))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/scheduler-roster/<team_id>")
+def scheduler_roster(team_id):
+    import urllib.request as _ur
+    try:
+        with _ur.urlopen(f"{TEAMSCRAPER_BASE}/roster/{team_id}.json", timeout=5) as r:
+            return jsonify(json.loads(r.read().decode()))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1766,10 +1748,9 @@ _DEFAULT_PRESETS = {
             "4": {"texts": ["LIVE", "", "", "", "", ""], "durations": [6, 2, 2, 2, 2, 2]},
         }
     },
-    "Kommande matcher - SSL Dam Autofetch": {
+    "Kommande matcher - SSL Dam": {
         "slotCount": 7, "color": "#ffffff", "fontSize": 55,
         "fontName": "Road_Rage.otf",
-        "autofetch_url": "http://172.17.0.1:5020/schedule/3294.json",
         "backgrounds": {"bg1728": "red clouds.mp4", "bg1344": "redclouds-1344.mp4", "bg576": "", "bgMedia": ""},
         "displays": {
             "2": {"texts": ["", "", "", "", "", "", ""], "durations": [5, 5, 5, 5, 5, 5, 5]},
@@ -1778,10 +1759,9 @@ _DEFAULT_PRESETS = {
             "4": {"texts": ["", "", "", "", "", "", ""], "durations": [5, 5, 5, 5, 5, 5, 5]},
         }
     },
-    "Kommande matcher - Pixbo Damakademi Autofetch": {
+    "Kommande matcher - Pixbo Damakademi": {
         "slotCount": 7, "color": "#ffffff", "fontSize": 55,
         "fontName": "Road_Rage.otf",
-        "autofetch_url": "http://192.168.0.140:5020/schedule/2813.json",
         "backgrounds": {"bg1728": "red clouds.mp4", "bg1344": "redclouds-1344.mp4", "bg576": "", "bgMedia": ""},
         "displays": {
             "2": {"texts": ["","","","","","",""], "durations": [5,5,5,5,5,5,5]},

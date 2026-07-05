@@ -6,6 +6,58 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.362] - 2026-07-05
+
+### Removed
+- Auto-render scheduler removed entirely (won't be used) — backend scheduler thread, `/api/autogen/*` routes, Settings tab, and "Auto Generated" library category
+- Obsolete TODO.md (its only item was the scheduler preset flow)
+
+### Added (previously undocumented)
+- Login overlay on page load (added late April, never changelogged) — note: client-side gate only, not real security
+
+### Housekeeping
+- `TEAMSCRAPER_BASE` now configurable via environment variable (docker-compose), defaults to `http://192.168.0.140:5020`
+- Version aligned across README / CLAUDE.md / index.html (were 0.36 / 0.361 mixed)
+- Removed stray `{templates,uploads,outputs}` directory (shell brace-expansion typo)
+- `.claude/` added to .gitignore; completed roadmap item removed from ROADMAP.md
+
+---
+
+## [0.361] - 2026-04-21
+
+### Custom tab
+- Removed autofetch from preset selection — presets are now always static; autofetch infrastructure kept in Settings for future scheduled rendering
+- Renamed autofetch default presets (removed "Autofetch" suffix)
+- Fixed "Pick team" button overlapping icon (was constrained to 30×30px icon-btn class)
+
+---
+
+## [0.36] - 2026-04-10
+
+### Custom tab
+- Autofetch presets — presets with `autofetch_url` fetch live schedule data when selected; other presets remain static
+- Added "Kommande matcher - SSL Dam Autofetch" and "Kommande matcher - Pixbo Damakademi Autofetch" presets fetching from internal schedule service
+- Slot count extended to 7 — new button in the Slots row, grid and all logic updated
+- Fixed generate and preview-render only processing 3 slots regardless of slot count (was hardcoded `range(3)`, now `range(len(texts))`)
+- Backgrounds now saved and restored with presets (was missing — only text/font/color were saved)
+- Font name now saved and restored with presets
+- Text from autofetch is uppercased and 0 replaced with O automatically
+
+### Library
+- Added "Non Stacked" category
+- Duration now displayed as m:ss instead of raw seconds
+
+### Players tab
+- Batch player list is now editable after import — inline edit number/name, ✕ to remove, ＋ to add rows
+- Auto Batch import hint added above batch row with inline icon buttons
+- PIXBO TEAMNAME row automatically prepended on any batch import (txt or URL scrape)
+- Instructional text cleaned up
+
+### DaVinci Scripts
+- README rewritten — crop_led1.1.ps1 clarified as the main script; canvas workflow documented with layout table
+
+---
+
 ## [0.35] - 2026-04-03
 
 ### Players tab

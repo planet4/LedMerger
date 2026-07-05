@@ -25,7 +25,6 @@ Ideas and planned improvements for LedMerger. No fixed timeline — just a place
 - **Text effect selector** — global effect dropdown under Font (section 01), applied to all displays. Options: Wobble (default, current behavior), Fade, Slide Up, Slide Down. Implemented as a parameter to `_text_vf` — low risk, no structural changes needed.
 - **Per-display font and color** — all displays share the same font/color; per-display control would allow e.g. different color on Media 192
 - **Copy timing to all displays** — no shortcut to sync slot durations across displays when they should all loop at the same length
-- **Presets save background selections** — currently presets only save text and timing, not which background is selected
 
 ---
 

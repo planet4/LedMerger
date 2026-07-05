@@ -15,3 +15,6 @@ data/**
 !data/backgrounds/1344/redclouds-1344.mp4
 !data/backgrounds/576_variants/Red Clouds.mp4
 !data/backgrounds/media_192/Red clouds.mp4
+
+# Claude Code local config
+.claude/
