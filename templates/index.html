@@ -2333,7 +2333,7 @@ async function deleteCuPreset() {
   if (!name) { alert('Select a preset to delete.'); return; }
   const pw = prompt(`Enter password to delete "${name}":`);
   if (pw === null) return;
-  if (pw !== 'Pixbo') { alert('Incorrect password.'); return; }
+  if (!await checkPassword(pw)) { alert('Incorrect password.'); return; }
   await fetch('/api/custom-presets/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})});
   loadCuPresets();
 }
