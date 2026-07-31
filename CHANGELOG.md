@@ -6,6 +6,13 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.37] - 2026-07-05
+
+### Players tab — batch
+- Added a **"Save all to [category]"** bar in the batch results header — saves every generated player to one chosen category in a single click (sequential, with per-row status ticks and a running count), instead of saving each of 24 rows individually. Individual save buttons remain for one-offs.
+
+---
+
 ## [0.369] - 2026-07-05
 
 ### Library

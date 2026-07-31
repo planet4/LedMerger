@@ -161,7 +161,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.369 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.37 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -545,6 +545,13 @@ tailwind.config = {
         <div>
           <div class="font-semibold text-[#00ff88] text-lg uppercase" id="lineupReadyTitle">Player video ready!</div>
           <div class="font-mono text-xs text-[#888] mt-0.5" id="lineupReadySubtitle">Stacked export + individual files</div>
+        </div>
+        <div class="w-full hidden items-center gap-2 flex-wrap pb-3 mb-1 border-b border-[#2E2E3A]" id="lineupSaveAllBar">
+          <span class="material-icons-round text-[#00ff88]" style="font-size:18px">library_add</span>
+          <span class="font-mono text-xs text-gray-200">Save all to</span>
+          <select id="lineupSaveAllCat" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">{% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}</select>
+          <button onclick="saveAllOutputsToLibrary(this)" class="px-3 py-1 rounded bg-[#00ff88]/10 border border-neon/40 text-[#00ff88] font-mono text-xs hover:bg-[#00ff88]/20 transition-colors">Save all</button>
+          <span id="lineupSaveAllStat" class="font-mono text-xs text-[#888]"></span>
         </div>
         <div class="w-full" id="lineupDlButtons"></div>
       </div>
@@ -1845,6 +1852,9 @@ async function startBatchLineup() {
   pollJob(res.job_id, 'lineupStatus', 'lineupProgress', 'lineupBtn', async job => {
     const btns = document.getElementById('lineupDlButtons');
     btns.innerHTML = '';
+    const saveAllBar = document.getElementById('lineupSaveAllBar');
+    saveAllBar.classList.add('hidden'); saveAllBar.classList.remove('flex');
+    document.getElementById('lineupSaveAllStat').textContent = '';
     if (job.combine) {
       const fname = (job.outputs||[])[0];
       window._lineupStackedFile = fname || null;
@@ -1863,6 +1873,7 @@ async function startBatchLineup() {
         const row = await buildOutputFileRow(fname, `${/^\d+$/.test(pl.number) ? '#' : ''}${pl.number} ${pl.name}`, true);
         btns.appendChild(row);
       }
+      if (results.length) { saveAllBar.classList.remove('hidden'); saveAllBar.classList.add('flex'); }
     }
     const c = document.getElementById('lineupDownload');
     c.classList.remove('hidden'); c.classList.add('flex');
@@ -1896,7 +1907,30 @@ async function buildOutputFileRow(fname, label, showSave) {
     <button class="icon-btn" title="Rename" onclick="renameOutputFile('${fname}','outLabel_${uid}',this)"><span class="material-icons-round">edit</span></button>
     ${showSave ? `<button class="icon-btn" title="Save to Library" onclick="saveOutputToLibrary('${fname}','${catId}','${statId}',this)"><span class="material-icons-round">save</span></button>` : ''}
     <span id="${statId}" class="font-mono text-xs text-[#888]"></span>`;
+  if (showSave) { row.dataset.fname = fname; row.dataset.catId = catId; row.dataset.statId = statId; }
   return row;
+}
+
+// Save every generated batch row to one chosen category, sequentially
+async function saveAllOutputsToLibrary(btn) {
+  const cat  = document.getElementById('lineupSaveAllCat').value;
+  const stat = document.getElementById('lineupSaveAllStat');
+  const rows = [...document.querySelectorAll('#lineupDlButtons > [data-fname]')];
+  if (!rows.length) return;
+  btn.disabled = true;
+  let ok = 0, fail = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    stat.textContent = `Saving ${i + 1}/${rows.length}…`; stat.style.color = '#888';
+    const sel = document.getElementById(row.dataset.catId);
+    if (sel) sel.value = cat;
+    await saveOutputToLibrary(row.dataset.fname, row.dataset.catId, row.dataset.statId, null);
+    const st = document.getElementById(row.dataset.statId);
+    if (st && st.textContent.startsWith('✓')) ok++; else fail++;
+  }
+  stat.textContent = `✓ ${ok} saved to ${cat}${fail ? ` · ${fail} failed` : ''}`;
+  stat.style.color = fail ? '#ff4444' : '#00ff88';
+  btn.disabled = false;
 }
 
 function previewOutputFile(fname) {
