@@ -161,7 +161,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.37 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.371 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -348,7 +348,7 @@ tailwind.config = {
       <span class="material-icons-round box-icon">info</span>
       <div>
         Generate a branded player introduction video using fixed Pixbo templates. Exports a stacked file plus individual clips per display.<br><br>
-        Note that the player generation in this app might look slightly different compared to the current SSL players lineup. They are rendered in DaVinci Studio. You can save the rendered files to the library when done. The Road Rage font does not like 0 (zero) — use the letter O instead in numbers.<br><br>
+        Note that the player generation in this app might look slightly different compared to the current SSL players lineup. They are rendered in DaVinci Studio. You can save the rendered files to the library when done. The Road Rage font's zero glyph is broken, so any 0 in a number is shown automatically as the letter O — no need to type it yourself.<br><br>
         There are three ways of generating players:<br>
         1. Just enter a name and generate<br>
         2. Auto Batch import. Uses the auto fetch to find all team members. Find the team via the link. And import the link.<br>
@@ -1713,6 +1713,8 @@ function renderLuCanvas(cfg) {
   const number   = document.getElementById('playerNumber')?.value?.trim() || '';
   const name     = (document.getElementById('playerName')?.value?.trim() || '').toUpperCase();
   if (!number && !name) return;
+  // Road Rage font's zero glyph is broken — display 0 as letter O (display-only)
+  const rrNum = s => s.replace(/0/g, 'O');
 
   const activeFontName = luActiveFontFamily || '"Barlow Condensed"';
   const luSizePct  = parseFloat(document.getElementById('luFontSize')?.value) || 50;
@@ -1727,10 +1729,10 @@ function renderLuCanvas(cfg) {
     ctx.font      = fontStr;
     ctx.fillStyle = luColor;
     ctx.textAlign = 'center';
-    ctx.fillText(`${/^\d+$/.test(number) ? '#' : ''}${number}`, W / 2, H / 2);
+    ctx.fillText(`${/^\d+$/.test(number) ? '#' : ''}${rrNum(number)}`, W / 2, H / 2);
   } else {
     // Wide — show  "# NUM  |  NAME"
-    const numText  = `${/^\d+$/.test(number) ? '#' : ''}${number}`;
+    const numText  = `${/^\d+$/.test(number) ? '#' : ''}${rrNum(number)}`;
     const sep      = '  ·  ';
     const nameText = name;
     ctx.font = fontStr;

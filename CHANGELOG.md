@@ -6,6 +6,13 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.371] - 2026-07-05
+
+### Players tab — Road Rage zero
+- The Road Rage font's `0` glyph is broken; the app now auto-substitutes `0`→`O` in player numbers at render time (and in the preview canvas), so it displays correctly without typing `O` by hand. Display-only — output filenames and stored numbers keep the real digit.
+
+---
+
 ## [0.37] - 2026-07-05
 
 ### Players tab — batch

@@ -101,6 +101,13 @@ def esc_drawtext(s: str) -> str:
     return s
 
 
+def rr_zero(s: str) -> str:
+    """Road Rage font's 0 (zero) glyph is broken — render it as the letter O.
+    Display-only: applied when building drawtext for Player cards; stored
+    numbers and output filenames keep the real digit."""
+    return s.replace("0", "O")
+
+
 def font_size_for_height(font_path: Path, panel_h: int, target_ratio: float = 0.9) -> int:
     """Return the ffmpeg fontsize so the rendered cap height ≈ target_ratio * panel_h."""
     cache_key = (str(font_path), panel_h, target_ratio)
@@ -736,7 +743,7 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
             name_text   = esc_drawtext(f"|||{name.upper()}|||")
             wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
             if number:
-                number_text = esc_drawtext(f"|||# {number}|||" if number.isdigit() else f"|||{number}|||")
+                number_text = esc_drawtext(f"|||# {rr_zero(number)}|||" if number.isdigit() else f"|||{rr_zero(number)}|||")
                 wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 txt_number = (
                     f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
@@ -924,7 +931,7 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
                 name_text   = esc_drawtext(f"|||{_nm.upper()}|||")
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                 if _n:
-                    number_text = esc_drawtext(f"|||# {_n}|||" if _n.isdigit() else f"|||{_n}|||")
+                    number_text = esc_drawtext(f"|||# {rr_zero(_n)}|||" if _n.isdigit() else f"|||{rr_zero(_n)}|||")
                     wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     txt_number = (
                         f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
@@ -1247,7 +1254,7 @@ def lineup_preview_render():
                 max_chars      = max(len(f"# {number}"), len(name))
                 max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
                 base_size      = max(8, min(base_size, int(max_px_per_char)))
-                num_txt  = esc_drawtext(f"|||# {number}|||" if number.isdigit() else f"|||{number}|||")
+                num_txt  = esc_drawtext(f"|||# {rr_zero(number)}|||" if number.isdigit() else f"|||{rr_zero(number)}|||")
                 name_txt = esc_drawtext(f"|||{name.upper()}|||")
                 wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
@@ -1349,7 +1356,7 @@ def lineup_batch_preview_render():
                     max_chars      = max(len(f"# {_n}"), len(_nm))
                     max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
                     base_size      = max(8, min(base_size, int(max_px_per_char)))
-                    num_txt  = esc_drawtext(f"|||# {_n}|||" if _n.isdigit() else f"|||{_n}|||")
+                    num_txt  = esc_drawtext(f"|||# {rr_zero(_n)}|||" if _n.isdigit() else f"|||{rr_zero(_n)}|||")
                     name_txt = esc_drawtext(f"|||{_nm.upper()}|||")
                     wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
