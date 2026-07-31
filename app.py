@@ -731,7 +731,7 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
         def render_text_clip(w, h, out_path, src_override=None):
             fade_out_start = num_dur - fade_dur
             fade_in_end    = num_dur + fade_dur
-            base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+            base_size      = font_size_for_height(chosen_font, h, 0.78) if chosen_font.exists() else max(8, int(h * 0.62))
             # Scale font down for narrow displays so text fits
             # At 192px wide, full name would overflow — cap proportionally
             max_chars      = max(len(f"# {number}"), len(name))
@@ -747,13 +747,13 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
                 wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 txt_number = (
                     f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
-                    f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                     f"alpha='if(lt(t,{fade_out_start}),1,"
                     f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
                 )
                 txt_name = (
                     f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                    f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                     f"alpha='if(lt(t,{num_dur}),0,"
                     f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
                 )
@@ -763,7 +763,7 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
                 wobble_name0 = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
                 txt_name = (
                     f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                    f"fontsize='{wobble_name0}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                    f"fontsize='{wobble_name0}':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                     f"alpha='if(lt(t,{fade_dur}),t/{fade_dur},1)'"
                 )
                 drawtext_vf = txt_name
@@ -923,7 +923,7 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
             def render_text_clip(w, h, out_path, src_override=None, _n=number, _nm=name):
                 fade_out_start = num_dur - fade_dur
                 fade_in_end    = num_dur + fade_dur
-                base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                base_size      = font_size_for_height(chosen_font, h, 0.78) if chosen_font.exists() else max(8, int(h * 0.62))
                 max_chars      = max(len(f"# {_n}"), len(_nm))
                 max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
                 base_size      = max(8, min(base_size, int(max_px_per_char)))
@@ -935,13 +935,13 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
                     wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     txt_number = (
                         f"drawtext={font_arg}text='{number_text}':fontcolor={fc}:"
-                        f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                         f"alpha='if(lt(t,{fade_out_start}),1,"
                         f"if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'"
                     )
                     txt_name = (
                         f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                        f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                         f"alpha='if(lt(t,{num_dur}),0,"
                         f"if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'"
                     )
@@ -950,7 +950,7 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
                     wobble_name0 = f"{base_size}*(1+0.35*exp(-8*t)*cos(12*t))"
                     txt_name = (
                         f"drawtext={font_arg}text='{name_text}':fontcolor={fc}:"
-                        f"fontsize='{wobble_name0}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                        f"fontsize='{wobble_name0}':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                         f"alpha='if(lt(t,{fade_dur}),t/{fade_dur},1)'"
                     )
                     drawtext_vf = txt_name
@@ -1250,7 +1250,7 @@ def lineup_preview_render():
             def render_clip(w, h, out_path, src):
                 fade_out_start = num_dur - fade_dur
                 fade_in_end    = num_dur + fade_dur
-                base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                base_size      = font_size_for_height(chosen_font, h, 0.78) if chosen_font.exists() else max(8, int(h * 0.62))
                 max_chars      = max(len(f"# {number}"), len(name))
                 max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
                 base_size      = max(8, min(base_size, int(max_px_per_char)))
@@ -1259,10 +1259,10 @@ def lineup_preview_render():
                 wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                 wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                 txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
-                         f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                         f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                          f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
                 txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
-                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                          f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                           f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
                 ext = Path(src).suffix.lower()
                 loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]
@@ -1352,7 +1352,7 @@ def lineup_batch_preview_render():
                 def render_clip(w, h, out_path, src, _n=number, _nm=name):
                     fade_out_start = num_dur - fade_dur
                     fade_in_end    = num_dur + fade_dur
-                    base_size      = font_size_for_height(chosen_font, h) if chosen_font.exists() else max(8, int(h * 0.65))
+                    base_size      = font_size_for_height(chosen_font, h, 0.78) if chosen_font.exists() else max(8, int(h * 0.62))
                     max_chars      = max(len(f"# {_n}"), len(_nm))
                     max_px_per_char = w / max(1, max_chars) * (1.3 if w <= 200 else 1.8)
                     base_size      = max(8, min(base_size, int(max_px_per_char)))
@@ -1361,10 +1361,10 @@ def lineup_batch_preview_render():
                     wobble_num  = f"{base_size}*(1+0.15*exp(-8*t)*cos(12*t))"
                     wobble_name = f"{base_size}*(1+0.35*exp(-8*(t-{num_dur}))*cos(12*(t-{num_dur})))"
                     txt_n = (f"drawtext={font_arg}text='{num_txt}':fontcolor={fc}:"
-                             f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                             f"fontsize='{wobble_num}':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                              f"alpha='if(lt(t,{fade_out_start}),1,if(lt(t,{num_dur}),({num_dur}-t)/{fade_dur},0))'")
                     txt_nm = (f"drawtext={font_arg}text='{name_txt}':fontcolor={fc}:"
-                              f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='max(0,(h-text_h)/2)':"
+                              f"fontsize='if(lt(t,{num_dur}),{base_size},{wobble_name})':x='max(0,(w-text_w)/2)':y='(h-ascent-descent)/2-ascent*0.30':"
                               f"alpha='if(lt(t,{num_dur}),0,if(lt(t,{fade_in_end}),(t-{num_dur})/{fade_dur},1))'")
                     ext = Path(src).suffix.lower()
                     loop = ["-loop","1"] if ext in (".png",".jpg",".jpeg") else ["-stream_loop","-1"]

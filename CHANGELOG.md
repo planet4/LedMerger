@@ -6,6 +6,15 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.372] - 2026-07-05
+
+### Players tab — accented-name vertical alignment
+- Names with accents (É, Å, Ä, Ö…) previously sat lower than plain names: the text was vertically centered by per-string ink height, which grows when an accent adds height above the caps. Now anchored by the font's global ascent/descent (accent-independent), so every name shares the same baseline.
+- Name fill reduced ~90%→~78% of the strip height to reserve headroom so accents don't clip at the top. Names render slightly smaller.
+- Players tab only; the Custom worker's positioning is unchanged.
+
+---
+
 ## [0.371] - 2026-07-05
 
 ### Players tab — Road Rage zero
