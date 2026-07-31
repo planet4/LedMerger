@@ -6,6 +6,13 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.369] - 2026-07-05
+
+### Library
+- Deleting a library file no longer asks for the password — the login session already covers it; replaced with a simple confirm dialog (delete is permanent)
+
+---
+
 ## [0.368] - 2026-07-05
 
 ### Players tab — Pick team
