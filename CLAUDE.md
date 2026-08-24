@@ -29,7 +29,7 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
 - Video processing: ffmpeg (filter_complex)
 - Frontend: Tailwind CSS, vanilla JS, Canvas API
 - Deployment: Docker Compose
-- Server: NUC at 192.168.0.140, accessed via VS Code Remote SSH (planned move to 192.168.0.150 — see Hosting & migration)
+- Server: NUC2 at 192.168.0.150, accessed via VS Code Remote SSH (migrated from 192.168.0.140 — see Hosting & migration)
 - GitHub: planet4/LedMerger (repo is **public** — never commit secrets)
 
 ## File structure
@@ -94,17 +94,16 @@ Then hard refresh browser (Ctrl+Shift+R).
 
 ## External dependencies
 - **Teamscraper** at `192.168.0.140:5020` (the `/home/planet4/docker/teamscraper` project, container `sporteventtv-sporteventtv-1`, also serves `teamscraper.planet4.nu`). Players "Pick team" proxies `/roster-scheduler/files` (team list) and `/roster/<id>.json` (roster) through it. If teamscraper is down, Pick team breaks; nothing else does. (Not the `teamscraper-test` container on :5029 — that's dummy data.)
-- **Public URL** `ledmerger.planet4.nu`: Cloudflare (proxied) → swag reverse proxy (nginx) → the container's port 5000. swag config lives on the host at `/srv/docker/swag/config` (NOT in this repo); its fail2ban `ignoreip` now includes Cloudflare's IPv4 ranges. See memory `infra-cloudflare-swag` for the outage lessons (banned Cloudflare edge IPs → whole-site 520/521; jail.local is copied to `/etc/` on container start).
+- **Public URL** `ledmerger.planet4.nu`: Cloudflare (proxied) → swag reverse proxy (nginx, **still runs on 192.168.0.140**, not migrated) → ledmerger container's port 5000 on **192.168.0.150**. swag config lives on the host (.140) at `/srv/docker/swag/config` (NOT in this repo); its fail2ban `ignoreip` now includes Cloudflare's IPv4 ranges. See memory `infra-cloudflare-swag` for the outage lessons (banned Cloudflare edge IPs → whole-site 520/521; jail.local is copied to `/etc/` on container start).
 
-## Hosting & migration (planned move 192.168.0.140 → 192.168.0.150)
-To move the container, copy/recreate on the new host:
-1. The repo (git clone) — code, compose, Dockerfile.
-2. `.env` (NOT in git) — recreate with `APP_PASSWORD=…`.
-3. `data/` volumes — **`data/library` (162M) is the irreplaceable content**; also `data/backgrounds`, `data/fonts`, and `data/library/.secret_key`. `data/outputs` + `data/uploads` are ephemeral (safe to skip).
-4. Update references to the old IP `192.168.0.140`:
-   - `TEAMSCRAPER_BASE` in `docker-compose.yml`/`.env` (teamscraper stays on .140, so the LAN IP is still valid — only change if teamscraper also moves).
-   - **swag reverse-proxy** on the host: the ledmerger site conf `proxy_pass` must point at the new host:5000. swag config is NOT in this repo — it lives at `/srv/docker/swag/config` (copied to `/etc/…` at container start).
-5. `docker compose up -d --build`, then verify: login with the password, Library loads, Players "Pick team" reaches teamscraper, and the public URL returns 200 (watch swag fail2ban — see memory).
+## Hosting & migration (done: moved 192.168.0.140 → 192.168.0.150, host `nuc2`)
+LedMerger itself now runs on **192.168.0.150** (`nuc2`). Note what did *not* move:
+- **teamscraper** stays on .140 — `TEAMSCRAPER_BASE=http://192.168.0.140:5020` in `docker-compose.yml`/`.env` is correct as-is; only change it if teamscraper also moves.
+- **swag** reverse proxy stays on .140 too — its ledmerger site conf `proxy_pass` was repointed to `192.168.0.150:5000` and this is confirmed working (public URL returns 200). swag config is NOT in this repo — lives at `/srv/docker/swag/config` on .140.
+
+What was carried over during the move: repo (git clone), `.env` (not in git, recreated with `APP_PASSWORD=…`), and the `data/` volumes — `data/library` (162M, irreplaceable), `data/backgrounds`, `data/fonts`, and `data/library/.secret_key` (keeping this file preserved existing login sessions). `data/outputs`/`data/uploads` are ephemeral and were not carried over.
+
+If another host migration happens in the future, repeat this process and update this section's IPs again.
 
 ## Cleanup outputs
 ```bash
