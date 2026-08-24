@@ -83,12 +83,25 @@ http://<server-ip>:5000
 
 ## Updating
 
-After changing any file:
+After changing **any** file (including templates — they are baked into the image, and `FLASK_ENV=production` disables auto-reload):
 ```bash
 sudo docker compose up -d --build
 ```
 
 Then hard refresh the browser (Ctrl+Shift+R).
+
+## Login & configuration
+
+The app requires a login (server-side session). The password is set via the `APP_PASSWORD` environment variable, kept in a gitignored `.env` file (see `.env.example`) — the repo is public, so the password is **not** committed. Other env vars in `docker-compose.yml`:
+
+- `TEAMSCRAPER_BASE` — teamscraper service URL for the Players "Pick team" feature (default `http://192.168.0.140:5020`).
+- `FLASK_ENV=production`.
+
+The session secret is stored at `data/library/.secret_key` (auto-generated). Keep it across host moves so existing logins survive; losing it just forces a re-login.
+
+## Moving to a new host
+
+Copy the repo, recreate `.env`, and copy the `data/` volumes — `data/library` is the irreplaceable content; `data/outputs` and `data/uploads` are disposable. Then point the swag reverse proxy (which lives outside this repo) at the new host's port 5000. See `CLAUDE.md` → "Hosting & migration" for the full checklist.
 
 ## Cleaning up output files
 

@@ -6,6 +6,15 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## Documentation — 2026-08-24 (no code changes)
+
+- Documented server-side auth, `APP_PASSWORD`/`.env`, the `data/library/.secret_key` session secret, and all env vars in `CLAUDE.md` and `README.md`.
+- Added a **Hosting & migration checklist** to `CLAUDE.md` ahead of moving the container from 192.168.0.140 to a new host (192.168.0.150): what to copy (`data/library` is the irreplaceable content), the `.env`/secret-key to recreate, the teamscraper dependency (`192.168.0.140:5020`), and the swag reverse-proxy repoint (swag config lives outside this repo).
+- Noted that templates are baked into the image (production disables auto-reload) so every change needs `--build`.
+- Recorded discussed-but-unbuilt ideas in `ROADMAP.md`: arena/LED preview for library files, and saving the arena preview.
+
+---
+
 ## [0.372] - 2026-07-05
 
 ### Players tab — accented-name vertical alignment
