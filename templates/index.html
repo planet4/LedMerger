@@ -161,7 +161,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.372 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.38 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -1305,7 +1305,10 @@ async function startMerge() {
   pollJob(job_id, 'mergeStatus', 'mergeProgress', 'mergeBtn', async job => {
     const btns = document.getElementById('mergeDlButtons');
     btns.innerHTML = '';
-    const row = await buildOutputFileRow(job.output, 'Stacked 1600×1200', true);
+    // `files` are the 5 raw uploaded source paths (by display id) — carry
+    // them along so Save to Library can tuck away LED Preview sidecars.
+    const individual = {0: files[0], 1: files[1], 2: files[2], 3: files[3], 4: files[4]};
+    const row = await buildOutputFileRow(job.output, 'Stacked 1600×1200', true, individual);
     btns.appendChild(row);
     const c = document.getElementById('mergeDownload');
     c.classList.remove('hidden');
@@ -1823,8 +1826,12 @@ async function startLineup() {
     document.getElementById('lineupReadyTitle').textContent = 'Player video ready!';
     document.getElementById('lineupReadySubtitle').textContent = 'Stacked export + individual files';
     const labels = ['Stacked 1600×1200','Longside 1728','Shortside 1344','576 Left','576 Right','Media 192'];
+    // outputs[1..5] = [1728(id2), 1344(id0), 576left(id1), 576right(id3), 192(id4)]
+    const individual = outputs.length > 5
+      ? {2: outputs[1], 0: outputs[2], 1: outputs[3], 3: outputs[4], 4: outputs[5]}
+      : null;
     for (let i = 0; i < outputs.length; i++) {
-      const row = await buildOutputFileRow(outputs[i], labels[i], i === 0);
+      const row = await buildOutputFileRow(outputs[i], labels[i], i === 0, i === 0 ? individual : null);
       btns.appendChild(row);
     }
     const c = document.getElementById('lineupDownload');
@@ -1884,7 +1891,7 @@ async function startBatchLineup() {
 
 const _outputCatOpts = `{% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}`;
 
-async function buildOutputFileRow(fname, label, showSave) {
+async function buildOutputFileRow(fname, label, showSave, individual) {
   const row = document.createElement('div');
   row.className = 'flex items-center gap-2 flex-wrap w-full py-2 border-t border-[#2E2E3A] first:border-0';
 
@@ -1907,7 +1914,7 @@ async function buildOutputFileRow(fname, label, showSave) {
     <button class="icon-btn" title="Preview" onclick="previewOutputFile('${fname}')"><span class="material-icons-round">play_arrow</span></button>
     <a href="/api/download/${encodeURIComponent(fname)}" download class="icon-btn" title="Download"><span class="material-icons-round">download</span></a>
     <button class="icon-btn" title="Rename" onclick="renameOutputFile('${fname}','outLabel_${uid}',this)"><span class="material-icons-round">edit</span></button>
-    ${showSave ? `<button class="icon-btn" title="Save to Library" onclick="saveOutputToLibrary('${fname}','${catId}','${statId}',this)"><span class="material-icons-round">save</span></button>` : ''}
+    ${showSave ? `<button class="icon-btn" title="Save to Library" data-individual='${(individual ? JSON.stringify(individual) : '').replace(/'/g,"&#39;")}' onclick="saveOutputToLibrary('${fname}','${catId}','${statId}',this)"><span class="material-icons-round">save</span></button>` : ''}
     <span id="${statId}" class="font-mono text-xs text-[#888]"></span>`;
   if (showSave) { row.dataset.fname = fname; row.dataset.catId = catId; row.dataset.statId = statId; }
   return row;
@@ -1973,10 +1980,12 @@ async function saveOutputToLibrary(fname, catId, statId, btn) {
   const status = document.getElementById(statId);
   if (!fname || !cat) return;
   if (status) status.textContent = 'Saving…';
+  let individual = null;
+  try { individual = JSON.parse(btn?.dataset.individual || 'null'); } catch(e) {}
   try {
     const r = await (await fetch('/api/library/save-from-output', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({filename: fname, category: cat})
+      body: JSON.stringify({filename: fname, category: cat, individual})
     })).json();
     if (status) { status.textContent = r.ok ? `✓ ${r.saved_as}` : `✗ ${r.error}`; status.style.color = r.ok ? '#00ff88' : '#ff4444'; }
   } catch(e) { if (status) { status.textContent = '✗ Failed'; status.style.color = '#ff4444'; } }
@@ -1991,7 +2000,7 @@ async function saveCustomToLibrary() {
   try {
     const r = await (await fetch('/api/library/save-from-output', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({filename, category: cat})
+      body: JSON.stringify({filename, category: cat, individual: window._customIndividual || null})
     })).json();
     status.textContent = r.ok ? `✓ Saved as ${r.saved_as}` : `✗ ${r.error}`;
     status.style.color = r.ok ? '#00ff88' : '#ff4444';
@@ -2527,8 +2536,14 @@ async function startCustom() {
     const labels = ['Stacked 1600×1200','Shortside 1344','576 Left','1728 Center','576 Right','Media 192'];
     const outputs = job.outputs || [];
     window._customStackedFile = outputs[0] || null;
+    // outputs[1..5] are the individual per-display clips already rendered
+    // for ids 0..4 — carry them along so Save to Library can tuck them away
+    // as LED Preview sidecars (instant preview, no re-extraction later).
+    window._customIndividual = outputs.length > 5
+      ? {0: outputs[1], 1: outputs[2], 2: outputs[3], 3: outputs[4], 4: outputs[5]}
+      : null;
     for (let i = 0; i < outputs.length; i++) {
-      const row = await buildOutputFileRow(outputs[i], labels[i], i === 0);
+      const row = await buildOutputFileRow(outputs[i], labels[i], i === 0, i === 0 ? window._customIndividual : null);
       btns.appendChild(row);
     }
     const c = document.getElementById('customDownload');
@@ -2587,7 +2602,8 @@ async function loadLibrary() {
               class="bg-[#1E2229] border border-[#333] rounded px-2 py-0.5 font-mono text-xs text-[var(--tx-main)] focus:outline-none focus:border-[#CC1020]">
               ${_libCatOpts(cat)}
             </select>
-            <button onclick="libPreview('${cat}','${f.name}')" class="icon-btn" title="Preview"><span class="material-icons-round">play_arrow</span></button>
+            <button onclick="libPreview('${cat}','${f.name}')" class="icon-btn" title="Preview merged file"><span class="material-icons-round">play_arrow</span></button>
+            <button onclick="libLedPreview('${cat}','${f.name}',this)" class="icon-btn" title="LED Preview (per-display simulator)"><span class="material-icons-round">grid_view</span></button>
             <a href="/api/library/download/${encodeURIComponent(cat)}/${encodeURIComponent(f.name)}" class="icon-btn" title="Download" download><span class="material-icons-round">download</span></a>
             <button onclick="libRename('${cat}','${f.name}',this)" class="icon-btn" title="Rename"><span class="material-icons-round">edit</span></button>
             <button onclick="libDelete('${cat}','${f.name}',this)" class="icon-btn danger" title="Delete"><span class="material-icons-round">delete</span></button>
@@ -2611,6 +2627,30 @@ function closeLibPreview() {
   const v = document.getElementById('libPreviewVideo');
   v.pause(); v.src = '';
   document.getElementById('libPreviewModal').classList.add('hidden');
+}
+
+async function libLedPreview(cat, filename, btn) {
+  const icon = btn?.querySelector('span');
+  const origIcon = icon?.textContent;
+  if (btn) btn.disabled = true;
+  if (icon) icon.textContent = 'hourglass_top';
+  try {
+    const r = await (await fetch(`/api/library/led-preview?category=${encodeURIComponent(cat)}&filename=${encodeURIComponent(filename)}`)).json();
+    if (r.error) { alert(r.error); return; }
+    const params = new URLSearchParams();
+    r.displays.forEach(d => {
+      params.set('d'+d.id, d.path);
+      params.set('w'+d.id, d.w);
+      params.set('n'+d.id, d.n);
+    });
+    window.open('/led-preview?'+params.toString(), 'ledpreview_lib',
+      'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+  } catch(e) {
+    alert('LED Preview failed to load.');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) icon.textContent = origIcon;
+  }
 }
 
 async function libRename(cat, filename, btn) {

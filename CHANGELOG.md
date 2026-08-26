@@ -6,6 +6,17 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.38] - 2026-08-26
+
+### Library — LED Preview for saved files
+
+- New **LED Preview** button (grid icon) next to each library file's normal Preview button. Opens the same multi-display `led_preview.html` simulator used by the other tabs, without touching the existing Preview button/modal (still plays the merged file as-is — that's the one that actually gets used).
+- **Save to Library** on File Merger, Players (single-generate), and Custom now also tucks away the 5 individual per-display source clips as hidden sidecars (`data/library/<cat>/.led_preview/<stem>/d0..d4.mp4`) alongside the merged file, so LED Preview opens instantly — no processing at click time.
+- Library files saved before this existed (or via Players batch, which doesn't render individual clips) fall back to on-demand extraction: crops the 5 display regions back out of the stacked 1600×1200 file (exact inverse of `build_stacked_export()`'s layout — read, never modified) and caches the result into the same sidecar location, so every preview after the first is instant too.
+- Removed the now-implemented "Arena view for library files" item from `ROADMAP.md`.
+
+---
+
 ## Documentation — 2026-08-24 (no code changes)
 
 - Documented server-side auth, `APP_PASSWORD`/`.env`, the `data/library/.secret_key` session secret, and all env vars in `CLAUDE.md` and `README.md`.

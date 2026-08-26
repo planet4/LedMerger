@@ -1959,11 +1959,102 @@ def library_rename():
     return jsonify({"ok": True, "new_filename": new_filename})
 
 
+# ── LED Preview sidecars ────────────────────────────────────────────────────
+# Library entries only ever store the final 1600x1200 stacked export. To open
+# the multi-display LED Preview window for a library file we need the 5
+# individual per-display clips too. When the tab that produced the file
+# already rendered those individually (Players single-generate, Custom),
+# save-from-output tucks copies away here so preview is instant. Older/batch
+# saves that never had individual clips fall back to re-deriving them by
+# cropping the exact regions build_stacked_export() wrote them into — see
+# extract_led_preview_clips() — and the result is cached here too.
+
+def _led_preview_sidecar_dir(cat, filename):
+    return LIBRARY_DIR / cat / ".led_preview" / Path(filename).stem
+
+
+def _resolve_led_source(value):
+    """Resolve a per-display source path from a save-to-library request to
+    an existing file under UPLOAD_DIR or OUTPUT_DIR. Accepts either a bare
+    OUTPUT_DIR filename or a full path (uploadedPaths/tileSlotPaths already
+    hand over full paths like /app/uploads/xxx.mp4)."""
+    if not value:
+        return None
+    p = Path(str(value))
+    candidates = [p] if p.is_absolute() else [OUTPUT_DIR / p]
+    for c in candidates:
+        try:
+            rc = c.resolve()
+        except Exception:
+            continue
+        for allowed in (UPLOAD_DIR, OUTPUT_DIR):
+            try:
+                rc.relative_to(allowed.resolve())
+            except ValueError:
+                continue
+            if rc.exists():
+                return rc
+    return None
+
+
+def _copy_led_preview_sources(individual, sidecar_dir):
+    """Copy the 5 per-display source clips referenced in `individual`
+    (id -> path) into sidecar_dir as d0.mp4..d4.mp4. Builds in a temp dir
+    and renames into place so a partial failure never leaves a sidecar dir
+    that looks complete."""
+    tmp_dir = sidecar_dir.parent / f".tmp_{sidecar_dir.name}_{uuid.uuid4().hex[:8]}"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        for d in DISPLAYS:
+            src = _resolve_led_source(individual.get(str(d["id"])))
+            if src is None:
+                raise FileNotFoundError(f"missing source for display {d['id']}")
+            shutil.copy2(str(src), str(tmp_dir / f"d{d['id']}.mp4"))
+        if sidecar_dir.exists():
+            shutil.rmtree(sidecar_dir, ignore_errors=True)
+        sidecar_dir.parent.mkdir(parents=True, exist_ok=True)
+        tmp_dir.rename(sidecar_dir)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def extract_led_preview_clips(stacked_path, dest_dir):
+    """Reverse-crop the 5 per-display regions back out of a 1600x1200
+    stacked export — the exact inverse of build_stacked_export()'s overlay
+    layout, so this must be kept in sync with it. 4 of 5 displays are a
+    single crop of an untouched region; Longside Center is split across
+    rows 3 and 4, so its last 128px (of 1728) is stitched back on from row 4."""
+    fc = (
+        "[0:v]crop=1344:64:0:0[o0];"
+        "[0:v]crop=576:64:384:64[o1];"
+        "[0:v]crop=1600:64:0:128[c_head];"
+        "[0:v]crop=128:64:640:192[c_tail];"
+        "[c_head][c_tail]hstack=inputs=2[o2];"
+        "[0:v]crop=576:64:768:192[o3];"
+        "[0:v]crop=192:64:384:256[o4]"
+    )
+    tmp_dir = dest_dir.parent / f".tmp_{dest_dir.name}_{uuid.uuid4().hex[:8]}"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        cmd = ["ffmpeg", "-y", "-i", str(stacked_path), "-filter_complex", fc]
+        for i in range(5):
+            cmd += ["-map", f"[o{i}]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    str(tmp_dir / f"d{i}.mp4")]
+        run_cmd(cmd)
+        if dest_dir.exists():
+            shutil.rmtree(dest_dir, ignore_errors=True)
+        dest_dir.parent.mkdir(parents=True, exist_ok=True)
+        tmp_dir.rename(dest_dir)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 @app.route("/api/library/save-from-output", methods=["POST"])
 def library_save_from_output():
-    data     = request.json
-    filename = data.get("filename", "")
-    cat      = data.get("category", "")
+    data       = request.json
+    filename   = data.get("filename", "")
+    cat        = data.get("category", "")
+    individual = data.get("individual") or {}
     if cat not in LIBRARY_CATEGORIES or not filename:
         return jsonify({"error": "Invalid"}), 400
     src = OUTPUT_DIR / filename
@@ -1976,7 +2067,36 @@ def library_save_from_output():
         dest = LIBRARY_DIR / cat / f"{stem} ({counter}).mp4"
         counter += 1
     shutil.copy2(str(src), str(dest))
+    if individual:
+        try:
+            _copy_led_preview_sources(individual, _led_preview_sidecar_dir(cat, dest.name))
+        except Exception:
+            pass  # no sidecar — LED Preview just falls back to extraction on first click
     return jsonify({"ok": True, "saved_as": dest.name})
+
+
+@app.route("/api/library/led-preview")
+def library_led_preview():
+    cat      = request.args.get("category", "")
+    filename = request.args.get("filename", "")
+    if cat not in LIBRARY_CATEGORIES or not filename:
+        return jsonify({"error": "Invalid"}), 400
+    src = LIBRARY_DIR / cat / filename
+    if not src.exists():
+        return jsonify({"error": "File not found"}), 404
+
+    sidecar_dir = _led_preview_sidecar_dir(cat, filename)
+    have_all = sidecar_dir.exists() and all((sidecar_dir / f"d{d['id']}.mp4").exists() for d in DISPLAYS)
+    if not have_all:
+        try:
+            extract_led_preview_clips(src, sidecar_dir)
+        except Exception as e:
+            return jsonify({"error": f"Preview extraction failed: {e}"}), 500
+
+    return jsonify({"ok": True, "displays": [
+        {"id": d["id"], "path": str(sidecar_dir / f"d{d['id']}.mp4"), "w": d["width"], "n": d["name"]}
+        for d in DISPLAYS
+    ]})
 
 
 @app.route("/api/library/update", methods=["POST"])
