@@ -150,6 +150,14 @@ tailwind.config = {
 
 <!-- Font primer -->
 <span style="position:absolute;opacity:0;pointer-events:none;font-family:'Outfit';font-weight:700;font-size:1px;" id="fontPrimer">.</span>
+
+<!-- Shared file picker for File Merger's display + tile-slot uploads. One
+     persistent input, dynamically retargeted before each open, instead of a
+     separate <input type="file"> per slot — browsers remember the last
+     folder used per input element, so 5+ separate inputs each opened in
+     whatever folder they were last used with; one shared input keeps that
+     memory consistent across every slot. -->
+<input type="file" id="sharedUploadInput" accept=".mp4,.mov,.avi,.gif,.png,.jpg,.jpeg" class="hidden">
 <div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
 
   <!-- HEADER -->
@@ -161,7 +169,7 @@ tailwind.config = {
     </div>
     <div class="flex-1">
       <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.38 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.403 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
@@ -200,12 +208,10 @@ tailwind.config = {
           </div>
           <div class="relative border-2 border-dashed border-[#3C3C3C] rounded-md min-h-[42px] flex items-center px-3 cursor-pointer hover:border-[#CC1020]/60 hover:bg-[#CC1020]/5 transition-all"
                id="drop-{{ d.id }}"
+               onclick="triggerMainUpload({{ d.id }})"
                ondragover="event.preventDefault();this.classList.add('drop-active')"
                ondragleave="this.classList.remove('drop-active')"
                ondrop="onDropDisplay(event,{{ d.id }})">
-            <input type="file" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                   accept=".mp4,.mov,.avi,.gif,.png,.jpg,.jpeg"
-                   onchange="uploadDisplayFile({{ d.id }},this.files[0])">
             <span class="font-mono text-xs text-[#888] truncate pointer-events-none select-none" id="label-{{ d.id }}">Click or drag file…</span>
           </div>
           <div class="font-mono text-xs text-right text-[#888]" id="ustatus-{{ d.id }}">—</div>
@@ -549,7 +555,7 @@ tailwind.config = {
         <div class="w-full hidden items-center gap-2 flex-wrap pb-3 mb-1 border-b border-[#2E2E3A]" id="lineupSaveAllBar">
           <span class="material-icons-round text-[#00ff88]" style="font-size:18px">library_add</span>
           <span class="font-mono text-xs text-gray-200">Save all to</span>
-          <select id="lineupSaveAllCat" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">{% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}</select>
+          <select id="lineupSaveAllCat" class="cat-select bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]" data-exclude-non-stacked="1" onchange="onCatSelectChange(this)"></select>
           <button onclick="saveAllOutputsToLibrary(this)" class="px-3 py-1 rounded bg-[#00ff88]/10 border border-neon/40 text-[#00ff88] font-mono text-xs hover:bg-[#00ff88]/20 transition-colors">Save all</button>
           <span id="lineupSaveAllStat" class="font-mono text-xs text-[#888]"></span>
         </div>
@@ -806,15 +812,18 @@ tailwind.config = {
     Stacked MP4 files ready for playback on the Sedna LED controller. Browse by category and download. Upload your own files (MP4 only) to any category.
   </div>
 
-  {% set lib_cats = [('Event','Event'), ('General','General'), ('Special','Special'), ('Commercial','Commercial'), ('Starcamp','Starcamp'), ('SSL Players Men','SSL Players Men'), ('SSL Players Women','SSL Players Women'), ('JAS Men','JAS Men'), ('JAS Women','JAS Women'), ('Players Boys','Players Boys'), ('Players Girls','Players Girls'), ('Non Stacked','Non Stacked')] %}
-  {% for cat_key, cat_label in lib_cats %}
-  <div class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
+  {% for cat_key in library_categories %}
+  <div id="lib-card-{{ cat_key }}" class="bg-[#22222A] border border-[#2E2E3A] rounded-xl overflow-hidden">
     <div class="section-header flex items-center justify-between cursor-pointer select-none" onclick="toggleLibCat('{{ cat_key }}')">
       <div class="flex items-center gap-2">
-        <span class="section-title">{{ cat_label }}</span>
+        <span class="section-title">{{ cat_key }}</span>
         <span id="lib-count-{{ cat_key }}" class="font-mono text-xs text-[#555]"></span>
       </div>
       <div class="flex items-center gap-2">
+        <a href="/api/library/download-all/{{ cat_key | urlencode }}" onclick="event.stopPropagation()"
+           class="icon-btn" title="Download all as .zip" download>
+          <span class="material-icons-round">folder_zip</span>
+        </a>
         <label class="cursor-pointer" onclick="event.stopPropagation()">
           <input type="file" accept=".mp4" class="hidden" onchange="libraryUpload('{{ cat_key }}', this)">
           <span class="icon-btn" title="Upload" style="border-color:#CC1020;color:#CC1020;"><span class="material-icons-round">upload</span></span>
@@ -889,6 +898,72 @@ const AUTHED = {{ authed | tojson }};
 const DISPLAYS = {{ displays | tojson }};
 const VARIANTS_DIR_PREFIX = '/app/backgrounds/576_variants/';
 
+// ══ LIBRARY CATEGORIES ══
+// Server-side list at page load — kept live in JS as categories get added
+// (see addLibraryCategory) so every dropdown on the page stays in sync
+// without a reload.
+const LIBRARY_CATS = {{ library_categories | tojson }};
+
+function _catOptsHtml(current, excludeNonStacked) {
+  const cats = excludeNonStacked ? LIBRARY_CATS.filter(c => c !== 'Non Stacked') : LIBRARY_CATS;
+  return cats.map(c => `<option value="${c}"${c===current?' selected':''}>${c}</option>`).join('')
+    + `<option value="__new__">+ New category…</option>`;
+}
+
+// Shared onchange for every category <select class="cat-select">. Selecting
+// the "+ New category…" sentinel prompts for a name, creates it server-side,
+// then refreshes every category select on the page so it's usable everywhere
+// immediately. `onRealChange` (if given) runs for an ordinary selection.
+function onCatSelectChange(select, onRealChange) {
+  if (select.value === '__new__') {
+    const prev = select.dataset.prevValue || LIBRARY_CATS[0];
+    const name = (prompt('New category name:') || '').trim();
+    if (!name) { select.value = prev; return; }
+    addLibraryCategory(name, select, onRealChange);
+    return;
+  }
+  select.dataset.prevValue = select.value;
+  if (onRealChange) onRealChange();
+}
+
+async function addLibraryCategory(name, select, onRealChange) {
+  try {
+    const r = await (await fetch('/api/library/categories/add', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    })).json();
+    if (!r.ok) {
+      alert(r.error || 'Could not add category');
+      select.value = select.dataset.prevValue || LIBRARY_CATS[0];
+      return;
+    }
+    if (!LIBRARY_CATS.includes(r.category)) LIBRARY_CATS.push(r.category);
+    document.querySelectorAll('select.cat-select').forEach(s => {
+      const excl = s.dataset.excludeNonStacked === '1';
+      const cur  = s === select ? r.category : s.value;
+      s.innerHTML = _catOptsHtml(cur, excl);
+    });
+    select.dataset.prevValue = r.category;
+    // Note: the Library tab's own collapsible category card only appears
+    // after a reload — not worth duplicating that markup here for a rare action.
+    if (onRealChange) onRealChange();
+  } catch(e) {
+    alert('Could not add category');
+    select.value = select.dataset.prevValue || LIBRARY_CATS[0];
+  }
+}
+document.getElementById('lineupSaveAllCat').innerHTML = _catOptsHtml(null, true);
+
+// Open the LED Preview popup maximized to the available screen size
+// (not the browser Fullscreen API — just a big, non-tiny window) instead
+// of a fixed small 1280x600.
+function openLedPreviewWindow(url, name) {
+  const w = window.screen.availWidth  || 1280;
+  const h = window.screen.availHeight || 600;
+  window.open(url, name,
+    `width=${w},height=${h},left=0,top=0,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes`);
+}
+
 // ══ TABS ══
 async function doLogin() {
   const pw = document.getElementById('loginPassword').value;
@@ -925,6 +1000,7 @@ function switchTab(name) {
   if (name === 'lineup') setTimeout(renderAllLuCanvases, 50);
   if (name === 'custom') setTimeout(renderAllCuCanvases, 50);
   if (name === 'library') loadLibrary();
+  try { localStorage.setItem('ledmerger_tab', name); } catch(e) {}
 }
 
 // ══ MODAL ══
@@ -975,11 +1051,7 @@ function buildTileSlots(id, totalW, tiles) {
     div.style.cssText = `width:80px;height:48px;`;
     div.id = `tile-slot-${id}-${slot}`;
     if (tileSlotPaths[id][slot]) div.classList.add('uploaded');
-
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.mp4,.mov,.avi,.gif,.png,.jpg,.jpeg';
-    inp.className = 'absolute inset-0 opacity-0 cursor-pointer w-full h-full';
-    inp.onchange = (e) => uploadTileSlot(id, slot, e.target.files[0], totalW);
+    div.onclick = () => triggerTileUpload(id, slot, totalW);
 
     const lbl = document.createElement('span');
     lbl.className = 'font-mono text-[9px] text-[#888] pointer-events-none';
@@ -999,7 +1071,7 @@ function buildTileSlots(id, totalW, tiles) {
       div.appendChild(img);
     }
 
-    div.appendChild(inp); div.appendChild(lbl); div.appendChild(size);
+    div.appendChild(lbl); div.appendChild(size);
     container.appendChild(div);
   }
 }
@@ -1093,6 +1165,27 @@ function onDropDisplay(e, id) {
   document.getElementById(`drop-${id}`).classList.remove('drop-active');
   if (e.dataTransfer.files[0]) uploadDisplayFile(id, e.dataTransfer.files[0]);
 }
+
+// One shared, persistent <input type="file"> for every display-slot and
+// tile-slot upload in File Merger, dynamically retargeted before each open
+// (see #sharedUploadInput near the top of <body> for why).
+let _pendingUploadTarget = null;
+function triggerMainUpload(id) {
+  _pendingUploadTarget = {kind:'main', id};
+  document.getElementById('sharedUploadInput').click();
+}
+function triggerTileUpload(id, slot, totalW) {
+  _pendingUploadTarget = {kind:'tile', id, slot, totalW};
+  document.getElementById('sharedUploadInput').click();
+}
+document.getElementById('sharedUploadInput').addEventListener('change', function() {
+  const file = this.files[0];
+  this.value = ''; // reset so re-picking the same file still fires 'change' next time
+  const t = _pendingUploadTarget; _pendingUploadTarget = null;
+  if (!file || !t) return;
+  if (t.kind === 'main') uploadDisplayFile(t.id, file);
+  else uploadTileSlot(t.id, t.slot, file, t.totalW);
+});
 
 async function uploadDisplayFile(id, file) {
   if (!file) return;
@@ -1242,8 +1335,7 @@ async function openLineupLedPreview() {
         params.set('w'+d.id, d.w);
         params.set('n'+d.id, d.n);
       });
-      window.open('/led-preview?'+params.toString(), 'ledpreview_lineup',
-        'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+      openLedPreviewWindow('/led-preview?'+params.toString(), 'ledpreview_lineup');
     }).catch(err => {
       document.getElementById('lineupStatus').textContent = '✗ ' + err;
       btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
@@ -1273,8 +1365,7 @@ function openLedPreview() {
     params.set(`n${d.id}`, d.name);
   });
   const url = `/led-preview?${params.toString()}`;
-  window.open(url, 'ledpreview',
-    'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+  openLedPreviewWindow(url, 'ledpreview');
 }
 
 async function startMerge() {
@@ -1458,6 +1549,7 @@ function updateTimeline() {
 }
 
 let _batchPlayers = [];
+let _batchTeamName = ''; // set when a team is picked via "Pick team" — used to name the combined output file
 
 function parseBatchFile(input) {
   const file = input.files[0];
@@ -1471,6 +1563,7 @@ function parseBatchFile(input) {
       if (m) _batchPlayers.push({number: m[1], name: m[2].trim().toUpperCase()});
     }
     _batchPlayers.unshift({number: 'PIXBO', name: 'TEAMNAME'});
+    _batchTeamName = ''; // no real team name from a plain file import — edit row 1 above to set one
     applyBatchPlayers();
   };
   reader.readAsText(file);
@@ -1548,6 +1641,7 @@ async function loadTeamRoster(teamId, teamName, btn) {
       name: p.name.toUpperCase()
     }));
     _batchPlayers.unshift({number: 'PIXBO', name: teamName.toUpperCase()});
+    _batchTeamName = teamName;
     status.textContent = '';
     applyBatchPlayers();
   } catch(e) {
@@ -1609,7 +1703,12 @@ function renderBatchList() {
     inp.addEventListener('change', () => {
       const idx = +inp.dataset.i;
       const v = inp.value.trim().toUpperCase();
-      if (v) { _batchPlayers[idx].name = v; inp.value = v; }
+      if (v) {
+        _batchPlayers[idx].name = v; inp.value = v;
+        // Row 0 doubles as the team-name slide (number === 'PIXBO') — keep
+        // the output filename in sync with whatever the user types there.
+        if (idx === 0 && String(_batchPlayers[0].number).toUpperCase() === 'PIXBO') _batchTeamName = v;
+      }
       checkLineupReady();
     });
   });
@@ -1640,6 +1739,7 @@ function addBatchPlayer() {
 
 function clearBatch() {
   _batchPlayers = [];
+  _batchTeamName = '';
   document.getElementById('batchStatus').textContent = 'One player per line: number name';
   document.getElementById('batchToggle').classList.add('hidden');
   document.getElementById('batchToggle').classList.remove('flex');
@@ -1849,7 +1949,7 @@ async function startBatchLineup() {
   document.getElementById('lineupStatus').textContent = 'Starting batch…';
   const r = await fetch('/api/lineup/batch', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({players: _batchPlayers, fps: FPS, num_dur: numDur, total_dur: totalDur, combine, font_size_pct: parseFloat(document.getElementById('luFontSize').value)||50}),
+    body: JSON.stringify({players: _batchPlayers, team_name: _batchTeamName, fps: FPS, num_dur: numDur, total_dur: totalDur, combine, font_size_pct: parseFloat(document.getElementById('luFontSize').value)||50}),
   });
   const res = await r.json();
   if (res.error) {
@@ -1889,7 +1989,6 @@ async function startBatchLineup() {
   });
 }
 
-const _outputCatOpts = `{% for cat in ['SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Event','General','Special','Commercial','Starcamp'] %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}`;
 
 async function buildOutputFileRow(fname, label, showSave, individual) {
   const row = document.createElement('div');
@@ -1910,7 +2009,7 @@ async function buildOutputFileRow(fname, label, showSave, individual) {
   row.innerHTML = `
     <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0" id="outLabel_${uid}">${label}</span>
     ${durTxt}${sizeTxt}
-    ${showSave ? `<select id="${catId}" class="bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]">${_outputCatOpts}</select>` : ''}
+    ${showSave ? `<select id="${catId}" class="cat-select bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]" data-exclude-non-stacked="1" onchange="onCatSelectChange(this)">${_catOptsHtml(null, true)}</select>` : ''}
     <button class="icon-btn" title="Preview" onclick="previewOutputFile('${fname}')"><span class="material-icons-round">play_arrow</span></button>
     <a href="/api/download/${encodeURIComponent(fname)}" download class="icon-btn" title="Download"><span class="material-icons-round">download</span></a>
     <button class="icon-btn" title="Rename" onclick="renameOutputFile('${fname}','outLabel_${uid}',this)"><span class="material-icons-round">edit</span></button>
@@ -1957,18 +2056,23 @@ async function renameOutputFile(fname, labelId, btn) {
     body: JSON.stringify({filename: fname, new_name: newName.trim()})
   })).json();
   if (r.ok) {
-    // Update references
+    // Update references. `btn` (the Rename button) is a direct child of the
+    // row div, so btn.parentElement IS the row — search within it rather
+    // than counting siblings, which broke silently whenever the row's
+    // layout changed (the Save button ended up pointing at the old,
+    // now-renamed-away filename, so Save then failed with "File not found").
     btn.onclick = () => renameOutputFile(r.new_name, labelId, btn);
-    const anchor = btn.parentElement.querySelector('a[download]');
+    const row = btn.parentElement;
+    const anchor = row.querySelector('a[download]');
     if (anchor) { anchor.href = `/api/download/${encodeURIComponent(r.new_name)}`; anchor.download = r.new_name; }
     const lbl = document.getElementById(labelId);
     if (lbl && lbl.textContent === fname) lbl.textContent = r.new_name;
-    // update save button reference if present
-    const saveBtn = btn.nextElementSibling?.nextElementSibling;
-    if (saveBtn && saveBtn.tagName === 'BUTTON') {
+    const saveBtn = row.querySelector('button[title="Save to Library"]');
+    if (saveBtn) {
       const oldOnclick = saveBtn.getAttribute('onclick') || '';
-      saveBtn.setAttribute('onclick', oldOnclick.replace(fname, r.new_name));
+      saveBtn.setAttribute('onclick', oldOnclick.replaceAll(fname, r.new_name));
     }
+    if (row.dataset.fname === fname) row.dataset.fname = r.new_name;
     if (window._lineupStackedFile === fname) window._lineupStackedFile = r.new_name;
   } else {
     alert(r.error || 'Rename failed');
@@ -2488,8 +2592,7 @@ async function openCustomLedPreview() {
         params.set('w'+d.id, d.w);
         params.set('n'+d.id, d.n);
       });
-      window.open('/led-preview?'+params.toString(), 'ledpreview_custom',
-        'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+      openLedPreviewWindow('/led-preview?'+params.toString(), 'ledpreview_custom');
     }).catch(err => {
       document.getElementById('customStatus').textContent = '✗ ' + err;
       btn.disabled = false; btn.textContent = '◉ LED PREVIEW';
@@ -2563,12 +2666,7 @@ if (AUTHED) {
 [0,1,2,3,4].forEach(id => updateCustomTimeline(id));
 
 // ══ LIBRARY TAB ══
-const LIBRARY_CATS = ['Event','General','Special','Commercial','Starcamp','SSL Players Men','SSL Players Women','JAS Men','JAS Women','Players Boys','Players Girls','Non Stacked'];
-const LIBRARY_CAT_LABELS = {'Event':'Event','General':'General','Special':'Special','Commercial':'Commercial','Starcamp':'Starcamp','SSL Players Men':'SSL Players Men','SSL Players Women':'SSL Players Women','JAS Men':'JAS Men','JAS Women':'JAS Women','Players Boys':'Players Boys','Players Girls':'Players Girls','Non Stacked':'Non Stacked'};
-
-function _libCatOpts(current) {
-  return LIBRARY_CATS.map(c => `<option value="${c}"${c===current?' selected':''}>${LIBRARY_CAT_LABELS[c]}</option>`).join('');
-}
+// (LIBRARY_CATS / _catOptsHtml / onCatSelectChange / addLibraryCategory are defined near the top of this script)
 
 function toggleLibCat(cat) {
   const body = document.getElementById('lib-body-' + cat);
@@ -2581,6 +2679,16 @@ function toggleLibCat(cat) {
 async function loadLibrary() {
   try {
     const data = await (await fetch('/api/library')).json();
+
+    // Sort category cards by file count, most-populated first — the fixed
+    // list order otherwise buries the categories people actually use.
+    const byCount = [...LIBRARY_CATS].sort((a, b) => (data[b]||[]).length - (data[a]||[]).length);
+    const container = document.getElementById('tab-library-content');
+    byCount.forEach(cat => {
+      const card = document.getElementById('lib-card-' + cat);
+      if (card) container.appendChild(card);
+    });
+
     LIBRARY_CATS.forEach(cat => {
       const id = 'lib-list-' + cat.replace('/', '-');
       const el = document.getElementById(id);
@@ -2598,12 +2706,11 @@ async function loadLibrary() {
             <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0">${f.name}</span>
             ${f.duration != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${Math.floor(f.duration/60)}:${String(f.duration%60).padStart(2,'0')}</span>` : ''}
             ${f.size != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${(f.size/1024/1024).toFixed(1)} MB</span>` : ''}
-            <select onchange="libChangeCategory('${cat}','${f.name}',this)"
-              class="bg-[#1E2229] border border-[#333] rounded px-2 py-0.5 font-mono text-xs text-[var(--tx-main)] focus:outline-none focus:border-[#CC1020]">
-              ${_libCatOpts(cat)}
+            <select onchange="onCatSelectChange(this, () => libChangeCategory('${cat}','${f.name}',this))"
+              class="cat-select bg-[#1E2229] border border-[#333] rounded px-2 py-0.5 font-mono text-xs text-[var(--tx-main)] focus:outline-none focus:border-[#CC1020]">
+              ${_catOptsHtml(cat)}
             </select>
-            <button onclick="libPreview('${cat}','${f.name}')" class="icon-btn" title="Preview merged file"><span class="material-icons-round">play_arrow</span></button>
-            <button onclick="libLedPreview('${cat}','${f.name}',this)" class="icon-btn" title="LED Preview (per-display simulator)"><span class="material-icons-round">grid_view</span></button>
+            <button onclick="libLedPreview('${cat}','${f.name}',this)" class="icon-btn" title="Preview (Arena / Merged File / Separate Files)"><span class="material-icons-round">play_arrow</span></button>
             <a href="/api/library/download/${encodeURIComponent(cat)}/${encodeURIComponent(f.name)}" class="icon-btn" title="Download" download><span class="material-icons-round">download</span></a>
             <button onclick="libRename('${cat}','${f.name}',this)" class="icon-btn" title="Rename"><span class="material-icons-round">edit</span></button>
             <button onclick="libDelete('${cat}','${f.name}',this)" class="icon-btn danger" title="Delete"><span class="material-icons-round">delete</span></button>
@@ -2617,12 +2724,6 @@ async function loadLibrary() {
   } catch(e) { console.error('Library load error', e); }
 }
 
-function libPreview(cat, filename) {
-  const path = `/app/library/${cat}/${filename}`;
-  document.getElementById('libPreviewTitle').textContent = filename;
-  document.getElementById('libPreviewVideo').src = `/api/stream?path=${encodeURIComponent(path)}`;
-  document.getElementById('libPreviewModal').classList.remove('hidden');
-}
 function closeLibPreview() {
   const v = document.getElementById('libPreviewVideo');
   v.pause(); v.src = '';
@@ -2643,8 +2744,10 @@ async function libLedPreview(cat, filename, btn) {
       params.set('w'+d.id, d.w);
       params.set('n'+d.id, d.n);
     });
-    window.open('/led-preview?'+params.toString(), 'ledpreview_lib',
-      'width=1280,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+    // The library file itself IS the merged export — feed it straight in
+    // for the Merged File view.
+    params.set('merged', `/app/library/${cat}/${filename}`);
+    openLedPreviewWindow('/led-preview?'+params.toString(), 'ledpreview_lib');
   } catch(e) {
     alert('LED Preview failed to load.');
   } finally {
@@ -2702,6 +2805,17 @@ async function libraryUpload(cat, input) {
   } catch(e) { alert('Upload failed'); loadLibrary(); }
   input.value = '';
 }
+
+// Restore last-active tab on reload (per-browser, via localStorage — the
+// tab HTML always starts on File Merger, so without this every reload
+// dumped you back there regardless of where you'd been working).
+(function restoreTab() {
+  let saved = null;
+  try { saved = localStorage.getItem('ledmerger_tab'); } catch(e) {}
+  if (saved && ['merge','lineup','custom','library'].includes(saved) && saved !== 'merge') {
+    switchTab(saved);
+  }
+})();
 
 </script>
 </body>

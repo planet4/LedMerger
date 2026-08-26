@@ -4,6 +4,123 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
+## [0.398] - 2026-08-26
+
+### LED Preview — bigger window by default, more speed steps
+
+- Speed cycle extended: 1× → 1.5× → 2× → 3× → 4× → 0.5× (was capped at 2×).
+- LED Preview popup now opens sized to the screen's available area (`window.screen.availWidth/Height`, positioned at 0,0) instead of a fixed 1280×600 — i.e. maximized, not the browser Fullscreen API (tried that first; turned out not to be what was wanted — reverted). All 4 places that open the window now go through one shared `openLedPreviewWindow()` helper instead of duplicating the popup-size string.
+
+## [0.403] - 2026-08-26
+
+### Fixed confusing "already in use" when renaming a merge output
+
+- `data/outputs/` is a session-scoped working folder the user has no visibility into (separate from the library). Renaming a fresh merge result could collide with a same-named leftover from an earlier attempt in the same session, producing a confusing "Name already in use" for a name that clearly wasn't in the library. Now auto-dedupes with a " (1)", " (2)"… suffix instead of blocking, matching how Save-to-Library already handles the same situation.
+
+---
+
+## [0.402] - 2026-08-26
+
+### File Merger — one shared file picker instead of one per slot
+
+- Each of the 5 display slots (and every tile sub-slot) had its own separate `<input type="file">`. Browsers remember the last folder used *per input element*, so switching slots kept jumping to whatever folder that specific slot's input last remembered, instead of wherever you'd just been browsing.
+- Consolidated to a single persistent, dynamically-retargeted `<input type="file">` for the whole tab. Drag-and-drop is untouched (it never used the input). Can't verify actual Windows file-dialog memory behavior from this environment — this is the standard fix for that class of issue, please confirm it actually helps.
+
+### Fixed: Save to Library failing with "File not found" after renaming an output
+
+- `renameOutputFile()` located the Save-to-Library button by hopping exactly 2 siblings from the Rename button — with the row's actual element order that lands on the trailing status `<span>`, not the Save button, so its `onclick` never got updated to the new filename. Clicking Save then POSTed the stale, now-renamed-away filename, which the backend correctly rejects as not found. Now looks the button up within its row instead of counting siblings.
+
+---
+
+## [0.40] - 2026-08-26
+
+### LED Preview — no more crash on "Non Stacked" (raw single-display) files
+
+- "Non Stacked" category files are raw single-display clips, not 1600×1200 stacked exports — `build_stacked_export()`'s crop offsets don't apply to them, so LED Preview's extraction fallback was failing with an ffmpeg "Invalid argument" error and blocking the preview entirely.
+- Now probes the source's actual dimensions first; anything that isn't 1600×1200 skips extraction and opens straight to the Merged File view instead (Arena View / Separate Files get disabled/grayed for that file, since there's nothing to split).
+- While tracking this down, found the actual root cause of the bad data: rename/category-move/delete never cleaned up a file's LED-preview sidecar folder, so it could go orphaned (still on disk, unreachable, wasted space) or — worse — get silently reused under a filename that no longer matches its content. Rename and category-change now move the sidecar along with the file; delete removes it.
+
+---
+
+## [0.399] - 2026-08-26
+
+### Library — categories sorted by file count
+
+- Category cards now sort most-populated first after every load, instead of the fixed curated order burying whichever categories people actually use. Empty categories sink to the bottom, ties keep the original order. Just reorders the existing card elements — no rebuild, so nothing loses its expanded/collapsed state.
+
+---
+
+## [0.397] - 2026-08-26
+
+### Library — custom categories
+
+- Every category dropdown (Library tab, and every "Save to Library" picker on File Merger/Players/Custom) now has a "+ New category…" option at the bottom. Picking it prompts for a name, creates it server-side (new folder under `data/library/`), and refreshes every category dropdown on the page immediately — no reload needed to *use* the new category.
+- New categories persist in `data/library/categories.json` (on top of the 12 built-in ones), survive redeploys, and get their own collapsible section in the Library tab on next page load.
+- Consolidated 3 separately-hardcoded copies of the category list (Jinja section loop, output-row Save selects, Library tab's own selects) down to one server-side list passed into the template, eliminating a source of drift.
+
+---
+
+## [0.396] - 2026-08-26
+
+### Library — Download All (zip) per category
+
+- New folder-zip icon in each category header, next to Upload — downloads every file in that category as one `.zip` (uncompressed/STORED, since the mp4s are already h264 — re-compressing would just burn CPU for no size gain). Useful for e.g. grabbing all "SSL Players Men" clips at once instead of one-by-one.
+
+---
+
+## [0.395] - 2026-08-26
+
+### Fixed batch filename actually using the team name
+
+- v0.393's team-name-in-filename fix relied on inferring the team name from a `{number:'PIXBO', name:<team>}` sentinel row in the players list — which turned out not to reliably carry through, so combined batches were falling back to player names instead. Now "Pick team" sends the team name explicitly (`team_name` in the request), and the backend prefers that; the sentinel-row scan and player-name fallback are still there for CSV import / older callers.
+- Editing row 1 (the team-name slide, number `PIXBO`) in the batch list now also updates what the filename uses.
+
+---
+
+## [0.394] - 2026-08-26
+
+### Two usability fixes
+
+- **Library tab was slow to open** (several seconds) — `/api/library` ran `ffprobe` on every single file on every load to get its duration. Now cached (keyed by file mtime) in the same meta store as descriptions, so only new/replaced files get probed; repeat loads are just filesystem stats.
+- **Reloading always landed back on File Merger** — the active tab wasn't persisted anywhere. Now saved to `localStorage` on every tab switch and restored on load, so a reload keeps you where you were (Players, Custom, Library).
+
+---
+
+## [0.393] - 2026-08-26
+
+### Players batch — named output files instead of bare job ids
+
+- Combined-batch exports were always named `batch_lineup_<jobid>.mp4`. Now named after the team/roster: `batch_<team-name>_<jobid>.mp4` when picked via "Pick team" (or CSV import, same convention), else from the first couple of player names, keeping a short id suffix to avoid collisions.
+
+---
+
+## [0.392] - 2026-08-26
+
+### LED Preview window — matched to the main app's look
+
+- Switched from the terminal/monospace Courier New look to the main app's Outfit font and exact button styling (same colors/radius as GENERATE PLAYER / LED PREVIEW): mode buttons and options buttons now use `#1E1E26` bg / `#2E2E3A` border / `#888` text at rest, red on hover/active — instead of the low-contrast near-black-on-black that was hard to read.
+- Options row background lightened to match, so it reads clearly as a secondary strip rather than disappearing into the header.
+
+---
+
+## [0.391] - 2026-08-26
+
+### Library — dropped the redundant plain Preview button
+
+- Now that LED Preview has a MERGED FILE mode that plays the library file directly (same as the old plain Preview button did), having both was confusing. Removed the plain ▶ Preview button/modal from the Library tab's file rows — the remaining ▶ button opens LED Preview (Arena / Merged File / Separate Files). The modal itself (`libPreviewModal`) stays, since `previewOutputFile()` still uses it for the not-yet-saved output-file lists on File Merger/Players/Custom.
+
+---
+
+## [0.39] - 2026-08-26
+
+### LED Preview window — redesigned header
+
+- Replaced the small ARENA VIEW toggle with 3 big mode buttons (matching the main app's button styling): **ARENA VIEW** (default), **MERGED FILE**, **SEPARATE FILES** — mutually exclusive views instead of an overlay toggle.
+- New **MERGED FILE** mode plays the actual final stacked `.mp4` directly in a plain `<video controls>` player — the exact file that ships, as ground truth. Only available when the opener supplies a `merged=` path (currently: Library's LED Preview button, since the library file itself *is* the merged export); disabled/grayed otherwise.
+- GRID, GLOW, SYNC, +/−ZOOM moved into a smaller secondary options row, and disabled (grayed, non-interactive — including via keyboard shortcuts) when not applicable to the current mode: GRID/GLOW/ZOOM only apply to Separate Files, SYNC applies to Arena + Separate but not Merged File.
+- New **SPEED** button cycling playback rate (1× → 1.5× → 2× → 0.5×) across all clips, including the merged video.
+- Removed the SCALE/FPS readouts (dev-y and not useful for actual use).
+
 ---
 
 ## [0.38] - 2026-08-26

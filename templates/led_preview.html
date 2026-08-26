@@ -3,34 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <title>LED Preview — Pixbo Rink</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#050505; color:#ccc; font-family:'Courier New',monospace; overflow:hidden; height:100vh; }
+body { background:#050505; color:#ccc; font-family:'Outfit',sans-serif; overflow:hidden; height:100vh; }
 #topbar {
-  position:fixed; top:0; left:0; right:0; height:36px;
+  position:fixed; top:0; left:0; right:0; height:52px;
   background:rgba(0,0,0,0.97); border-bottom:1px solid #111;
-  display:flex; align-items:center; padding:0 16px; gap:14px; z-index:100;
-  font-size:10px; letter-spacing:1px;
+  display:flex; align-items:center; padding:0 20px; gap:20px; z-index:100;
 }
-#topbar .logo { color:#CC1020; font-weight:bold; letter-spacing:3px; font-size:11px; }
-#topbar .sep { color:#1e1e1e; }
-#topbar .stat { color:#333; }
-#topbar .stat span { color:#666; }
-#topbar .controls { margin-left:auto; display:flex; gap:6px; }
-#topbar button {
-  background:#0a0a0a; border:1px solid #1e1e1e; color:#555;
-  padding:3px 10px; border-radius:3px; font-size:9px;
-  cursor:pointer; font-family:inherit; letter-spacing:1px; transition:all .15s;
+#topbar .logo { color:#CC1020; font-weight:700; letter-spacing:2px; font-size:13px; }
+.modes { display:flex; gap:10px; }
+.mode-btn {
+  background:#1E1E26; border:1px solid #2E2E3A; color:#888;
+  padding:9px 22px; border-radius:12px; font-size:12px; font-weight:600;
+  text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; font-family:inherit; transition:all .15s;
 }
-#topbar button:hover { border-color:#CC1020; color:#fff; }
-#topbar button.on { border-color:#CC1020; color:#CC1020; background:rgba(204,16,32,0.08); }
+.mode-btn:hover:not(.disabled) { border-color:#CC1020; color:#fff; }
+.mode-btn.active { background:#CC1020; border-color:#CC1020; color:#fff; }
+.mode-btn.disabled { opacity:.3; cursor:not-allowed; pointer-events:none; }
+#optbar {
+  position:fixed; top:52px; left:0; right:0; height:38px;
+  background:rgba(0,0,0,0.97); border-bottom:1px solid #111;
+  display:flex; align-items:center; padding:0 20px; gap:8px; z-index:100;
+}
+.opt-label { color:#555; font-size:10px; font-weight:600; letter-spacing:0.08em; margin-right:6px; text-transform:uppercase; }
+.opt-btn {
+  background:#1E1E26; border:1px solid #2E2E3A; color:#888;
+  padding:6px 13px; border-radius:8px; font-size:11px; font-weight:500;
+  cursor:pointer; font-family:inherit; letter-spacing:0.02em; transition:all .15s;
+}
+.opt-btn:hover:not(.disabled) { border-color:#CC1020; color:#fff; }
+.opt-btn.on { border-color:#CC1020; color:#CC1020; background:rgba(204,16,32,0.1); }
+.opt-btn.disabled { opacity:.3; cursor:not-allowed; pointer-events:none; }
 #stage {
-  position:fixed; top:52px; left:20px;
+  position:fixed; top:110px; left:20px;
   display:flex; flex-direction:column; gap:20px;
   transform-origin:top left;
 }
 .row-wrap { display:flex; flex-direction:column; gap:4px; }
-.row-label { font-size:8px; color:#1a1a1a; letter-spacing:2px; text-transform:uppercase; padding-left:2px; }
+.row-label { font-size:9px; font-weight:500; color:#3a3a3a; letter-spacing:0.05em; text-transform:uppercase; padding-left:2px; }
 .row { display:flex; gap:8px; align-items:flex-start; }
 .unit { display:flex; flex-direction:column; gap:3px; }
 .panel {
@@ -72,19 +84,21 @@ body { background:#050505; color:#ccc; font-family:'Courier New',monospace; over
 <body>
 <div id="topbar">
   <span class="logo">PIXBO LED</span>
-  <span class="sep">|</span>
-  <span class="stat">SCALE <span id="sScale">—</span></span>
-  <span class="sep">|</span>
-  <span class="stat">FPS <span id="sFps">—</span></span>
-  <div class="controls">
-    <button id="bGlow" onclick="toggleGlow()">GLOW</button>
-    <button id="bGrid" onclick="toggleGrid()">GRID</button>
-    <button id="bArena" onclick="toggleArena()">ARENA VIEW</button>
-    <button onclick="syncAll()">SYNC</button>
-    <button onclick="zoom(0.15)">+ ZOOM</button>
-    <button onclick="zoom(-0.15)">− ZOOM</button>
-    <button onclick="toggleFullscreen()">FULLSCREEN</button>
+  <div class="modes">
+    <button id="modeArena" class="mode-btn active" onclick="setMode('arena')">ARENA VIEW</button>
+    <button id="modeMerged" class="mode-btn" onclick="setMode('merged')" title="Play the final merged file directly">MERGED FILE</button>
+    <button id="modeSeparate" class="mode-btn" onclick="setMode('separate')">SEPARATE FILES</button>
   </div>
+</div>
+<div id="optbar">
+  <span class="opt-label">OPTIONS</span>
+  <button id="bGrid" class="opt-btn" onclick="toggleGrid()" title="Pixel grid overlay (Separate Files only)">GRID</button>
+  <button id="bGlow" class="opt-btn" onclick="toggleGlow()" title="LED glow effect (Separate Files only)">GLOW</button>
+  <button id="bSync" class="opt-btn" onclick="syncAll()" title="Reset clips to t=0 — they loop independently and can drift out of sync">SYNC</button>
+  <button id="bSpeed" class="opt-btn" onclick="cycleSpeed()" title="Playback speed">1×</button>
+  <button id="bZoomOut" class="opt-btn" onclick="zoom(-0.15)" title="Zoom out (Separate Files only)">− ZOOM</button>
+  <button id="bZoomIn" class="opt-btn" onclick="zoom(0.15)" title="Zoom in (Separate Files only)">+ ZOOM</button>
+  <button class="opt-btn" onclick="toggleFullscreen()" title="Fullscreen">FULLSCREEN</button>
 </div>
 
 <div id="videos"></div>
@@ -93,8 +107,14 @@ body { background:#050505; color:#ccc; font-family:'Courier New',monospace; over
 <div id="corner">Pixbo Wallenstam<br>LED Rink Simulator</div>
 
 <!-- Arena View overlay -->
-<div id="arenaView" style="display:none;position:fixed;inset:0;top:36px;background:#050505;z-index:50;overflow:hidden;">
+<div id="arenaView" style="display:none;position:fixed;inset:0;top:90px;background:#050505;z-index:50;overflow:hidden;">
   <canvas id="arenaCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+</div>
+
+<!-- Merged file overlay — plays the single final stacked export directly -->
+<div id="mergedView" style="display:none;position:fixed;inset:0;top:90px;background:#050505;z-index:50;align-items:center;justify-content:center;">
+  <video id="mergedVideo" controls autoplay loop muted playsinline
+    style="max-width:92vw;max-height:88vh;border-radius:3px;box-shadow:0 0 0 2px #111,0 6px 30px rgba(0,0,0,0.95);"></video>
 </div>
 
 <script>
@@ -106,6 +126,7 @@ const DISPLAYS = [0,1,2,3,4].map(id => ({
   height: 64,
   name:   QP.get('n'+id)||('Display '+id),
 })).filter(d=>d.path);
+const MERGED_PATH = QP.get('merged') || '';
 
 const ROWS = [
   {label:'ROW 1', ids:[0,1]},
@@ -117,7 +138,9 @@ const ROWS = [
 const ZOOM_PX = 5; // each LED pixel = 5x5 CSS pixels
 
 let scale=1, glow=false, grid=false;
-let fpsCnt=0, fpsTime=performance.now();
+let mode='arena'; // 'arena' | 'merged' | 'separate'
+const SPEEDS=[1,1.5,2,3,4,0.5];
+let speedIdx=0;
 
 const vids={}, mainCv={}, glowCv={}, gridCv={}, srcCv={};
 
@@ -127,7 +150,7 @@ function computeScale(){
   const maxW=Math.max(...ROWS.map(r=>r.ids.reduce((s,id)=>{const d=disp(id);return s+(d?d.width:0);},0)));
   const activeRows=ROWS.filter(r=>r.ids.some(id=>disp(id))).length;
   const natW=maxW*ZOOM_PX, natH=activeRows*64*ZOOM_PX+activeRows*20+40;
-  return Math.min((window.innerWidth-60)/natW,(window.innerHeight-90)/natH,1.5);
+  return Math.min((window.innerWidth-60)/natW,(window.innerHeight-140)/natH,1.5);
 }
 
 const IMAGE_EXTS=['png','jpg','jpeg','gif','webp'];
@@ -168,11 +191,26 @@ function buildVideos(){
     sc.width=d.width; sc.height=d.height;
     srcCv[d.id]=sc;
   });
+  if(MERGED_PATH){
+    document.getElementById('mergedVideo').src='/api/stream?path='+encodeURIComponent(MERGED_PATH);
+  } else {
+    const b=document.getElementById('modeMerged');
+    b.classList.add('disabled');
+    b.title='No merged file available for this preview';
+  }
+  if(!DISPLAYS.length){
+    // Nothing to split into per-display feeds (e.g. a raw single-display
+    // clip, not a stacked export) — only Merged File applies.
+    ['modeArena','modeSeparate'].forEach(id=>{
+      const b=document.getElementById(id);
+      b.classList.add('disabled');
+      b.title='No per-display clips for this file — it isn\'t a stacked export';
+    });
+  }
 }
 
 function buildStage(){
   scale=computeScale();
-  document.getElementById('sScale').textContent=scale.toFixed(2)+'x';
   const stage=document.getElementById('stage');
   stage.innerHTML='';
   stage.style.transform='scale('+scale+')';
@@ -250,33 +288,38 @@ function renderPanel(id){
 
 function loop(){
   requestAnimationFrame(loop);
-  fpsCnt++;
-  const now=performance.now();
-  if(now-fpsTime>=1000){
-    document.getElementById('sFps').textContent=fpsCnt;
-    fpsCnt=0; fpsTime=now;
-  }
   DISPLAYS.forEach(d=>renderPanel(d.id));
 }
 
 function toggleGlow(){
+  if(mode!=='separate') return;
   glow=!glow;
   document.getElementById('bGlow').classList.toggle('on',glow);
   Object.values(glowCv).forEach(gc=>gc.classList.toggle('on',glow));
 }
 function toggleGrid(){
+  if(mode!=='separate') return;
   grid=!grid;
   document.getElementById('bGrid').classList.toggle('on',grid);
   Object.values(gridCv).forEach(gc=>gc.classList.toggle('on',grid));
 }
 function syncAll(){
+  if(mode==='merged') return;
   Object.values(vids).forEach(v=>{try{v.currentTime=0;}catch(e){}});
   setTimeout(()=>Object.values(vids).forEach(v=>{if(!v._isImage)v.play().catch(()=>{}); }),60);
 }
+function cycleSpeed(){
+  speedIdx=(speedIdx+1)%SPEEDS.length;
+  const r=SPEEDS[speedIdx];
+  Object.values(vids).forEach(v=>{if(!v._isImage)v.playbackRate=r;});
+  const mv=document.getElementById('mergedVideo');
+  if(mv) mv.playbackRate=r;
+  document.getElementById('bSpeed').textContent=r+'×';
+}
 function zoom(delta){
+  if(mode!=='separate') return;
   scale=Math.max(0.1,Math.min(3,scale+delta));
   document.getElementById('stage').style.transform='scale('+scale+')';
-  document.getElementById('sScale').textContent=scale.toFixed(2)+'x';
 }
 function toggleFullscreen(){
   if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
@@ -292,8 +335,29 @@ document.addEventListener('keydown',e=>{
   if(e.key==='f'||e.key==='F') toggleFullscreen();
 });
 
+// ── VIEW MODES ───────────────────────────────────────────────────────────────
+function updateOptAvailability(){
+  const sepOnly = mode==='separate';
+  ['bGrid','bGlow','bZoomIn','bZoomOut'].forEach(id=>{
+    document.getElementById(id).classList.toggle('disabled', !sepOnly);
+  });
+  document.getElementById('bSync').classList.toggle('disabled', mode==='merged');
+}
+
+function setMode(m){
+  if(m==='merged' && !MERGED_PATH) return; // guarded — button is disabled too
+  mode=m;
+  document.getElementById('modeArena').classList.toggle('active', m==='arena');
+  document.getElementById('modeMerged').classList.toggle('active', m==='merged');
+  document.getElementById('modeSeparate').classList.toggle('active', m==='separate');
+  document.getElementById('arenaView').style.display = m==='arena' ? 'block' : 'none';
+  document.getElementById('mergedView').style.display = m==='merged' ? 'flex' : 'none';
+  document.getElementById('stage').style.display = m==='separate' ? 'flex' : 'none';
+  if(m==='arena') ensureArenaImage();
+  updateOptAvailability();
+}
+
 // ── ARENA VIEW ──────────────────────────────────────────────────────────────
-let arenaMode = false;
 let arenaImg = null;
 
 // Arena zones: 4 corners [TL, TR, BR, BL] as fractions of 1920×1080
@@ -362,25 +426,19 @@ function drawArenaView() {
     ctx.fillStyle = '#111';
     ctx.fillRect(0,0,W,H);
     ctx.fillStyle = '#333';
-    ctx.font = '14px Courier New';
+    ctx.font = '14px Outfit, sans-serif';
     ctx.fillText('Loading arena image...', 20, 50);
   }
 }
 
-function toggleArena() {
-  arenaMode = !arenaMode;
-  document.getElementById('bArena').classList.toggle('on', arenaMode);
-  document.getElementById('arenaView').style.display = arenaMode ? 'block' : 'none';
-
-  if (arenaMode && !arenaImg) {
-    arenaImg = new Image();
-    arenaImg.onload = () => {};
-    arenaImg.src = '/api/layout-image';
-  }
+function ensureArenaImage(){
+  if (arenaImg) return;
+  arenaImg = new Image();
+  arenaImg.src = '/api/layout-image';
 }
 
 function arenaLoop() {
-  if (arenaMode) drawArenaView();
+  if (mode==='arena') drawArenaView();
   requestAnimationFrame(arenaLoop);
 }
 
@@ -404,6 +462,7 @@ async function init(){
     if(!v||v._isImage) return Promise.resolve();
     return v.play().catch(()=>{});
   }));
+  setMode(DISPLAYS.length ? 'arena' : 'merged');
   const ld=document.getElementById('loading');
   ld.classList.add('fade');
   setTimeout(()=>ld.style.display='none',600);

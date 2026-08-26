@@ -1,4 +1,4 @@
-# LedMerger — Pixbo LED Rink Content Creator v0.372
+# LedMerger — Pixbo LED Rink Content Creator v0.403
 
 A web-based tool for creating and merging LED rink content for Wallenstam Arena (Pixbo Floorball). Produces stacked MP4 files compatible with the Sedna LED controller.
 
@@ -16,7 +16,7 @@ A web-based tool for creating and merging LED rink content for Wallenstam Arena 
 - **File Merger** — Upload individual video/image files for each display zone and merge them into one stacked 1600×1200px MP4
 - **Players** — Generate branded player introduction videos using fixed Pixbo templates with Road Rage font and pop-wobble animation. Supports batch import and single player mode.
 - **Custom** — Create custom text animations for any display zone with configurable backgrounds, fonts, colors, and timing
-- **Library** — Store and share finished stacked MP4 files, organized by category
+- **Library** — Store and share finished stacked MP4 files, organized by category (built-in categories, plus add your own on the fly), sorted by how much you actually use each one. Each file gets an **LED Preview** — a popup simulator with three views: Arena View (overlaid on an arena photo), Merged File (the actual exported file, played directly), and Separate Files (each display's own feed, pixel-grid style). Download a whole category at once as a `.zip`.
 
 All tabs produce a stacked 1600×1200px export matching the After Effects / ledventure.org reference layout, plus individual files per display.
 
@@ -46,6 +46,10 @@ ledmerger/
 └── data/
     ├── uploads/          — temporary upload storage
     ├── outputs/          — generated video files
+    ├── library/           — saved library files, one folder per category
+    │   ├── categories.json — user-added categories, on top of the built-in set
+    │   ├── metadata.json    — per-file descriptions + cached duration
+    │   └── <category>/.led_preview/ — cached per-display clips for LED Preview
     ├── backgrounds/
     │   ├── 1728/         — 1728px backgrounds (Longside Center)
     │   ├── 1344/         — 1344px backgrounds (Shortside)
@@ -121,3 +125,4 @@ MP4, MOV, AVI, GIF, PNG, JPG/JPEG
 - Default player timing is 2.1s number + 3.9s name = 6s total (standard Pixbo lineup time)
 - Road Rage font does not render the digit 0 well — use the letter O instead in player numbers
 - Output files in all tabs include preview, download, rename, and save-to-library actions
+- `data/outputs/` and `data/uploads/` are session-scoped working folders, not the library — they build up across a session (nothing auto-cleans them yet) and are always safe to clear; nothing in the library depends on them

@@ -3,10 +3,12 @@ Sedna LED Rink Display Merger — Flask Web App
 """
 
 import os
+import io
 import re
 import json
 import uuid
 import shutil
+import zipfile
 import tempfile
 import subprocess
 import threading
@@ -25,7 +27,29 @@ BG_DIR_1344   = Path("/app/backgrounds/1344")
 BG_DIR_1728   = Path("/app/backgrounds/1728")
 MEDIA192_DIR  = Path("/app/backgrounds/media_192")
 LIBRARY_DIR   = Path("/app/library")
-LIBRARY_CATEGORIES = ["Event", "General", "Special", "Commercial", "Starcamp", "SSL Players Men", "SSL Players Women", "JAS Men", "JAS Women", "Players Boys", "Players Girls", "Non Stacked"]
+_DEFAULT_LIBRARY_CATEGORIES = ["Event", "General", "Special", "Commercial", "Starcamp", "SSL Players Men", "SSL Players Women", "JAS Men", "JAS Women", "Players Boys", "Players Girls", "Non Stacked"]
+LIBRARY_CATEGORIES_FILE = LIBRARY_DIR / "categories.json"
+
+def _load_extra_categories():
+    """User-added categories (e.g. a one-off tournament) on top of the
+    built-in defaults above, persisted separately so a redeploy never
+    clobbers them."""
+    if LIBRARY_CATEGORIES_FILE.exists():
+        try:
+            data = json.loads(LIBRARY_CATEGORIES_FILE.read_text())
+            if isinstance(data, list):
+                return [str(c).strip() for c in data if str(c).strip()]
+        except Exception:
+            pass
+    return []
+
+def _save_extra_categories():
+    extra = LIBRARY_CATEGORIES[len(_DEFAULT_LIBRARY_CATEGORIES):]
+    LIBRARY_CATEGORIES_FILE.write_text(json.dumps(extra, indent=2))
+
+LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
+LIBRARY_CATEGORIES = _DEFAULT_LIBRARY_CATEGORIES + _load_extra_categories()
+
 for _d in [UPLOAD_DIR, OUTPUT_DIR, FONT_DIR, BG_DIR, BG_DIR_1344, BG_DIR_1728, MEDIA192_DIR]:
     _d.mkdir(exist_ok=True)
 for _cat in LIBRARY_CATEGORIES:
@@ -369,7 +393,8 @@ def merge_worker(job_id, file_paths, tile_configs, mode, fps, output_path):
 
 @app.route("/")
 def index():
-    return render_template("index.html", displays=DISPLAYS, authed=bool(session.get("authed")))
+    return render_template("index.html", displays=DISPLAYS, authed=bool(session.get("authed")),
+                            library_categories=LIBRARY_CATEGORIES)
 
 
 @app.route("/api/displays")
@@ -659,11 +684,20 @@ def rename_output():
     if not new_name.lower().endswith(".mp4"):
         new_name += ".mp4"
     src = OUTPUT_DIR / filename
-    dst = OUTPUT_DIR / new_name
     if not src.exists():
         return jsonify({"error": "File not found"}), 404
+    dst = OUTPUT_DIR / new_name
     if dst.exists():
-        return jsonify({"error": "Name already in use"}), 409
+        # data/outputs is a session-scoped working folder, not the library —
+        # a same-named leftover from an earlier merge/generate this session
+        # (which the user has no visibility into) shouldn't block a rename.
+        # Auto-dedupe instead, matching library-save's existing behavior.
+        stem = Path(new_name).stem
+        counter = 1
+        while dst.exists():
+            dst = OUTPUT_DIR / f"{stem} ({counter}).mp4"
+            counter += 1
+        new_name = dst.name
     src.rename(dst)
     return jsonify({"ok": True, "new_name": new_name})
 
@@ -898,7 +932,7 @@ def lineup_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path
 
 
 def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_right_path, media_192_path,
-                        players, fps_val, fade_dur, num_dur, total_dur, combine=False, bg_1344_override=None, font_size_pct=50):
+                        players, fps_val, fade_dur, num_dur, total_dur, combine=False, bg_1344_override=None, font_size_pct=50, team_name=""):
     tmp = Path(tempfile.mkdtemp(prefix="lineup_batch_"))
     try:
         jobs[job_id]["status"] = "running"
@@ -1039,7 +1073,26 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
             with open(concat_list, "w") as f:
                 for sf in stacked_files:
                     f.write(f"file '{sf}'\n")
-            combined = OUTPUT_DIR / f"batch_lineup_{job_id[:8]}.mp4"
+            # Name the file after the team/roster instead of a bare job id.
+            # Prefer the explicit team_name sent by "Pick team"; fall back to
+            # the {number:'PIXBO', name:<team name>} sentinel row convention
+            # (also used by CSV import) for older callers, then to the first
+            # couple of player names.
+            def _clean_label(s):
+                s = re.sub(r'[\\/*?:"<>|]', '', s).strip()
+                return re.sub(r'\s+', '_', s)[:40]
+            team_entry  = next((p for p in players if str(p.get("number","")).strip().upper() == "PIXBO"), None)
+            real_names  = [str(p.get("name","")).strip() for p in players
+                           if str(p.get("number","")).strip().upper() != "PIXBO" and p.get("name")]
+            if team_name:
+                label = _clean_label(team_name)
+            elif team_entry and str(team_entry.get("name","")).strip():
+                label = _clean_label(team_entry["name"])
+            elif real_names:
+                label = _clean_label("_".join(real_names[:2])) or f"{len(real_names)}players"
+            else:
+                label = "lineup"
+            combined = OUTPUT_DIR / f"batch_{label}_{job_id[:8]}.mp4"
             run_cmd(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
                      "-i", str(concat_list), "-c", "copy", str(combined)])
             jobs[job_id]["status"]   = "done"
@@ -1063,6 +1116,7 @@ def lineup_batch_worker(job_id, bg_path, variant_576_left_path, variant_576_righ
 def lineup_batch():
     data          = request.json
     players       = data.get("players", [])
+    team_name     = str(data.get("team_name", "")).strip()
     fps_val       = int(data.get("fps", 50))
     num_dur       = float(data.get("num_dur", 2.1))
     total_dur     = float(data.get("total_dur", 6.0))
@@ -1084,7 +1138,7 @@ def lineup_batch():
         target=lineup_batch_worker,
         args=(job_id, bg_path, str(PLAYERS_BG_576), str(PLAYERS_BG_576), str(PLAYERS_BG_192),
               players, fps_val, fade_dur, num_dur, total_dur, combine),
-        kwargs={"bg_1344_override": bg_1344, "font_size_pct": font_size_pct},
+        kwargs={"bg_1344_override": bg_1344, "font_size_pct": font_size_pct, "team_name": team_name},
         daemon=True,
     )
     t.start()
@@ -1891,30 +1945,60 @@ def delete_custom_preset():
 
 @app.route("/api/library")
 def list_library():
+    # Duration is cached in the same meta store as descriptions, keyed by
+    # mtime — running ffprobe on every file on every listing made opening
+    # the Library tab take several seconds once it had a non-trivial number
+    # of files. Only re-probe a file the first time it's seen or if it's
+    # been replaced (mtime changed) since the last cached probe.
     meta = _load_lib_meta()
+    meta_changed = False
     result = {}
     for cat in LIBRARY_CATEGORIES:
         d = LIBRARY_DIR / cat
         files = []
         for f in sorted(d.iterdir()):
             if f.suffix.lower() == ".mp4":
-                dur = None
-                try:
-                    r = subprocess.run(
-                        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                         "-of", "default=noprint_wrappers=1:nokey=1", str(f)],
-                        capture_output=True, text=True, timeout=5)
-                    dur = round(float(r.stdout.strip()))
-                except Exception:
-                    pass
+                st  = f.stat()
+                key = f"{cat}/{f.name}"
+                entry = meta.get(key, {})
+                dur = entry.get("duration")
+                if dur is None or entry.get("mtime") != st.st_mtime:
+                    try:
+                        r = subprocess.run(
+                            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                             "-of", "default=noprint_wrappers=1:nokey=1", str(f)],
+                            capture_output=True, text=True, timeout=5)
+                        dur = round(float(r.stdout.strip()))
+                    except Exception:
+                        dur = None
+                    entry = dict(entry)
+                    entry["duration"] = dur
+                    entry["mtime"]    = st.st_mtime
+                    meta[key] = entry
+                    meta_changed = True
                 files.append({
                     "name": f.name,
-                    "description": meta.get(f"{cat}/{f.name}", {}).get("description", ""),
+                    "description": entry.get("description", ""),
                     "duration": dur,
-                    "size": f.stat().st_size,
+                    "size": st.st_size,
                 })
         result[cat] = files
+    if meta_changed:
+        _save_lib_meta(meta)
     return jsonify(result)
+
+
+@app.route("/api/library/categories/add", methods=["POST"])
+def library_add_category():
+    name = re.sub(r'[\\/*?:"<>|]', '', str((request.json or {}).get("name", "")).strip())[:60]
+    if not name:
+        return jsonify({"error": "Category name required"}), 400
+    if name in LIBRARY_CATEGORIES:
+        return jsonify({"error": "That category already exists"}), 409
+    (LIBRARY_DIR / name).mkdir(parents=True, exist_ok=True)
+    LIBRARY_CATEGORIES.append(name)
+    _save_extra_categories()
+    return jsonify({"ok": True, "category": name, "categories": LIBRARY_CATEGORIES})
 
 
 @app.route("/api/library/upload", methods=["POST"])
@@ -1951,6 +2035,11 @@ def library_rename():
     if dest.exists():
         return jsonify({"error": "A file with that name already exists"}), 409
     src.rename(dest)
+    old_sidecar = _led_preview_sidecar_dir(cat, filename)
+    if old_sidecar.exists():
+        new_sidecar = _led_preview_sidecar_dir(cat, new_filename)
+        shutil.rmtree(new_sidecar, ignore_errors=True)
+        old_sidecar.rename(new_sidecar)
     meta = _load_lib_meta()
     old_key = f"{cat}/{filename}"
     if old_key in meta:
@@ -2088,6 +2177,23 @@ def library_led_preview():
     sidecar_dir = _led_preview_sidecar_dir(cat, filename)
     have_all = sidecar_dir.exists() and all((sidecar_dir / f"d{d['id']}.mp4").exists() for d in DISPLAYS)
     if not have_all:
+        # Categories like "Non Stacked" hold raw single-display clips, not
+        # 1600x1200 stacked exports — build_stacked_export()'s crop offsets
+        # don't apply to those, so cropping would fail (or silently produce
+        # garbage). Only attempt extraction on an actual stacked export;
+        # anything else just gets the Merged File view.
+        dims = None
+        try:
+            r = subprocess.run(
+                ["ffprobe", "-v", "error", "-select_streams", "v:0",
+                 "-show_entries", "stream=width,height", "-of", "csv=p=0", str(src)],
+                capture_output=True, text=True, timeout=5)
+            w, h = r.stdout.strip().split(",")
+            dims = (int(w), int(h))
+        except Exception:
+            dims = None
+        if dims != (1600, 1200):
+            return jsonify({"ok": True, "displays": [], "not_stacked": True})
         try:
             extract_led_preview_clips(src, sidecar_dir)
         except Exception as e:
@@ -2116,6 +2222,12 @@ def library_update():
     if new_cat and new_cat != cat and new_cat in LIBRARY_CATEGORIES:
         dest = LIBRARY_DIR / new_cat / filename
         src.rename(dest)
+        old_sidecar = _led_preview_sidecar_dir(cat, filename)
+        if old_sidecar.exists():
+            new_sidecar = _led_preview_sidecar_dir(new_cat, filename)
+            shutil.rmtree(new_sidecar, ignore_errors=True)
+            new_sidecar.parent.mkdir(parents=True, exist_ok=True)
+            old_sidecar.rename(new_sidecar)
         if old_key in meta:
             meta[f"{new_cat}/{filename}"] = meta.pop(old_key)
         cat = new_cat
@@ -2136,6 +2248,7 @@ def library_delete():
     if not target.exists():
         return jsonify({"error": "File not found"}), 404
     target.unlink()
+    shutil.rmtree(_led_preview_sidecar_dir(cat, filename), ignore_errors=True)
     meta = _load_lib_meta()
     meta.pop(f"{cat}/{filename}", None)
     _save_lib_meta(meta)
@@ -2150,6 +2263,26 @@ def library_download(filepath):
     if not target.exists():
         abort(404)
     return send_file(str(target), as_attachment=True, download_name=target.name)
+
+
+@app.route("/api/library/download-all/<category>")
+def library_download_all(category):
+    """Zip every .mp4 in one library category for a single download —
+    ZIP_STORED (no compression) since the files are already h264, so
+    re-compressing them buys nothing and only costs CPU/time."""
+    if category not in LIBRARY_CATEGORIES:
+        abort(404)
+    d = LIBRARY_DIR / category
+    files = sorted(f for f in d.iterdir() if f.suffix.lower() == ".mp4") if d.exists() else []
+    if not files:
+        abort(404)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
+        for f in files:
+            zf.write(str(f), arcname=f.name)
+    buf.seek(0)
+    zip_name = re.sub(r'[\\/*?:"<>|]', '', category).strip().replace(' ', '_') + ".zip"
+    return send_file(buf, as_attachment=True, download_name=zip_name, mimetype="application/zip")
 
 
 if __name__ == "__main__":
