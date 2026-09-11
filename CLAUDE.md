@@ -96,7 +96,7 @@ Then hard refresh browser (Ctrl+Shift+R).
 ## Authentication
 - Server-side session auth (added v0.365). A `before_request` guard rejects every route except `/` and `/api/login` with 401 unless logged in — so the API cannot be used without a session, not just the UI.
 - `/api/login` checks the password (case-insensitive, trimmed) and sets a 90-day session cookie. Rename/delete/save all rely on the session; only file **delete** still shows a confirm dialog.
-- Password comes from `APP_PASSWORD` (env var). Current value lives in `.env` (gitignored) — **currently `Floorball!`**. Not in the repo (repo is public).
+- Password comes from `APP_PASSWORD` (env var). The current value lives only in `.env` (gitignored) — **never write the literal password in this file or any other tracked file; this repo is public.** To read it: `grep APP_PASSWORD .env` on the server.
 - Session secret: `SECRET_KEY` env var if set, else a generated key persisted at `/app/library/.secret_key` (i.e. `data/library/.secret_key`). Keep this file on migration or all sessions invalidate (users just re-login).
 
 ## Environment variables (docker-compose.yml + .env)

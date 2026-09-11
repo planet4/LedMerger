@@ -4,6 +4,13 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
+## Security — 2026-09-11 (no code changes)
+
+- Removed the literal `APP_PASSWORD` value from `CLAUDE.md`, which is a tracked file in this **public** repo — it had been committed in `4bce7c5` and publicly readable on GitHub since (verified via anonymous fetch of the raw file). Replaced with a pointer to `.env` plus an explicit warning not to write the value into tracked files again.
+- Note: removing it here does not un-publish it — it remains in GitHub history at that commit. The password is being rotated separately.
+
+---
+
 ## [0.405] - 2026-09-02
 
 ### LED Preview — LIGHTS OFF for Arena View
