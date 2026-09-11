@@ -4,12 +4,21 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
-## [0.398] - 2026-08-26
+## [0.405] - 2026-09-02
 
-### LED Preview — bigger window by default, more speed steps
+### LED Preview — LIGHTS OFF for Arena View
 
-- Speed cycle extended: 1× → 1.5× → 2× → 3× → 4× → 0.5× (was capped at 2×).
-- LED Preview popup now opens sized to the screen's available area (`window.screen.availWidth/Height`, positioned at 0,0) instead of a fixed 1280×600 — i.e. maximized, not the browser Fullscreen API (tried that first; turned out not to be what was wanted — reverted). All 4 places that open the window now go through one shared `openLedPreviewWindow()` helper instead of duplicating the popup-size string.
+- New OPTIONS toggle (Arena View only): dims just the arena photo, leaving the LED display content drawn on top at full brightness — simulates the arena's house lights going down while the boards keep glowing, without touching the actual video content.
+
+---
+
+## [0.404] - 2026-08-26
+
+### LED Preview — zoom now works in Arena View too
+
+- ZOOM was gated to Separate Files only. Enabled it for Arena View as well (separate scale state, since Arena's canvas fills the whole window differently than Separate Files' auto-fit stage) — GRID/GLOW stay Separate-Files-only since they're per-panel overlays with no Arena equivalent.
+
+---
 
 ## [0.403] - 2026-08-26
 
@@ -25,6 +34,10 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 - Each of the 5 display slots (and every tile sub-slot) had its own separate `<input type="file">`. Browsers remember the last folder used *per input element*, so switching slots kept jumping to whatever folder that specific slot's input last remembered, instead of wherever you'd just been browsing.
 - Consolidated to a single persistent, dynamically-retargeted `<input type="file">` for the whole tab. Drag-and-drop is untouched (it never used the input). Can't verify actual Windows file-dialog memory behavior from this environment — this is the standard fix for that class of issue, please confirm it actually helps.
+
+---
+
+## [0.401] - 2026-08-26
 
 ### Fixed: Save to Library failing with "File not found" after renaming an output
 
@@ -47,6 +60,15 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 ### Library — categories sorted by file count
 
 - Category cards now sort most-populated first after every load, instead of the fixed curated order burying whichever categories people actually use. Empty categories sink to the bottom, ties keep the original order. Just reorders the existing card elements — no rebuild, so nothing loses its expanded/collapsed state.
+
+---
+
+## [0.398] - 2026-08-26
+
+### LED Preview — bigger window by default, more speed steps
+
+- Speed cycle extended: 1× → 1.5× → 2× → 3× → 4× → 0.5× (was capped at 2×).
+- LED Preview popup now opens sized to the screen's available area (`window.screen.availWidth/Height`, positioned at 0,0) instead of a fixed 1280×600 — i.e. maximized, not the browser Fullscreen API (tried that first; turned out not to be what was wanted — reverted). All 4 places that open the window now go through one shared `openLedPreviewWindow()` helper instead of duplicating the popup-size string.
 
 ---
 

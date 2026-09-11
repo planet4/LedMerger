@@ -94,10 +94,11 @@ body { background:#050505; color:#ccc; font-family:'Outfit',sans-serif; overflow
   <span class="opt-label">OPTIONS</span>
   <button id="bGrid" class="opt-btn" onclick="toggleGrid()" title="Pixel grid overlay (Separate Files only)">GRID</button>
   <button id="bGlow" class="opt-btn" onclick="toggleGlow()" title="LED glow effect (Separate Files only)">GLOW</button>
+  <button id="bLights" class="opt-btn" onclick="toggleLights()" title="Dim the arena photo, keep the LED content bright (Arena View only)">LIGHTS OFF</button>
   <button id="bSync" class="opt-btn" onclick="syncAll()" title="Reset clips to t=0 — they loop independently and can drift out of sync">SYNC</button>
   <button id="bSpeed" class="opt-btn" onclick="cycleSpeed()" title="Playback speed">1×</button>
-  <button id="bZoomOut" class="opt-btn" onclick="zoom(-0.15)" title="Zoom out (Separate Files only)">− ZOOM</button>
-  <button id="bZoomIn" class="opt-btn" onclick="zoom(0.15)" title="Zoom in (Separate Files only)">+ ZOOM</button>
+  <button id="bZoomOut" class="opt-btn" onclick="zoom(-0.15)" title="Zoom out (Arena View / Separate Files)">− ZOOM</button>
+  <button id="bZoomIn" class="opt-btn" onclick="zoom(0.15)" title="Zoom in (Arena View / Separate Files)">+ ZOOM</button>
   <button class="opt-btn" onclick="toggleFullscreen()" title="Fullscreen">FULLSCREEN</button>
 </div>
 
@@ -137,7 +138,7 @@ const ROWS = [
 // Pixel display scale — CSS zoom makes pixels visible without slow JS loop
 const ZOOM_PX = 5; // each LED pixel = 5x5 CSS pixels
 
-let scale=1, glow=false, grid=false;
+let scale=1, arenaScale=1, glow=false, grid=false, lightsOff=false;
 let mode='arena'; // 'arena' | 'merged' | 'separate'
 const SPEEDS=[1,1.5,2,3,4,0.5];
 let speedIdx=0;
@@ -291,6 +292,11 @@ function loop(){
   DISPLAYS.forEach(d=>renderPanel(d.id));
 }
 
+function toggleLights(){
+  if(mode!=='arena') return;
+  lightsOff=!lightsOff;
+  document.getElementById('bLights').classList.toggle('on',lightsOff);
+}
 function toggleGlow(){
   if(mode!=='separate') return;
   glow=!glow;
@@ -317,9 +323,13 @@ function cycleSpeed(){
   document.getElementById('bSpeed').textContent=r+'×';
 }
 function zoom(delta){
-  if(mode!=='separate') return;
-  scale=Math.max(0.1,Math.min(3,scale+delta));
-  document.getElementById('stage').style.transform='scale('+scale+')';
+  if(mode==='separate'){
+    scale=Math.max(0.1,Math.min(3,scale+delta));
+    document.getElementById('stage').style.transform='scale('+scale+')';
+  } else if(mode==='arena'){
+    arenaScale=Math.max(0.5,Math.min(3,arenaScale+delta));
+    document.getElementById('arenaView').style.transform='scale('+arenaScale+')';
+  }
 }
 function toggleFullscreen(){
   if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
@@ -331,6 +341,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='-') zoom(-0.15);
   if(e.key==='g'||e.key==='G') toggleGlow();
   if(e.key==='r'||e.key==='R') toggleGrid();
+  if(e.key==='l'||e.key==='L') toggleLights();
   if(e.key==='s'||e.key==='S') syncAll();
   if(e.key==='f'||e.key==='F') toggleFullscreen();
 });
@@ -338,8 +349,13 @@ document.addEventListener('keydown',e=>{
 // ── VIEW MODES ───────────────────────────────────────────────────────────────
 function updateOptAvailability(){
   const sepOnly = mode==='separate';
-  ['bGrid','bGlow','bZoomIn','bZoomOut'].forEach(id=>{
+  ['bGrid','bGlow'].forEach(id=>{
     document.getElementById(id).classList.toggle('disabled', !sepOnly);
+  });
+  document.getElementById('bLights').classList.toggle('disabled', mode!=='arena');
+  const zoomOk = mode==='separate' || mode==='arena';
+  ['bZoomIn','bZoomOut'].forEach(id=>{
+    document.getElementById(id).classList.toggle('disabled', !zoomOk);
   });
   document.getElementById('bSync').classList.toggle('disabled', mode==='merged');
 }
@@ -386,6 +402,13 @@ function drawArenaView() {
     if (imgAr > canAr) { dw=W; dh=W/imgAr; dx=0; dy=(H-dh)/2; }
     else { dh=H; dw=H*imgAr; dy=0; dx=(W-dw)/2; }
     ctx.drawImage(arenaImg, dx, dy, dw, dh);
+
+    // "Lights off" — dim just the arena photo, drawn before the LED zones
+    // below so their video content stays at full brightness on top.
+    if (lightsOff) {
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(dx, dy, dw, dh);
+    }
 
     ARENA_ZONES.forEach(zone => {
       const v = vids[zone.id];

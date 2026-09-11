@@ -3,7 +3,7 @@
 ## What this project is
 A Flask/Docker web app for creating and merging LED rink content for Pixbo Floorball at Wallenstam Arena. It produces stacked MP4 files compatible with the Sedna LED controller.
 
-## Current version: 0.403
+## Current version: 0.405
 
 ## Critical — Export format
 The stacked export MUST always be exactly 1600×1200px, 50fps, h264/yuv420p.
@@ -80,7 +80,8 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
   - **ARENA VIEW** — overlays the 5 per-display videos on layout.png (arena photo), positioned via `ARENA_ZONES` percentage coordinates
   - **MERGED FILE** — plays the single final stacked file directly (`<video controls>`); only enabled when the opener passes a `merged=` path (currently: Library's LED Preview button, since the library file itself *is* the merged export). Disabled/grayed otherwise.
   - **SEPARATE FILES** — the original per-display row/grid view, 60fps via CSS `image-rendering:pixelated` (not a JS pixel loop)
-- Secondary "OPTIONS" row below the mode buttons: GRID, GLOW, SYNC, SPEED (1×→1.5×→2×→3×→4×→0.5×), ± ZOOM, FULLSCREEN. GRID/GLOW/ZOOM only apply to Separate Files; SYNC (resets all clips to t=0 — they loop independently and can drift) applies to Arena+Separate but not Merged File. Auto-disabled (grayed, non-interactive incl. keyboard shortcuts) when not applicable to the current mode.
+- Secondary "OPTIONS" row below the mode buttons: GRID, GLOW, LIGHTS OFF, SYNC, SPEED (1×→1.5×→2×→3×→4×→0.5×), ± ZOOM, FULLSCREEN. GRID/GLOW and LIGHTS OFF are each specific to one mode (Separate Files, and Arena View respectively — no equivalent in the other); ZOOM applies to Arena View + Separate Files (separate scale state per mode — Arena's canvas fills the window differently than Separate Files' auto-fit stage); SYNC (resets all clips to t=0 — they loop independently and can drift) applies to Arena+Separate but not Merged File. Auto-disabled (grayed, non-interactive incl. keyboard shortcuts) when not applicable to the current mode.
+- **LIGHTS OFF** (Arena View only): dims just the arena photo layer (a semi-transparent black `fillRect` drawn after the photo but before the LED zones each frame in `drawArenaView()`) — the LED video content is drawn on top afterward, so it stays at full brightness, simulating house lights down / boards still lit.
 - If the opener passes no per-display `d0..d4` params at all (e.g. a "Non Stacked" library file — see below), ARENA VIEW/SEPARATE FILES are disabled and the window opens straight to MERGED FILE.
 - Popup window opens sized to `window.screen.availWidth/Height` (maximized, not the browser Fullscreen API — tried that, wasn't what was wanted) via the shared `openLedPreviewWindow()` helper in index.html — all 4 places that open this window go through it.
 
@@ -100,16 +101,16 @@ Then hard refresh browser (Ctrl+Shift+R).
 
 ## Environment variables (docker-compose.yml + .env)
 - `FLASK_ENV=production`
-- `TEAMSCRAPER_BASE` — default `http://192.168.0.140:5020`; used by the Players "Pick team" feature.
+- `TEAMSCRAPER_BASE` — `http://192.168.0.150:5020` (moved here from .140 — see External dependencies); used by the Players "Pick team" feature.
 - `APP_PASSWORD` — from `.env` (gitignored). `.env.example` documents the format.
 
 ## External dependencies
-- **Teamscraper** at `192.168.0.140:5020` (the `/home/planet4/docker/teamscraper` project, container `sporteventtv-sporteventtv-1`, also serves `teamscraper.planet4.nu`). Players "Pick team" proxies `/roster-scheduler/files` (team list) and `/roster/<id>.json` (roster) through it. If teamscraper is down, Pick team breaks; nothing else does. (Not the `teamscraper-test` container on :5029 — that's dummy data.)
+- **Teamscraper** at `192.168.0.150:5020` — moved from .140 to .150 (same host as ledmerger now) at some point after the initial ledmerger migration; `.140:5020` no longer answers. `docker-compose.yml`'s `TEAMSCRAPER_BASE` was updated to match and confirmed live (container env var verified, `.150:5020` responds). The `/home/planet4/docker/teamscraper` project, container `sporteventtv-sporteventtv-1`, also serves `teamscraper.planet4.nu` — if that public hostname still resolves through swag on .140, its proxy target likely needs repointing to .150 too (not verified here; swag config isn't in this repo). Players "Pick team" proxies `/roster-scheduler/files` (team list) and `/roster/<id>.json` (roster) through it. If teamscraper is down, Pick team breaks; nothing else does. (Not the `teamscraper-test` container on :5029 — that's dummy data.)
 - **Public URL** `ledmerger.planet4.nu`: Cloudflare (proxied) → swag reverse proxy (nginx, **still runs on 192.168.0.140**, not migrated) → ledmerger container's port 5000 on **192.168.0.150**. swag config lives on the host (.140) at `/srv/docker/swag/config` (NOT in this repo); its fail2ban `ignoreip` now includes Cloudflare's IPv4 ranges. See memory `infra-cloudflare-swag` for the outage lessons (banned Cloudflare edge IPs → whole-site 520/521; jail.local is copied to `/etc/` on container start).
 
 ## Hosting & migration (done: moved 192.168.0.140 → 192.168.0.150, host `nuc2`)
 LedMerger itself now runs on **192.168.0.150** (`nuc2`). Note what did *not* move:
-- **teamscraper** stays on .140 — `TEAMSCRAPER_BASE=http://192.168.0.140:5020` in `docker-compose.yml`/`.env` is correct as-is; only change it if teamscraper also moves.
+- **teamscraper** has since also moved to .150 (`TEAMSCRAPER_BASE` in `docker-compose.yml` updated to `http://192.168.0.150:5020` and confirmed live). It stayed on .140 at the time of the ledmerger move itself — this happened separately, later.
 - **swag** reverse proxy stays on .140 too — its ledmerger site conf `proxy_pass` was repointed to `192.168.0.150:5000` and this is confirmed working (public URL returns 200). swag config is NOT in this repo — lives at `/srv/docker/swag/config` on .140.
 
 What was carried over during the move: repo (git clone), `.env` (not in git, recreated with `APP_PASSWORD=…`), and the `data/` volumes — `data/library` (162M, irreplaceable), `data/backgrounds`, `data/fonts`, and `data/library/.secret_key` (keeping this file preserved existing login sessions). `data/outputs`/`data/uploads` are ephemeral and were not carried over.
