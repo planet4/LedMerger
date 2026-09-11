@@ -4,49 +4,12 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
-## Security — 2026-09-11 — split operational detail out of the public repo
+## Security & docs — 2026-09-11 (no code changes)
 
-The GitHub repo is public, but `CLAUDE.md` had accumulated host addresses, reverse-proxy
-topology, service endpoints and a "security posture" section listing the deployment's
-hardening gaps — effectively a map plus a weakness inventory, including a pointer to the
-commit where the password had leaked.
-
-- Moved Authentication, Environment variables, External dependencies, Hosting & migration
-  and Security posture into **`CLAUDE.local.md`**, which is now gitignored. `CLAUDE.md`
-  keeps the genuinely public content (export geometry, ffmpeg layout, tab behaviour,
-  Library/LED Preview architecture) plus a pointer to the local file.
-- Scrubbed the same class of detail from `CHANGELOG.md` and `README.md` — host addresses,
-  proxy product name, and the leak-commit reference — keeping each entry's meaning.
-- `TEAMSCRAPER_BASE` no longer hardcodes a host: the value moved to `.env` (gitignored,
-  documented in `.env.example`), compose reads it as a required var like `APP_PASSWORD`,
-  and `app.py`'s fallback default is now `http://localhost:5020`. Verified after rebuild
-  that the container resolves the right URL and Players "Pick team" still works.
-- **This only stops future exposure.** Everything already pushed remains in git history
-  and in existing clones — which is why rotating the password still matters.
-
----
-
-## Security audit — 2026-09-11 (no code changes)
-
-Checked against a vulnerability found in the sibling SportEventTV app:
-
-- **Flask debug mode: already off** — `debug=False`, container log confirms `Debug mode: off`, no `Debugger is active!`. ledmerger was never affected; no fix needed.
-- No flask-socketio anywhere, so the `allow_unsafe_werkzeug` trap is N/A.
-- No reloader double-start: single process, single startup banner.
-- Confirmed traffic arrives via the reverse proxy on a separate host, so binding to `127.0.0.1` would break the public site — documented in `CLAUDE.local.md` as a don't.
-- Documented that gunicorn would require `--workers 1`, because the in-memory `jobs` dict backing `/api/status/<job_id>` isn't shared across workers.
-- Logged the remaining hardening gaps in `CLAUDE.local.md` (kept out of this public repo).
-
-### Corrected a documentation error
-
-- `README.md` claimed the working folders had no automatic cleanup, and a `ROADMAP.md` entry that correctly described the midnight sweep had been overwritten with the same wrong claim. In fact `_daily_cleanup()` wipes `data/uploads/` and `data/outputs/` nightly. Both fixed, and CLAUDE.md now documents it under "Cleanup outputs".
-
----
-
-## Security — 2026-09-11 (no code changes)
-
-- Removed the literal `APP_PASSWORD` value from `CLAUDE.md`, which is a tracked file in this **public** repo — it had been committed earlier and was publicly readable on GitHub (verified via anonymous fetch of the raw file). Replaced with a pointer to `.env` plus an explicit warning not to write the value into tracked files again.
-- Note: removing it here does not un-publish it — it remains in GitHub history at that commit. The password is being rotated separately.
+- Audited against a `debug=True` vulnerability found in the sibling SportEventTV app — ledmerger was never affected (`debug=False`, confirmed in the container log).
+- Removed the literal `APP_PASSWORD` from `CLAUDE.md` and moved all host/topology/security detail to a gitignored `CLAUDE.local.md`; this repo is public. Already-pushed history still contains the password, so it's being rotated separately.
+- `TEAMSCRAPER_BASE` moved from a hardcoded host to `.env`.
+- Fixed a wrong claim in README/ROADMAP: `_daily_cleanup()` does wipe `data/uploads` and `data/outputs` nightly.
 
 ---
 
