@@ -118,11 +118,24 @@ What was carried over during the move: repo (git clone), `.env` (not in git, rec
 If another host migration happens in the future, repeat this process and update this section's IPs again.
 
 ## Cleanup outputs
+**This happens automatically** — `_daily_cleanup()` (app.py, started as a module-level `threading.Thread` at import) deletes *everything* in `data/uploads/` and `data/outputs/` at midnight each night. Anything generated but not saved to the Library is gone by the next day. That's also why a session running past midnight can see files disappear mid-use (see ROADMAP "Output file TTL").
+
+To clear them manually mid-session:
 ```bash
 rm -f data/outputs/*.mp4
 rm -f data/uploads/*
 ```
+Safe at any time — library saves are full `shutil.copy2()` copies, so nothing in `data/library/` depends on these folders.
+
 Stale files to clean when convenient: `data/library/Auto Generated/` holds two April test renders from the removed scheduler (root-owned; `sudo rm`).
+
+## Security posture (audited 2026-09-11)
+- **`debug` is `False`** in `app.run()` and must stay that way. Two reasons: the Werkzeug interactive debugger would expose source + locals + a Python console on any unhandled exception; and `use_reloader` follows `debug`, which would run the module twice and start a second `_daily_cleanup` thread. Verify with `docker logs sedna-merger | grep -iE "Debug mode|Debugger is active"` — want `Debug mode: off` and no `Debugger is active!`.
+- The `WARNING: This is a development server` line in the logs is Werkzeug noting it's the dev *server*. Unrelated to the debug flag, prints regardless, and is a known accepted gap — not a vulnerability.
+- **Never bind to `127.0.0.1`.** Traffic arrives from the swag proxy on a *different host* (`192.168.0.140`, ~all requests in the access log), so localhost-binding breaks the public site without reducing exposure.
+- **If gunicorn is ever introduced, it must be `--workers 1`** (threads are fine). `jobs = {}` (app.py) is an in-memory dict holding all job progress, read by `/api/status/<job_id>`; multiple workers means the polling request hits a process that doesn't have that job → `404 Unknown job` on every progress bar, while the render silently succeeds elsewhere. `_daily_cleanup` would also run once per worker.
+- Known, accepted gaps: container runs as **root**; no `cap_drop`/`no-new-privileges`/`read_only` in compose; port published on `0.0.0.0:5000`, so LAN clients can reach the app directly, bypassing Cloudflare and swag's fail2ban (session auth still applies).
+- `.env` is not tracked — keep it that way, and **never put the password value in any tracked file** (it leaked into `CLAUDE.md` once and is still in git history at `4bce7c5`).
 
 ## Important rules
 - Never change build_stacked_export() without verifying on physical displays

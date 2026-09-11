@@ -32,7 +32,7 @@ Ideas and planned improvements for LedMerger. No fixed timeline — just a place
 ## General
 
 - **Auto-named output files** — Players (single + batch) and Custom already name outputs from player/team name; File Merger's stacked output is still a bare `sedna_stacked_<uuid>.mp4` with no way to know what it is without opening it
-- **Output file TTL** — `data/outputs`/`data/uploads` still only get cleaned by someone remembering to run `rm -f data/outputs/*.mp4; rm -f data/uploads/*` — they build up across a session and can produce confusing same-name collisions (auto-deduped now, but the pile itself keeps growing). A longer TTL or a "keep" flag would prevent accidental loss from an automated sweep, if one's ever added.
+- **Output file TTL** — `_daily_cleanup` (app.py) wipes `data/outputs`/`data/uploads` entirely at midnight, so anything generated but not saved to the Library is lost overnight, and a long session running past midnight can have files vanish mid-use. A longer TTL (e.g. delete older than 48h rather than everything) or a "keep" flag would prevent accidental loss.
 - **Mobile / tablet layout** — the UI is desktop-only; a basic responsive layout for use in the arena on a tablet
 
 ---

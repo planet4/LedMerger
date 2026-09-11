@@ -125,4 +125,5 @@ MP4, MOV, AVI, GIF, PNG, JPG/JPEG
 - Default player timing is 2.1s number + 3.9s name = 6s total (standard Pixbo lineup time)
 - Road Rage font does not render the digit 0 well — use the letter O instead in player numbers
 - Output files in all tabs include preview, download, rename, and save-to-library actions
-- `data/outputs/` and `data/uploads/` are session-scoped working folders, not the library — they build up across a session (nothing auto-cleans them yet) and are always safe to clear; nothing in the library depends on them
+- `data/outputs/` and `data/uploads/` are working folders, not the library — always safe to clear, since nothing in the library depends on them (library saves are full copies)
+- **They are wiped automatically every night at midnight** by a background thread in `app.py` (`_daily_cleanup`). Anything you generate but don't save to the Library is gone the next day — save what you want to keep

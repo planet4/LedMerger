@@ -4,6 +4,23 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
+## Security audit — 2026-09-11 (no code changes)
+
+Checked against a vulnerability found in the sibling SportEventTV app:
+
+- **Flask debug mode: already off** — `debug=False`, container log confirms `Debug mode: off`, no `Debugger is active!`. ledmerger was never affected; no fix needed.
+- No flask-socketio anywhere, so the `allow_unsafe_werkzeug` trap is N/A.
+- No reloader double-start: single process, single startup banner.
+- Confirmed traffic arrives from the swag proxy on another host (`192.168.0.140`), so binding to `127.0.0.1` would break the public site — documented in CLAUDE.md as a don't.
+- Documented that gunicorn would require `--workers 1`, because the in-memory `jobs` dict backing `/api/status/<job_id>` isn't shared across workers.
+- Logged accepted gaps (root container, no cap_drop/no-new-privileges/read_only, `0.0.0.0` port binding).
+
+### Corrected a documentation error
+
+- `README.md` claimed the working folders had no automatic cleanup, and a `ROADMAP.md` entry that correctly described the midnight sweep had been overwritten with the same wrong claim. In fact `_daily_cleanup()` wipes `data/uploads/` and `data/outputs/` nightly. Both fixed, and CLAUDE.md now documents it under "Cleanup outputs".
+
+---
+
 ## Security — 2026-09-11 (no code changes)
 
 - Removed the literal `APP_PASSWORD` value from `CLAUDE.md`, which is a tracked file in this **public** repo — it had been committed in `4bce7c5` and publicly readable on GitHub since (verified via anonymous fetch of the raw file). Replaced with a pointer to `.env` plus an explicit warning not to write the value into tracked files again.
