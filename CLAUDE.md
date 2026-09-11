@@ -3,6 +3,23 @@
 ## What this project is
 A Flask/Docker web app for creating and merging LED rink content for Pixbo Floorball at Wallenstam Arena. It produces stacked MP4 files compatible with the Sedna LED controller.
 
+## ⚠️ This repo is PUBLIC — never put sensitive info in tracked files
+Everything in this repo is pushed to `github.com/planet4/LedMerger`, which anyone can read.
+**Before writing anything into a tracked file, ask: would I be comfortable with this on the open internet?**
+
+Never write into `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `ROADMAP.md`, `app.py`, `docker-compose.yml`
+or any other tracked file:
+- Passwords, tokens, API keys, session secrets — or *pointers to where one can be found*
+- Host IP addresses, internal hostnames, server names, reverse-proxy/CDN topology
+- Environment variable **values** (names are fine; values go in `.env`)
+- Security posture: what's unhardened, what's exposed, what an attacker would find soft
+- Filesystem paths on other machines, container names, port mappings of other services
+
+All of that belongs in **`CLAUDE.local.md`** (gitignored) or **`.env`** (gitignored).
+Git history is permanent: committing a secret once means it stays readable at that commit
+forever, even after you delete the line. Removing it later does **not** un-publish it — the
+only real remedy is rotating the secret. This has already happened once in this repo.
+
 ## Current version: 0.405
 
 ## Critical — Export format
@@ -109,6 +126,9 @@ Stale files to clean when convenient: `data/library/Auto Generated/` holds two A
 Host addresses, network topology, external service endpoints, environment variable values, authentication specifics, hosting/migration history and security posture live in **`CLAUDE.local.md`** on the server. That file is gitignored on purpose: this repo is public, and none of that belongs in it.
 
 ## Important rules
+- **Never commit sensitive info — this repo is public.** No secrets, host addresses, env values, or security-posture detail in tracked files; they go in `CLAUDE.local.md` or `.env` (both gitignored). See the warning at the top. Before committing, sanity-check with:
+  `git grep -niE "password|secret|token|api[_-]?key|192\.168\.|10\.[0-9]+\.|\.local\b"`
+  It always returns hits (variable *names*, placeholders, changelog prose) — that's fine. It surfaces candidates to eyeball; what matters is that no hit is an actual **value**.
 - Never change build_stacked_export() without verifying on physical displays
 - Longside Left and Right always use same source to avoid visible cuts on displays
 - All three tabs must call the same build_stacked_export() function

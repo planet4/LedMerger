@@ -6,8 +6,9 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ## Security & docs — 2026-09-11 (no code changes)
 
+- Rotated `APP_PASSWORD` and the session secret; old sessions invalidated. Added a prominent "repo is public, never commit sensitive info" rule to `CLAUDE.md`.
 - Audited against a `debug=True` vulnerability found in the sibling SportEventTV app — ledmerger was never affected (`debug=False`, confirmed in the container log).
-- Removed the literal `APP_PASSWORD` from `CLAUDE.md` and moved all host/topology/security detail to a gitignored `CLAUDE.local.md`; this repo is public. Already-pushed history still contains the password, so it's being rotated separately.
+- Removed the literal `APP_PASSWORD` from `CLAUDE.md` and moved all host/topology/security detail to a gitignored `CLAUDE.local.md`; this repo is public. The leaked value stays in git history, which is why it was rotated.
 - `TEAMSCRAPER_BASE` moved from a hardcoded host to `.env`.
 - Fixed a wrong claim in README/ROADMAP: `_daily_cleanup()` does wipe `data/uploads` and `data/outputs` nightly.
 
