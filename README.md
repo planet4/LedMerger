@@ -98,14 +98,14 @@ Then hard refresh the browser (Ctrl+Shift+R).
 
 The app requires a login (server-side session). The password is set via the `APP_PASSWORD` environment variable, kept in a gitignored `.env` file (see `.env.example`) — the repo is public, so the password is **not** committed. Other env vars in `docker-compose.yml`:
 
-- `TEAMSCRAPER_BASE` — teamscraper service URL for the Players "Pick team" feature (default `http://192.168.0.140:5020`).
+- `TEAMSCRAPER_BASE` — base URL of the teamscraper service used by the Players "Pick team" feature. Set in `.env` (see `.env.example`); the deployment's actual host is not recorded in this repo.
 - `FLASK_ENV=production`.
 
 The session secret is stored at `data/library/.secret_key` (auto-generated). Keep it across host moves so existing logins survive; losing it just forces a re-login.
 
 ## Moving to a new host
 
-Copy the repo, recreate `.env`, and copy the `data/` volumes — `data/library` is the irreplaceable content; `data/outputs` and `data/uploads` are disposable. Then point the swag reverse proxy (which lives outside this repo) at the new host's port 5000. See `CLAUDE.md` → "Hosting & migration" for the full checklist.
+Copy the repo, recreate `.env`, and copy the `data/` volumes — `data/library` is the irreplaceable content; `data/outputs` and `data/uploads` are disposable. Then point your reverse proxy (which lives outside this repo) at the new host's port 5000. The deployment-specific checklist, including host addresses, is kept in `CLAUDE.local.md` on the server rather than in this public repo.
 
 ## Cleaning up output files
 

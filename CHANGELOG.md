@@ -4,6 +4,28 @@ All notable changes to the Pixbo LED Merger project are documented here.
 
 Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = major change.
 
+## Security — 2026-09-11 — split operational detail out of the public repo
+
+The GitHub repo is public, but `CLAUDE.md` had accumulated host addresses, reverse-proxy
+topology, service endpoints and a "security posture" section listing the deployment's
+hardening gaps — effectively a map plus a weakness inventory, including a pointer to the
+commit where the password had leaked.
+
+- Moved Authentication, Environment variables, External dependencies, Hosting & migration
+  and Security posture into **`CLAUDE.local.md`**, which is now gitignored. `CLAUDE.md`
+  keeps the genuinely public content (export geometry, ffmpeg layout, tab behaviour,
+  Library/LED Preview architecture) plus a pointer to the local file.
+- Scrubbed the same class of detail from `CHANGELOG.md` and `README.md` — host addresses,
+  proxy product name, and the leak-commit reference — keeping each entry's meaning.
+- `TEAMSCRAPER_BASE` no longer hardcodes a host: the value moved to `.env` (gitignored,
+  documented in `.env.example`), compose reads it as a required var like `APP_PASSWORD`,
+  and `app.py`'s fallback default is now `http://localhost:5020`. Verified after rebuild
+  that the container resolves the right URL and Players "Pick team" still works.
+- **This only stops future exposure.** Everything already pushed remains in git history
+  and in existing clones — which is why rotating the password still matters.
+
+---
+
 ## Security audit — 2026-09-11 (no code changes)
 
 Checked against a vulnerability found in the sibling SportEventTV app:
@@ -11,9 +33,9 @@ Checked against a vulnerability found in the sibling SportEventTV app:
 - **Flask debug mode: already off** — `debug=False`, container log confirms `Debug mode: off`, no `Debugger is active!`. ledmerger was never affected; no fix needed.
 - No flask-socketio anywhere, so the `allow_unsafe_werkzeug` trap is N/A.
 - No reloader double-start: single process, single startup banner.
-- Confirmed traffic arrives from the swag proxy on another host (`192.168.0.140`), so binding to `127.0.0.1` would break the public site — documented in CLAUDE.md as a don't.
+- Confirmed traffic arrives via the reverse proxy on a separate host, so binding to `127.0.0.1` would break the public site — documented in `CLAUDE.local.md` as a don't.
 - Documented that gunicorn would require `--workers 1`, because the in-memory `jobs` dict backing `/api/status/<job_id>` isn't shared across workers.
-- Logged accepted gaps (root container, no cap_drop/no-new-privileges/read_only, `0.0.0.0` port binding).
+- Logged the remaining hardening gaps in `CLAUDE.local.md` (kept out of this public repo).
 
 ### Corrected a documentation error
 
@@ -23,7 +45,7 @@ Checked against a vulnerability found in the sibling SportEventTV app:
 
 ## Security — 2026-09-11 (no code changes)
 
-- Removed the literal `APP_PASSWORD` value from `CLAUDE.md`, which is a tracked file in this **public** repo — it had been committed in `4bce7c5` and publicly readable on GitHub since (verified via anonymous fetch of the raw file). Replaced with a pointer to `.env` plus an explicit warning not to write the value into tracked files again.
+- Removed the literal `APP_PASSWORD` value from `CLAUDE.md`, which is a tracked file in this **public** repo — it had been committed earlier and was publicly readable on GitHub (verified via anonymous fetch of the raw file). Replaced with a pointer to `.env` plus an explicit warning not to write the value into tracked files again.
 - Note: removing it here does not un-publish it — it remains in GitHub history at that commit. The password is being rotated separately.
 
 ---
@@ -183,7 +205,7 @@ Checked against a vulnerability found in the sibling SportEventTV app:
 ## Documentation — 2026-08-24 (no code changes)
 
 - Documented server-side auth, `APP_PASSWORD`/`.env`, the `data/library/.secret_key` session secret, and all env vars in `CLAUDE.md` and `README.md`.
-- Added a **Hosting & migration checklist** to `CLAUDE.md` ahead of moving the container from 192.168.0.140 to a new host (192.168.0.150): what to copy (`data/library` is the irreplaceable content), the `.env`/secret-key to recreate, the teamscraper dependency (`192.168.0.140:5020`), and the swag reverse-proxy repoint (swag config lives outside this repo).
+- Added a **Hosting & migration checklist** to `CLAUDE.md` ahead of moving the container to a new host: what to copy (`data/library` is the irreplaceable content), the `.env`/secret-key to recreate, the teamscraper dependency, and the reverse-proxy repoint (proxy config lives outside this repo).
 - Noted that templates are baked into the image (production disables auto-reload) so every change needs `--build`.
 - Recorded discussed-but-unbuilt ideas in `ROADMAP.md`: arena/LED preview for library files, and saving the arena preview.
 
@@ -230,9 +252,9 @@ Checked against a vulnerability found in the sibling SportEventTV app:
 ## [0.367] - 2026-07-05
 
 ### Fixed — public site outage (Cloudflare 520/521)
-- The auth added in 0.365 made logged-out page loads fire six 401 API calls, which swag's fail2ban read as an attack — it banned Cloudflare edge IPs, taking the public site down while LAN access kept working
+- The auth added in 0.365 made logged-out page loads fire six 401 API calls, which the reverse proxy's fail2ban read as an attack — it banned the CDN's edge IPs, taking the public site down while LAN access kept working
 - Frontend now skips all data loading until logged in (page reloads with a session after login), so logged-out visits produce zero 401s
-- Infra (outside repo): unbanned the Cloudflare IPs and added Cloudflare's published IPv4 ranges to fail2ban's `ignoreip` in swag, so edge IPs can never be banned again
+- Infra (outside repo): unbanned those IPs and added the CDN's published IPv4 ranges to fail2ban's `ignoreip`, so edge IPs can never be banned again
 
 ---
 
@@ -281,7 +303,7 @@ Checked against a vulnerability found in the sibling SportEventTV app:
 - Login overlay on page load (added late April, never changelogged) — note: client-side gate only, not real security
 
 ### Housekeeping
-- `TEAMSCRAPER_BASE` now configurable via environment variable (docker-compose), defaults to `http://192.168.0.140:5020`
+- `TEAMSCRAPER_BASE` now configurable via environment variable (docker-compose), defaults to the teamscraper host/port
 - Version aligned across README / CLAUDE.md / index.html (were 0.36 / 0.361 mixed)
 - Removed stray `{templates,uploads,outputs}` directory (shell brace-expansion typo)
 - `.claude/` added to .gitignore; completed roadmap item removed from ROADMAP.md

@@ -21,3 +21,7 @@ data/**
 
 # Secrets
 .env
+
+# Local operational context — host IPs, topology, security posture.
+# Repo is public; this must never be committed.
+CLAUDE.local.md

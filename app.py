@@ -511,7 +511,7 @@ def layout_image():
     abort(404)
 
 
-TEAMSCRAPER_BASE = os.environ.get("TEAMSCRAPER_BASE", "http://192.168.0.140:5020")
+TEAMSCRAPER_BASE = os.environ.get("TEAMSCRAPER_BASE", "http://localhost:5020")
 
 @app.route("/api/scheduler-teams")
 def scheduler_teams():
