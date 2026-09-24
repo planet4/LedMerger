@@ -21,6 +21,7 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 - Rosters come straight from the innebandy.se API; Pixbo teams only, same order and response shape as before.
 - Last good roster per team is cached and shown if innebandy.se is unreachable.
 - `TEAMSCRAPER_BASE` removed from `docker-compose.yml` and `.env.example`.
+- Public hostname removed from an old changelog entry (repo is public).
 
 ---
 
@@ -262,7 +263,7 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 ## [0.365] - 2026-07-05
 
 ### Security — server-side authentication
-- All routes except `/` and `/api/login` now require a logged-in Flask session — previously every API endpoint (including library delete and uploads) was open; only the browser checked the password, which was unsafe with the app exposed at ledmerger.planet4.nu
+- All routes except `/` and `/api/login` now require a logged-in Flask session — previously every API endpoint (including library delete and uploads) was open; only the browser checked the password, which was unsafe with the app reachable from the internet
 - New `/api/login` endpoint sets a 90-day session cookie; login overlay now authenticates against the server and no longer contains the password in page source
 - Password configurable via `APP_PASSWORD` env var (docker-compose); session secret from `SECRET_KEY` env var or auto-generated key persisted in the library volume
 - Rename/delete password prompts now validate against the server instead of a hardcoded string
