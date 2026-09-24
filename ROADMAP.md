@@ -18,6 +18,16 @@ Ideas and planned improvements for LedMerger. No fixed timeline — just a place
 - **Stacked preview before download** — currently individual clips are previewable but not the combined stacked export
 - **Batch progress per player** — single progress bar covers all players; per-player status would be clearer for large batches
 - **Batch mode doesn't render individual per-display clips** — unlike single-generate/Custom, batch (both combined and per-player) never saves the 5 per-display source clips, so batch-saved library files always hit LED Preview's slower extraction fallback instead of getting an instant sidecar at save time. Would need `lineup_batch_worker` changes to copy those clips per player the way `lineup_generate`/`custom_generate` already do.
+- **Pick team without teamscraper** — fetch Pixbo rosters directly from the innebandy JSON API instead of proxying teamscraper, so Pick team keeps working when teamscraper is down. **Pixbo teams only.** Rough plan:
+  - Only `/api/scheduler-teams` and `/api/scheduler-roster/<id>` in `app.py` change. Keep their response shape (`team_id`, `team_name`, `players[].number/name`) so the frontend needs no changes.
+  - **Teams come and go during the year**, so the team list must not need a code change or rebuild. Either a JSON file under `data/library/` (id + display name), or auto-discovery through the Pixbo associations (`/seasons/<s>/associations/<id>/teams`, cached) with display-name overrides. The API's own names are unusable for some teams: Herr and Dam are both just "Pixbo IBK". Only accept team IDs from that list.
+  - Season is set by hand each autumn through an env var (e.g. `INNEBANDY_SEASON`). No rebuild needed.
+  - Token from the `startkit` endpoint, valid 30 min. Cache it with a lock.
+  - Re-sort to match today's order: no number first, then number, then name.
+  - Player exclusions go in a gitignored data file, never in code.
+  - Store the last good roster per team under `data/library/`, not `outputs/` (wiped nightly). Serve it when the API fails.
+  - Before switching, diff the new routes against teamscraper for every team. Expected difference: the scraper appends a captain "K" to some names, and the API doesn't.
+  - Then remove `TEAMSCRAPER_BASE`. The API is unofficial, so keep calls low (live on click is fine).
 
 ---
 
