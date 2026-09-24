@@ -511,27 +511,121 @@ def layout_image():
     abort(404)
 
 
-TEAMSCRAPER_BASE = os.environ.get("TEAMSCRAPER_BASE", "http://localhost:5020")
+# ── Pick team: Pixbo rosters straight from the innebandy.se JSON API ─────────
+# Unofficial API (the one stats.innebandy.se itself uses) — no open API exists
+# and it may change without notice, so it is only called when someone picks a
+# team, and the last good roster per team is kept as a fallback.
+# Only Pixbo teams: team IDs must be in the list below (or pixbo_teams.json),
+# and the API's answer must be a Pixbo team.
+INNEBANDY_SEASON  = "44"   # 2026/27. Change by hand each autumn (in testing the
+                           # season in the URL did not change the returned squad).
+_INNEBANDY_STARTKIT = "https://api.innebandy.se/StatsAppApi/api/startkit"
+_INNEBANDY_HDR = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept":     "application/json",
+    "Origin":     "https://stats.innebandy.se",
+    "Referer":    "https://stats.innebandy.se/",
+}
+# Display names are ours: the API calls both Herr and Dam just "Pixbo IBK".
+_DEFAULT_PIXBO_TEAMS = [
+    {"team_id": "2813",   "team_name": "Pixbo IBF Damakademi"},
+    {"team_id": "2837",   "team_name": "Pixbo IBF Div.3A"},
+    {"team_id": "117347", "team_name": "Pixbo IBF Div.3B"},
+    {"team_id": "4642",   "team_name": "Pixbo IBF Div.H2"},
+    {"team_id": "124039", "team_name": "Pixbo IBF F12"},
+    {"team_id": "13270",  "team_name": "Pixbo IBF HJ"},
+    {"team_id": "8940",   "team_name": "Pixbo IBF Herrakademi"},
+    {"team_id": "121724", "team_name": "Pixbo IBF P11"},
+    {"team_id": "124037", "team_name": "Pixbo IBF P12"},
+    {"team_id": "20666",  "team_name": "Pixbo IBF USM F16"},
+    {"team_id": "120038", "team_name": "Pixbo IBF Utveckling"},
+    {"team_id": "3294",   "team_name": "Pixbo IBK Dam"},
+    {"team_id": "4081",   "team_name": "Pixbo IBK Herr"},
+]
+PIXBO_TEAMS_FILE    = LIBRARY_DIR / "pixbo_teams.json"      # optional override, same shape
+ROSTER_EXCLUDED_FILE = LIBRARY_DIR / "roster_excluded.json"  # {team_id: [names]} — not in git
+ROSTER_CACHE_DIR    = LIBRARY_DIR / ".roster_cache"          # last good roster per team
+
+_innebandy_token = {"value": None, "root": None, "exp": 0.0}
+_innebandy_lock  = threading.Lock()
+
+def _pixbo_teams():
+    """Team list from pixbo_teams.json if present (edit without a rebuild),
+    else the built-in list."""
+    if PIXBO_TEAMS_FILE.exists():
+        try:
+            data = json.loads(PIXBO_TEAMS_FILE.read_text())
+            teams = [{"team_id": str(t["team_id"]).strip(), "team_name": str(t["team_name"]).strip()}
+                     for t in data if str(t.get("team_id", "")).strip()]
+            if teams:
+                return teams
+        except Exception as e:
+            print(f"pixbo_teams.json unreadable, using built-in list: {e}", flush=True)
+    return _DEFAULT_PIXBO_TEAMS
+
+def _innebandy_get(path):
+    """GET an innebandy API path with a cached 30-min token. The API root comes
+    from startkit's apiRoot (it moved to /v2/api/public/ in Sept 2026)."""
+    import urllib.request as _ur
+    with _innebandy_lock:
+        if not _innebandy_token["value"] or _time.time() >= _innebandy_token["exp"]:
+            with _ur.urlopen(_ur.Request(_INNEBANDY_STARTKIT, headers=_INNEBANDY_HDR), timeout=10) as r:
+                d = json.load(r)
+            _innebandy_token["value"] = d["accessToken"]
+            _innebandy_token["root"]  = (d.get("apiRoot") or "https://api.innebandy.se/v2/api/public/").rstrip("/")
+            _innebandy_token["exp"]   = _time.time() + 25 * 60   # refresh a bit early
+        token, root = _innebandy_token["value"], _innebandy_token["root"]
+    req = _ur.Request(root + path, headers={**_INNEBANDY_HDR, "Authorization": "Bearer " + token})
+    with _ur.urlopen(req, timeout=10) as r:
+        return json.load(r)
+
+def _roster_sort_key(p):
+    # Same order teamscraper's files had: no number first, then number, then name
+    n = p["number"]
+    return (n is not None, n if isinstance(n, int) else 0, p["name"])
 
 @app.route("/api/scheduler-teams")
 def scheduler_teams():
-    # Lists the stored roster files (roster_*.json) — these are the up-to-date
-    # rosters, not the schedule feed. Each item has team_id / team_name / url.
-    import urllib.request as _ur
-    try:
-        with _ur.urlopen(f"{TEAMSCRAPER_BASE}/roster-scheduler/files", timeout=5) as r:
-            return jsonify(json.loads(r.read().decode()))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify(_pixbo_teams())
 
 @app.route("/api/scheduler-roster/<team_id>")
 def scheduler_roster(team_id):
-    import urllib.request as _ur
+    team = next((t for t in _pixbo_teams() if t["team_id"] == team_id), None)
+    if not team:
+        return jsonify({"error": "Not a Pixbo team"}), 404
+    cache = ROSTER_CACHE_DIR / f"{team_id}.json"
     try:
-        with _ur.urlopen(f"{TEAMSCRAPER_BASE}/roster/{team_id}.json", timeout=5) as r:
-            return jsonify(json.loads(r.read().decode()))
+        data = _innebandy_get(f"/seasons/{INNEBANDY_SEASON}/teams/{team_id}")
+        if "pixbo" not in (data.get("Name") or "").lower():
+            return jsonify({"error": "Not a Pixbo team"}), 404
+        excluded = set()
+        if ROSTER_EXCLUDED_FILE.exists():
+            try:
+                excluded = {str(n).strip().lower() for n in json.loads(ROSTER_EXCLUDED_FILE.read_text()).get(team_id, [])}
+            except Exception as e:
+                print(f"roster_excluded.json unreadable: {e}", flush=True)
+        players = []
+        for p in data.get("Players") or []:
+            name = " ".join((p.get("Name") or "").split())
+            if not name or name.lower() in excluded:
+                continue
+            num = p.get("ShirtNo")
+            players.append({"number": num if isinstance(num, int) else None, "name": name})
+        players.sort(key=_roster_sort_key)
+        out = {"team_name": team["team_name"], "players": players}
+        try:
+            ROSTER_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            cache.write_text(json.dumps(out, ensure_ascii=False))
+        except Exception as e:
+            print(f"roster cache write failed: {e}", flush=True)
+        return jsonify(out)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"innebandy API failed for team {team_id}: {e}", flush=True)
+        if cache.exists():
+            out = json.loads(cache.read_text())
+            out["stale"] = True
+            return jsonify(out)
+        return jsonify({"error": f"Roster service unavailable ({e})"}), 502
 
 
 @app.route("/api/assets/fonts")

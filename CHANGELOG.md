@@ -14,6 +14,16 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.408] - 2026-09-24
+
+### Players — Pick team no longer needs teamscraper
+
+- Rosters come straight from the innebandy.se API; Pixbo teams only, same order and response shape as before.
+- Last good roster per team is cached and shown if innebandy.se is unreachable.
+- `TEAMSCRAPER_BASE` removed from `docker-compose.yml` and `.env.example`.
+
+---
+
 ## [0.407] - 2026-09-24
 
 ### Readable on a phone

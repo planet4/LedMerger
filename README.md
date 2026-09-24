@@ -1,4 +1,4 @@
-# LedMerger — Pixbo LED Rink Content Creator v0.407
+# LedMerger — Pixbo LED Rink Content Creator v0.408
 
 A web-based tool for creating and merging LED rink content for Wallenstam Arena (Pixbo Floorball). Produces stacked MP4 files compatible with the Sedna LED controller.
 
@@ -98,8 +98,9 @@ Then hard refresh the browser (Ctrl+Shift+R).
 
 The app requires a login (server-side session). The password is set via the `APP_PASSWORD` environment variable, kept in a gitignored `.env` file (see `.env.example`) — the repo is public, so the password is **not** committed. Other env vars in `docker-compose.yml`:
 
-- `TEAMSCRAPER_BASE` — base URL of the teamscraper service used by the Players "Pick team" feature. Set in `.env` (see `.env.example`); the deployment's actual host is not recorded in this repo.
 - `FLASK_ENV=production`.
+
+Players "Pick team" reads Pixbo rosters from the innebandy.se API. The team list is built into `app.py`; an optional `data/library/pixbo_teams.json` (`[{"team_id", "team_name"}]`) overrides it without a rebuild.
 
 The session secret is stored at `data/library/.secret_key` (auto-generated). Keep it across host moves so existing logins survive; losing it just forces a re-login.
 

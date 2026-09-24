@@ -13,5 +13,4 @@ services:
     restart: unless-stopped
     environment:
       - FLASK_ENV=production
-      - TEAMSCRAPER_BASE=${TEAMSCRAPER_BASE:?set in .env}
       - APP_PASSWORD=${APP_PASSWORD:?set in .env}

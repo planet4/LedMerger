@@ -20,7 +20,7 @@ Git history is permanent: committing a secret once means it stays readable at th
 forever, even after you delete the line. Removing it later does **not** un-publish it — the
 only real remedy is rotating the secret. This has already happened once in this repo.
 
-## Current version: 0.407
+## Current version: 0.408
 
 ## Critical — Export format
 The stacked export MUST always be exactly 1600×1200px, 50fps, h264/yuv420p.
@@ -83,6 +83,7 @@ This layout is handled by `build_stacked_export()` in app.py — never change th
   - formula: `base*(1+0.35*exp(-8*t)*cos(12*t))`
 - LED Preview button renders real clips at 25fps first, then opens preview
 - Export: stacked + all individual files
+- **Pick team** reads rosters straight from the unofficial innebandy.se JSON API (no teamscraper): `/api/scheduler-teams` + `/api/scheduler-roster/<id>` in app.py. **Pixbo teams only** — IDs must be in `_DEFAULT_PIXBO_TEAMS` (or `data/library/pixbo_teams.json`, which overrides it without a rebuild) and the API must return a Pixbo team. The API root comes from startkit's `apiRoot` (it moved once already, Sept 2026). `INNEBANDY_SEASON` is set by hand each autumn. Optional `data/library/roster_excluded.json` (`{team_id: [names]}`, never in git — it holds real names) hides players. The last good roster per team is cached in `data/library/.roster_cache/` and served (marked stale) if the API fails.
 - **Batch mode** (multi-player): combined-batch output is named from the team (`batch_<team>_<jobid>.mp4`) — "Pick team" sends `team_name` explicitly in the request (preferred), falling back to scanning `players[0]` for the `{number:'PIXBO', name:<team>}` sentinel row convention (also used by CSV import) for older callers, then to the first couple of player names. Batch mode does **not** render individual per-display clips (unlike single-generate/Custom), so batch-saved library files always hit LED Preview's extraction fallback rather than getting instant sidecars — see ROADMAP.
 
 ## Library tab
