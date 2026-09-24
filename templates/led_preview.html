@@ -138,7 +138,7 @@ const ROWS = [
 // Pixel display scale — CSS zoom makes pixels visible without slow JS loop
 const ZOOM_PX = 5; // each LED pixel = 5x5 CSS pixels
 
-let scale=1, arenaScale=1, glow=false, grid=false, lightsOff=false;
+let scale=1, arenaScale=1, glow=false, grid=false, lightsOff=true;
 let mode='arena'; // 'arena' | 'merged' | 'separate'
 const SPEEDS=[1,1.5,2,3,4,0.5];
 let speedIdx=0;
@@ -466,6 +466,7 @@ function arenaLoop() {
 }
 
 async function init(){
+  document.getElementById('bLights').classList.toggle('on',lightsOff);
   buildVideos(); buildStage(); loop();
   await Promise.all(DISPLAYS.map(d=>new Promise(res=>{
     const v=vids[d.id]; if(!v){res();return;}

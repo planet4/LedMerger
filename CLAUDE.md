@@ -20,7 +20,7 @@ Git history is permanent: committing a secret once means it stays readable at th
 forever, even after you delete the line. Removing it later does **not** un-publish it — the
 only real remedy is rotating the secret. This has already happened once in this repo.
 
-## Current version: 0.405
+## Current version: 0.407
 
 ## Critical — Export format
 The stacked export MUST always be exactly 1600×1200px, 50fps, h264/yuv420p.

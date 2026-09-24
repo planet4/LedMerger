@@ -114,6 +114,22 @@ tailwind.config = {
   .text-gray-300        { color:var(--tx-muted) !important; }
 
   /* Light-mode extras */
+
+  /* File Merger upload row: name | drop zone | status. A class, not an inline
+     style, so the phone block below can restack it. */
+  .upload-row { grid-template-columns:185px 1fr 100px; }
+
+  /* ── Phone (below Tailwind's sm: breakpoint). Desktop layout is unchanged. ── */
+  @media (max-width:639px) {
+    .tab-bar  { width:100%; }
+    .tab-pill { flex:1; padding:6px 2px; letter-spacing:0.02em; white-space:nowrap; }
+    .section-header { flex-wrap:wrap; gap:8px; padding:12px 16px; }
+    /* Name + status on the first line, drop zone full width below */
+    .upload-row { grid-template-columns:1fr auto; }
+    .upload-row .upload-drop { grid-column:1 / -1; order:1; }
+    /* Output + library file rows: filename gets its own line instead of "st…" */
+    .file-name { flex-basis:100% !important; }
+  }
 </style>
 </head>
 <body class="text-gray-200 min-h-screen">
@@ -158,7 +174,7 @@ tailwind.config = {
      whatever folder they were last used with; one shared input keeps that
      memory consistent across every slot. -->
 <input type="file" id="sharedUploadInput" accept=".mp4,.mov,.avi,.gif,.png,.jpg,.jpeg" class="hidden">
-<div class="relative z-10 max-w-4xl mx-auto px-5 py-8">
+<div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-5 py-5 sm:py-8">
 
   <!-- HEADER -->
   <header class="flex items-center gap-4 pb-5 mb-6 border-b border-[#2E2E3A]">
@@ -168,20 +184,20 @@ tailwind.config = {
       <div style="display:none" class="w-full h-full items-center justify-center font-bold text-2xl text-[#CC1020]">P</div>
     </div>
     <div class="flex-1">
-      <h1 class="text-4xl font-black tracking-widest uppercase text-white red-glow leading-none">LED MERGER</h1>
-      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.405 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
+      <h1 class="text-3xl sm:text-4xl font-black tracking-widest uppercase text-white red-glow leading-none sm:leading-none">LED MERGER</h1>
+      <p class="font-mono text-xs text-[#888] mt-1">Pixbo LED Rink Content Creator v0.407 &nbsp;·&nbsp; <a href="https://github.com/planet4/LedMerger" target="_blank" class="hover:text-[#CC1020] transition-colors">GitHub</a> &nbsp;·&nbsp; Questions: <a href="mailto:fredrik@planet4.se" class="hover:text-[#CC1020] transition-colors">fredrik@planet4.se</a></p>
     </div>
   </header>
 
   <!-- TABS -->
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
     <div class="tab-bar" style="margin-bottom:0">
       <button onclick="switchTab('merge')" id="tab-merge" class="tab-pill tab-active">File Merger</button>
       <button onclick="switchTab('lineup')" id="tab-lineup" class="tab-pill">Players</button>
       <button onclick="switchTab('custom')" id="tab-custom" class="tab-pill">Custom</button>
       <button onclick="switchTab('library')" id="tab-library" class="tab-pill">Library</button>
     </div>
-    <button onclick="openLayoutModal()" class="font-mono text-xs text-[#555] hover:text-[#CC1020] transition-colors flex items-center gap-1"><span class="material-icons-round" style="font-size:15px">grid_on</span> Arena layout</button>
+    <button onclick="openLayoutModal()" class="ml-auto font-mono text-xs text-[#555] hover:text-[#CC1020] transition-colors flex items-center gap-1"><span class="material-icons-round" style="font-size:15px">grid_on</span> Arena layout</button>
   </div>
 
   <!-- ══════════════ FILE MERGER ══════════════ -->
@@ -201,12 +217,12 @@ tailwind.config = {
       {% for d in displays %}
       <div class="border-b border-[#2E2E3A] last:border-b-0">
         <!-- Main upload row -->
-        <div class="grid items-center gap-3 px-5 py-3 hover:bg-white/[0.015]" style="grid-template-columns:185px 1fr 100px">
+        <div class="upload-row grid items-center gap-3 px-5 py-3 hover:bg-white/[0.015]">
           <div>
             <div class="font-semibold font-semibold text-sm text-gray-100 uppercase tracking-wide">{{ d.name }}</div>
             <div class="font-mono text-xs text-[#CC1020] mt-0.5">{{ d.width }} × {{ d.height }} px</div>
           </div>
-          <div class="relative border-2 border-dashed border-[#3C3C3C] rounded-md min-h-[42px] flex items-center px-3 cursor-pointer hover:border-[#CC1020]/60 hover:bg-[#CC1020]/5 transition-all"
+          <div class="upload-drop relative border-2 border-dashed border-[#3C3C3C] rounded-md min-h-[42px] flex items-center px-3 cursor-pointer hover:border-[#CC1020]/60 hover:bg-[#CC1020]/5 transition-all"
                id="drop-{{ d.id }}"
                onclick="triggerMainUpload({{ d.id }})"
                ondragover="event.preventDefault();this.classList.add('drop-active')"
@@ -581,41 +597,41 @@ tailwind.config = {
       </div>
       <div class="px-5 py-3 space-y-2">
         <!-- Longside Center (1728) -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Longside Center (1728px):</span>
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-full sm:w-52">Longside Center (1728px):</span>
           <select id="cuBgLibrary2" onchange="selectCustomBg(2, this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 min-w-0 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— select background —</option>
           </select>
         </div>
         <!-- Shortside (1344) -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Shortside (1344px):</span>
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-full sm:w-52">Shortside (1344px):</span>
           <select id="cuBgLibrary0" onchange="selectCustomBg(0, this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 min-w-0 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— select background —</option>
           </select>
         </div>
         <!-- Longside Left 576 -->
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Longside 576px (Left &amp; Right):</span>
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-full sm:w-52">Longside 576px (Left &amp; Right):</span>
           <select id="cuVariant576Left" onchange="selectCustom576Left(this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 min-w-0 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— black —</option>
           </select>
         </div>
         <!-- Longside Right 576 removed — uses same as Left -->
         <!-- Media 192 -->
-        <div class="flex items-center gap-2 border-t border-[#2E2E3A] pt-2">
-          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Media (192px):</span>
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 border-t border-[#2E2E3A] pt-2">
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-full sm:w-52">Media (192px):</span>
           <select id="cuMedia192Select" onchange="selectCustomMedia192(this.value)"
-            class="flex-1 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
+            class="flex-1 min-w-0 bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— black —</option>
           </select>
         </div>
         <!-- Font + Size + Color -->
         <div class="flex items-center gap-3 flex-wrap border-t border-[#2E2E3A] pt-2">
-          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Font:</span>
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-full sm:w-52">Font:</span>
           <select id="cuFontSelect" onchange="selectCustomFont(this.value)"
             class="flex-1 min-w-[180px] bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-3 py-2 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— loading… —</option>
@@ -632,7 +648,7 @@ tailwind.config = {
         </div>
         <!-- Presets -->
         <div class="flex items-center gap-2 flex-wrap border-t border-[#2E2E3A] pt-2">
-          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-52">Presets:</span>
+          <span class="font-mono text-xs text-[#888] whitespace-nowrap w-full sm:w-52">Presets:</span>
           <select id="cuPresetSelect" onchange="applyCuPresetFromDropdown(this.value)"
             class="flex-1 min-w-[160px] bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1.5 outline-none focus:border-[#CC1020] cursor-pointer">
             <option value="">— select preset —</option>
@@ -663,7 +679,7 @@ tailwind.config = {
         {% for did, dlabel in cu_displays %}
         <div class="border border-[#2E2E3A] rounded-xl overflow-hidden">
           <div class="bg-[#1E1E26] px-4 py-2 font-mono text-xs text-[#555] uppercase tracking-widest">{{ dlabel }}</div>
-          <div id="cu-slots-grid-{{ did }}" class="grid grid-cols-3 gap-px bg-[#2E2E3A]">
+          <div id="cu-slots-grid-{{ did }}" class="grid grid-cols-2 sm:grid-cols-3 gap-px bg-[#2E2E3A]">
             {% for si in range(7) %}
             <div id="cu-slot-col-{{ did }}-{{ si }}" class="bg-[#22222A] p-3 space-y-1.5{% if si >= 3 %} hidden{% endif %}">
               <div class="font-mono text-[10px] text-[#555] uppercase">Slot {{ si+1 }}</div>
@@ -2007,7 +2023,7 @@ async function buildOutputFileRow(fname, label, showSave, individual) {
   const statId = `outStat_${uid}`;
 
   row.innerHTML = `
-    <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0" id="outLabel_${uid}">${label}</span>
+    <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0 file-name" id="outLabel_${uid}">${label}</span>
     ${durTxt}${sizeTxt}
     ${showSave ? `<select id="${catId}" class="cat-select bg-[#1E1E26] border border-[#2E2E3A] rounded font-mono text-xs text-gray-200 px-2 py-1 outline-none focus:border-[#CC1020]" data-exclude-non-stacked="1" onchange="onCatSelectChange(this)">${_catOptsHtml(null, true)}</select>` : ''}
     <button class="icon-btn" title="Preview" onclick="previewOutputFile('${fname}')"><span class="material-icons-round">play_arrow</span></button>
@@ -2703,7 +2719,7 @@ async function loadLibrary() {
       el.innerHTML = files.map(f => `
         <div class="py-2 border-b border-[#2E2E3A] last:border-0 space-y-1.5">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0">${f.name}</span>
+            <span class="font-mono text-xs text-[var(--tx-main)] truncate flex-1 min-w-0 file-name">${f.name}</span>
             ${f.duration != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${Math.floor(f.duration/60)}:${String(f.duration%60).padStart(2,'0')}</span>` : ''}
             ${f.size != null ? `<span class="font-mono text-xs text-[#555] whitespace-nowrap">${(f.size/1024/1024).toFixed(1)} MB</span>` : ''}
             <select onchange="onCatSelectChange(this, () => libChangeCategory('${cat}','${f.name}',this))"

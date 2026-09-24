@@ -14,6 +14,23 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 ---
 
+## [0.407] - 2026-09-24
+
+### Readable on a phone
+
+- Page no longer overflows below 640px (tab bar was 475px wide, so phones zoomed out); desktop layout pixel-identical.
+- Phone only: tabs fill the width, upload drop zones and Custom background selects go full width, Custom slots in two columns, file names on their own line.
+
+---
+
+## [0.406] - 2026-09-18
+
+### LED Preview — LIGHTS OFF is now on by default
+
+- Arena View opens with the arena photo dimmed; toggle it back on with the button or `L`.
+
+---
+
 ## [0.405] - 2026-09-02
 
 ### LED Preview — LIGHTS OFF for Arena View
