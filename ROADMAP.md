@@ -15,7 +15,6 @@ Ideas and planned improvements for LedMerger. No fixed timeline — just a place
 ## Players tab
 
 - **CSV / spreadsheet import** — accept CSV export from Excel or Google Sheets for batch import, more practical for team staff
-- **Stacked preview before download** — currently individual clips are previewable but not the combined stacked export
 - **Batch progress per player** — single progress bar covers all players; per-player status would be clearer for large batches
 - **Batch mode doesn't render individual per-display clips** — unlike single-generate/Custom, batch (both combined and per-player) never saves the 5 per-display source clips, so batch-saved library files always hit LED Preview's slower extraction fallback instead of getting an instant sidecar at save time. Would need `lineup_batch_worker` changes to copy those clips per player the way `lineup_generate`/`custom_generate` already do.
 - **Pick team without teamscraper** — fetch Pixbo rosters directly from the innebandy JSON API instead of proxying teamscraper, so Pick team keeps working when teamscraper is down. **Pixbo teams only.** Rough plan:
@@ -43,7 +42,6 @@ Ideas and planned improvements for LedMerger. No fixed timeline — just a place
 
 - **Auto-named output files** — Players (single + batch) and Custom already name outputs from player/team name; File Merger's stacked output is still a bare `sedna_stacked_<uuid>.mp4` with no way to know what it is without opening it
 - **Output file TTL** — `_daily_cleanup` (app.py) wipes `data/outputs`/`data/uploads` entirely at midnight, so anything generated but not saved to the Library is lost overnight, and a long session running past midnight can have files vanish mid-use. A longer TTL (e.g. delete older than 48h rather than everything) or a "keep" flag would prevent accidental loss.
-- **Mobile / tablet layout** — the UI is desktop-only; a basic responsive layout for use in the arena on a tablet
 
 ---
 

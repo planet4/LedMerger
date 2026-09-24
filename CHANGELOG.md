@@ -20,6 +20,7 @@ Version scheme: `0.1` = initial, `0.11` / `0.12` = incremental updates, `0.2` = 
 
 - Page no longer overflows below 640px (tab bar was 475px wide, so phones zoomed out); desktop layout pixel-identical.
 - Phone only: tabs fill the width, upload drop zones and Custom background selects go full width, Custom slots in two columns, file names on their own line.
+- ROADMAP: removed the mobile layout item and the stale "stacked preview" item (output rows already preview the stacked file).
 
 ---
 
